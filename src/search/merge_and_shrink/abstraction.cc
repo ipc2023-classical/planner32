@@ -816,6 +816,18 @@ string AtomicAbstraction::description() const {
     return s.str();
 }
 
+string AtomicAbstraction::description(int s) const{
+  stringstream ss;
+  ss << "(";
+  for (int i = 0; i < lookup_table.size(); i++){
+    if(s == lookup_table[i]){
+      ss << g_fact_names[variable] [i];
+    }
+  }
+  ss << ")";
+  return ss.str();
+}
+
 string CompositeAbstraction::description() const {
     ostringstream s;
     s << "abstraction (" << varset.size() << "/"

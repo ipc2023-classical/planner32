@@ -90,6 +90,11 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/shrink_random.h \
            merge_and_shrink/shrink_strategy.h \
            merge_and_shrink/variable_order_finder.h \
+           merge_and_shrink/simulation_relation.h \
+           merge_and_shrink/simulation_heuristic.h \
+           merge_and_shrink/label_relation.h \
+           merge_and_shrink/labelled_transition_system.h \
+
 
 HEADERS += landmarks/exploration.h \
            landmarks/h_m_landmarks.h \
@@ -186,8 +191,9 @@ DEPEND = g++ -MM
 
 CCOPT = -Iext
 CCOPT += -g
-CCOPT += -m32
-CCOPT += -Wall -W -Wno-sign-compare -Wno-deprecated -ansi -pedantic -Werror
+CCOPT += -m32 
+CCOPT += -std=c++11 # -ansi
+CCOPT += -Wall -W -Wno-sign-compare -Wno-deprecated -pedantic -Werror
 
 ## The following lines contain workarounds for bugs when
 ## cross-compiling to 64 bit on 32-bit systems using gcc 4.4 or gcc

@@ -112,6 +112,11 @@ public:
     virtual std::string description() const = 0;
     std::string tag() const;
 
+    //Returns a description of the abstract state 
+    virtual std::string description(int s) const{
+      return "" + s;
+    }
+
     static void build_atomic_abstractions(std::vector<Abstraction *> &result,
                                           Labels *labels);
     bool is_solvable() const;
@@ -167,6 +172,15 @@ public:
     const std::vector<int> &get_varset() const {
         return varset;
     }
+
+    const std::vector <bool> & get_goal_states() const {
+      return goal_states;
+    }
+
+    const std::vector <bool> & get_relevant_labels() const {
+      return relevant_labels;
+    }
+
 };
 
 class AtomicAbstraction : public Abstraction {
@@ -174,6 +188,7 @@ class AtomicAbstraction : public Abstraction {
     std::vector<AbstractStateRef> lookup_table;
 protected:
     virtual std::string description() const;
+    virtual std::string description(int s) const;
     virtual void apply_abstraction_to_lookup_table(
         const std::vector<AbstractStateRef> &abstraction_mapping);
     virtual AbstractStateRef get_abstract_state(const State &state) const;
