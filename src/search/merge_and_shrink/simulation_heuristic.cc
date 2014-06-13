@@ -17,8 +17,14 @@
 using namespace std;
 
 SimulationHeuristic::SimulationHeuristic(const Options &opts)
-    : Heuristic(opts) {
+  : Heuristic(opts), vars(new SymVariables()), mgrParams(opts) {
     labels = new Labels(is_unit_cost_problem(), opts, cost_type);
+    vector <int> var_order; 
+    for(int i = 0; i < g_variable_name.size(); i++){
+      var_order.push_back(i);
+    }
+    vars->init(var_order, mgrParams);
+    mgrParams.print_options();
 }
 
 SimulationHeuristic::~SimulationHeuristic() {
@@ -52,7 +58,7 @@ void SimulationHeuristic::initialize() {
     }
     
     cout << "Computing simulation..." << endl;
-    SimulationRelation::compute_label_dominance_simulation(lts, labels, simulations);
+    SimulationRelation::compute_label_dominance_simulation(lts, labels, vars.get(), simulations);
 
     cout << "Done initializing simulation heuristic [" << timer << "]"
          << endl;
@@ -65,11 +71,22 @@ void SimulationHeuristic::initialize() {
       delete l;
     }
 
-    exit(0);
+    //exit(0);
+    closed = vars->zeroBDD();
 }
 
-
-int SimulationHeuristic::compute_heuristic(const State &/*state*/) {
+int SimulationHeuristic::compute_heuristic(const State & state) {
+  //a) Check if state is in the BDD
+  BDD sBDD = vars->getStateBDD(state);
+  if (!(sBDD*closed).IsZero()){
+    return DEAD_END;
+  }
+  //b) Insert state and other states dominated by it
+  BDD res = vars->oneBDD();
+  for (auto sim : simulations){
+    res *= sim->getSimulatedBDD(state);
+  }
+  closed += res;
   return 0;
 }
 
@@ -132,6 +149,8 @@ static Heuristic *_parse(OptionParser &parser) {
                             "false");
 
     Heuristic::add_options_to_parser(parser);
+    SymParamsMgr::add_options_to_parser(parser);
+
     Options opts = parser.parse();
 
     if (parser.dry_run()) {

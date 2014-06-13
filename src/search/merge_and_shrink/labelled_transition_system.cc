@@ -4,9 +4,8 @@
 
 using namespace std;
 
-LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * abs) : 
-  num_states(abs->size()),
-  goal_states(abs->get_goal_states()){
+LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs) : 
+  abs(_abs),  num_states(_abs->size()),goal_states(_abs->get_goal_states()){
 
   const vector<bool> is_rel_label (abs->get_relevant_labels());
 

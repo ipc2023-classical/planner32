@@ -5,6 +5,8 @@
 
 #include "../utilities.h"
 
+#include "../sym/sym_variables.h"
+
 #include <ext/slist>
 #include <vector>
 
@@ -97,8 +99,7 @@ class Abstraction {
     int unique_unlabeled_transitions() const;
 protected:
     std::vector<int> varset;
-
-    virtual AbstractStateRef get_abstract_state(const State &state) const = 0;
+    
     virtual void apply_abstraction_to_lookup_table(const std::vector<
                                                        AbstractStateRef> &abstraction_mapping) = 0;
     virtual int memory_estimate() const;
@@ -181,6 +182,8 @@ public:
       return relevant_labels;
     }
 
+    virtual AbstractStateRef get_abstract_state(const State &state) const = 0;
+    virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
 };
 
 class AtomicAbstraction : public Abstraction {
@@ -191,11 +194,13 @@ protected:
     virtual std::string description(int s) const;
     virtual void apply_abstraction_to_lookup_table(
         const std::vector<AbstractStateRef> &abstraction_mapping);
-    virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual int memory_estimate() const;
 public:
     AtomicAbstraction(Labels *labels, int variable);
     virtual ~AtomicAbstraction();
+
+    virtual AbstractStateRef get_abstract_state(const State &state) const;
+    virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
 };
 
 class CompositeAbstraction : public Abstraction {
@@ -205,11 +210,13 @@ protected:
     virtual std::string description() const;
     virtual void apply_abstraction_to_lookup_table(
         const std::vector<AbstractStateRef> &abstraction_mapping);
-    virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual int memory_estimate() const;
 public:
     CompositeAbstraction(Labels *labels, Abstraction *abs1, Abstraction *abs2);
     virtual ~CompositeAbstraction();
+
+    virtual AbstractStateRef get_abstract_state(const State &state) const;
+    virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
 };
 
 #endif

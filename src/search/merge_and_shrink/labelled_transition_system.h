@@ -25,6 +25,7 @@ class LTSTransition {
 
 //Alvaro: Class added to implement the simple simulation
 class LabelledTransitionSystem {
+  Abstraction * abs;
 
   int num_states;
   std::vector <bool> goal_states;
@@ -78,6 +79,10 @@ class LabelledTransitionSystem {
   
   const std::vector<int> & get_relevant_labels() const {
     return relevant_labels;
+  }
+
+  inline const Abstraction * get_abstraction() const {
+    return abs;
   }
 };
 

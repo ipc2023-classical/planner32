@@ -108,9 +108,10 @@ class LabelRelation {
       for(auto tr : lts->get_transitions_label(l2)){
 	if (simulated_by_irrelevant[l2][i] && 
 	    !sim->simulates(tr.src, tr.target)) {
-	  set_not_simulated_by_irrelevant(l2, i);
+	  changes |= set_not_simulated_by_irrelevant(l2, i);
 	  for (int l : lts->get_irrelevant_labels()){
 	    if(simulates(l, l2, i)){
+	      changes = true;
 	      set_not_simulates(l, l2, i);
 	    }
 	  }
@@ -130,8 +131,9 @@ class LabelRelation {
 	    simulates_irrelevant[l2][i] = false;
 	    for (int l : lts->get_irrelevant_labels()){
 	      if(simulates(l2, l, i)){
-		  set_not_simulates(l2, l, i);
-		}
+		set_not_simulates(l2, l, i);
+		changes = true;
+	      }
 	    }
 	  }
 	}
@@ -160,7 +162,7 @@ class LabelRelation {
   }
 
   inline void set_not_simulates (int l1, int l2, int lts){
-    //std::cout << "PREVIOUS: " << dominates_in[l1][l2] << std::endl;
+    //std::cout << "Not simulates: " << l1 << " to " << l2 << " in " << lts << std::endl;
     if(dominates_in[l1][l2] == DOMINATES_IN_ALL){
       dominates_in[l1][l2] = lts;
     }else if(dominates_in[l1][l2] != lts){
@@ -171,13 +173,17 @@ class LabelRelation {
     }
   }
 
-  inline void set_not_simulated_by_irrelevant(int l, int lts){
+  inline bool set_not_simulated_by_irrelevant(int l, int lts){
+    //Returns if there were changes in dominated_by_noop_in
     simulated_by_irrelevant[l][lts] = false;
     if(dominated_by_noop_in[l] == DOMINATES_IN_ALL){
       dominated_by_noop_in[l] = lts;
+      return true;
     }else if(dominated_by_noop_in[l] != lts){
       dominated_by_noop_in[l] = DOMINATES_IN_NONE;
+      return true;
     }
+    return false;
   }
 
   inline bool dominated_by_noop (int l, int lts){

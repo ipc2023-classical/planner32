@@ -47,6 +47,7 @@ class OpenList;
 class SearchEngine;
 class MergeStrategy;
 class ShrinkStrategy;
+class SymPH;
 
 /*
 The TokenParser<T> wraps functions to parse supported types T.
@@ -123,6 +124,14 @@ class TokenParser<ShrinkStrategy *> {
 public:
     static inline ShrinkStrategy *parse(OptionParser &p);
 };
+
+
+template <>
+class TokenParser<SymPH *> {
+public:
+    static inline SymPH *parse(OptionParser &p);
+};
+
 
 template <class T>
 class TokenParser<std::vector<T > > {
@@ -380,6 +389,9 @@ ShrinkStrategy *TokenParser<ShrinkStrategy *>::parse(OptionParser &p) {
     return lookup_in_registry<ShrinkStrategy>(p);
 }
 
+SymPH *TokenParser<SymPH *>::parse(OptionParser &p) {
+return lookup_in_registry<SymPH>(p);
+}
 
 Synergy *TokenParser<Synergy *>::parse(OptionParser &p) {
     return lookup_in_registry<Synergy>(p);

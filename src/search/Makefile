@@ -28,6 +28,7 @@ HEADERS = \
           iterated_search.h \
           lazy_search.h \
           legacy_causal_graph.h \
+          mutex_group.h \
           max_evaluator.h \
           operator.h \
           operator_cost.h \
@@ -131,6 +132,42 @@ HEADERS += pdbs/canonical_pdbs_heuristic.h \
            pdbs/pdb_heuristic.h \
            pdbs/util.h \
            pdbs/zero_one_pdbs_heuristic.h \
+
+HEADERS += sym/sym_controller.h \
+	   sym/sym_engine.h \
+           sym/symba.h \
+           sym/sym_variables.h \
+           sym/sym_manager.h \
+           sym/sym_util.h \
+           sym/sym_enums.h \
+           sym/sym_abstraction.h \
+           sym/sym_pdb.h \
+           sym/sym_transition.h \
+           sym/sym_params.h \
+           sym/sym_heuristic.h \
+           sym/sym_closed.h \
+           sym/sym_exploration.h \
+           sym/sym_hnode.h \
+           sym/sym_bdexp.h \
+           sym/sym_ph.h \
+           sym/sym_estimate.h \
+           sym/sym_estimate_linear.h \
+           sym/sym_solution.h \
+	# sym/sym_ph_pdbs.h \
+	   #sym/sym_ph_smas.h \
+           # sym/smas_shrink_bisimulation.h \
+           # sym/smas_shrink_bucket_based.h \
+           # sym/smas_shrink_fh.h \
+           # sym/smas_shrink_random.h \
+           # sym/smas_shrink_all.h \
+           # sym/smas_shrink_strategy.h \
+           # sym/smas_variable_order_finder.h \
+           # sym/smas_abs_state.h \
+           # sym/smas_shrink_state.h \
+           # sym/sym_smas.h \
+           # sym/spmas_heuristic.h \
+	   # sym/test/sym_test.h \
+	   # sym/test/sym_test_mutex.h \
 
 SHELL = /bin/bash
 
@@ -312,6 +349,36 @@ endif
 
 endif # LP code
 
+CUDD_ROOT = cudd-2.5.0/obj/libobj.a
+
+$(CUDD_ROOT):
+	cd cudd-2.5.0 && make objlib
+
+$(TARGET_RELEASE) $(OBJECTS_RELEASE): $(CUDD_ROOT)
+$(TARGET_DEBUG) $(OBJECTS_DEBUG): $(CUDD_ROOT)
+$(TARGET_PROFILE) $(OBJECTS_PROFILE): $(CUDD_ROOT)
+
+CUDD_CCOPT = -Icudd-2.5.0/include
+
+CUDD_LINKOPT = cudd-2.5.0/obj/libobj.a \
+   cudd-2.5.0/cudd/libcudd.a \
+   cudd-2.5.0/dddmp/libdddmp.a \
+   cudd-2.5.0/mtr/libmtr.a \
+   cudd-2.5.0/epd/libepd.a \
+   cudd-2.5.0/util/libutil.a \
+   cudd-2.5.0/st/libst.a
+
+
+#CUDD Includes
+CCOPT += $(CUDD_CCOPT)
+
+POSTLINKOPT_RELEASE += $(CUDD_LINKOPT)
+POSTLINKOPT_DEBUG += $(CUDD_LINKOPT)
+POSTLINKOPT_PROFILE += $(CUDD_LINKOPT)
+
+
+#end CUDD code
+
 all: release debug profile
 
 ## Build rules for the release target follow.
@@ -358,15 +425,19 @@ clean:
 	rm -f *~ *.pyc
 	rm -f Makefile.depend gmon.out PROFILE core
 	rm -f sas_plan
+	cd cudd-2.5.0 && make clean
+
 
 distclean: clean
 	rm -f $(TARGET_RELEASE) $(TARGET_DEBUG) $(TARGET_PROFILE)
+	cd cudd-2.5.0 && make distclean
 
 ## NOTE: If we just call gcc -MM on a source file that lives within a
 ## subdirectory, it will strip the directory part in the output. Hence
 ## the for loop with the sed call.
 
 Makefile.depend: $(SOURCES) $(HEADERS)
+	cd cudd-2.5.0 && ./setup.sh
 	rm -f Makefile.temp
 	for source in $(SOURCES) ; do \
 	    $(DEPEND) $$source > Makefile.temp0; \

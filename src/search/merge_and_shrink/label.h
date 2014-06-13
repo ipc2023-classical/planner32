@@ -46,6 +46,7 @@ public:
 };
 
 class OperatorLabel : public Label {
+  //std::string name;
     void update_root(CompositeLabel *new_root);
 public:
     OperatorLabel(int id, int cost, const std::vector<Prevail> &prevail,
