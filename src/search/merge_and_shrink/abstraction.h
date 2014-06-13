@@ -2,18 +2,19 @@
 #define MERGE_AND_SHRINK_ABSTRACTION_H
 
 #include "shrink_strategy.h"
-
 #include "../utilities.h"
-
 #include "../sym/sym_variables.h"
 
 #include <ext/slist>
+#include <string>
 #include <vector>
 
 class EquivalenceRelation;
 class Label;
 class Labels;
 class State;
+
+typedef int AbstractStateRef;
 
 struct AbstractTransition {
     AbstractStateRef src;
@@ -99,7 +100,7 @@ class Abstraction {
     int unique_unlabeled_transitions() const;
 protected:
     std::vector<int> varset;
-    
+
     virtual void apply_abstraction_to_lookup_table(const std::vector<
                                                        AbstractStateRef> &abstraction_mapping) = 0;
     virtual int memory_estimate() const;
