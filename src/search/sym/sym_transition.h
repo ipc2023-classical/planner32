@@ -13,6 +13,7 @@ class SymAbstraction;
 class SymManager;
 class SymPDB;
 class SymSMAS;
+class SimulationRelation;
 /*
  * Represents a symbolic transition.
  * It has two differentiated parts: label and abstract state transitions
@@ -34,8 +35,8 @@ class SymTransition{
  const SymAbstraction * absAfterImage;
  public:
   //Constructor for abstraction transitions
-  /*SymTransition(const SymVariables * sV, const Operator * op,
-		int cost_, const SymAbstraction & abs);*/
+ SymTransition(SymVariables * sV, 
+	       const std::vector<SimulationRelation*> & sim_relations);
 
   //Constructor for transitions irrelevant for the abstraction
   SymTransition(SymVariables * sVars, 

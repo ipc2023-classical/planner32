@@ -48,6 +48,7 @@ class SearchEngine;
 class MergeStrategy;
 class ShrinkStrategy;
 class SymPH;
+class PruneHeuristic;
 
 /*
 The TokenParser<T> wraps functions to parse supported types T.
@@ -80,6 +81,12 @@ template <>
 class TokenParser<Heuristic *> {
 public:
     static inline Heuristic *parse(OptionParser &p);
+};
+
+template <>
+class TokenParser<PruneHeuristic *> {
+public:
+    static inline PruneHeuristic *parse(OptionParser &p);
 };
 
 template <>
@@ -350,6 +357,10 @@ Heuristic *TokenParser<Heuristic *>::parse(OptionParser &p) {
     if (predefined)
         return result;
     return lookup_in_registry<Heuristic>(p);
+}
+
+PruneHeuristic *TokenParser<PruneHeuristic *>::parse(OptionParser &p) {
+    return lookup_in_registry<PruneHeuristic>(p);
 }
 
 LandmarkGraph *TokenParser<LandmarkGraph *>::parse(OptionParser &p) {

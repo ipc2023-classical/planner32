@@ -2,6 +2,7 @@
 
 #include "globals.h"
 #include "heuristic.h"
+#include "prune_heuristic.h"
 #include "option_parser.h"
 #include "successor_generator.h"
 #include "g_evaluator.h"
@@ -28,6 +29,12 @@ EagerSearch::EagerSearch(
     if (opts.contains("preferred")) {
         preferred_operator_heuristics =
             opts.get_list<Heuristic *>("preferred");
+    }
+
+    if(opts.contains("prune")){
+      prune_heuristic = opts.get<PruneHeuristic *>("prune");
+    }else{
+      prune_heuristic = nullptr;
     }
 }
 
@@ -90,6 +97,10 @@ void EagerSearch::initialize() {
 
         open_list->insert(initial_state.get_id());
     }
+
+    if(prune_heuristic){
+      prune_heuristic->initialize();
+    }
 }
 
 
@@ -106,6 +117,13 @@ int EagerSearch::step() {
     SearchNode node = n.first;
 
     State s = node.get_state();
+    if(prune_heuristic && 
+       prune_heuristic->prune_expansion(s, node.get_g())){
+      search_progress.inc_expanded(-1);
+      search_progress.inc_pruned();
+      return IN_PROGRESS;
+    }
+
     if (check_goal_and_set_plan(s))
         return SOLVED;
 
@@ -130,8 +148,9 @@ int EagerSearch::step() {
     for (int i = 0; i < applicable_ops.size(); i++) {
         const Operator *op = applicable_ops[i];
 
-        if ((node.get_real_g() + op->get_cost()) >= bound)
+        if ((node.get_real_g() + op->get_cost()) >= bound){
             continue;
+	}
 
         State succ_state = g_state_registry->get_successor_state(s, *op);
         search_progress.inc_generated();
@@ -161,8 +180,13 @@ int EagerSearch::step() {
         }
 
         if (succ_node.is_new()) {
-            // We have not seen this state before.
-            // Evaluate and create a new node.
+	  /*if(prune_heuristic && 
+	     prune_heuristic->prune_generation(succ_state, node.get_g() + get_adjusted_cost(*op))){
+	    //search_progress.inc_pruned();
+	    continue;
+	  }*/
+	  // We have not seen this state before.
+	  // Evaluate and create a new node.
             for (size_t i = 0; i < heuristics.size(); i++)
                 heuristics[i]->evaluate(succ_state);
             succ_node.clear_h_dirty();
@@ -350,6 +374,9 @@ static SearchEngine *_parse(OptionParser &parser) {
     parser.add_list_option<Heuristic *>
         ("preferred",
         "use preferred operators of these heuristics", "[]");
+
+    parser.add_option<PruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
+
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
@@ -386,6 +413,9 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
                             "use pathmax correction", "false");
     parser.add_option<bool>("mpd",
                             "use multi-path dependence (LM-A*)", "false");
+
+    parser.add_option<PruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
+
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 

@@ -6,8 +6,54 @@
 #include "sym_smas.h" 
 
 #include "../timer.h"
+#include "../merge_and_shrink/simulation_relation.h"
 
 using namespace std;
+
+SymTransition::SymTransition(SymVariables * sVars, 
+			     const vector<SimulationRelation*> & simulations) : 
+  sV(sVars), cost(0), tBDD (sVars->oneBDD()), 
+  existsVars(sVars->oneBDD()), existsBwVars(sVars->oneBDD()), 
+  absAfterImage(nullptr){
+
+  // a) Collect effect variables
+  for(auto sim : simulations){
+    const vector<int> & vset = sim->get_varset();
+    effVars.insert(effVars.end(), vset.begin(), vset.end());
+  }
+
+  
+  // b) Initialize swapVars
+  sort(effVars.begin(), effVars.end());
+  for(int var : effVars){
+    for(int bdd_var : sV->vars_index_pre(var)){
+      swapVarsS.push_back(sV->bddVar(bdd_var));
+    }
+    for(int bdd_var : sV->vars_index_eff(var)){
+      swapVarsSp.push_back(sV->bddVar(bdd_var));
+    }
+  }
+
+  // c) existsVars/existsBwVars is just the conjunction of swapVarsS and swapVarsSp
+  for(int i = 0; i < swapVarsS.size(); ++i){
+    existsVars *= swapVarsS[i];
+    existsBwVars *= swapVarsSp[i];
+  }  
+
+  // d) Compute tBDD
+  for(auto it = simulations.rbegin(); it != simulations.rend(); ++it){
+const std::vector<BDD> & dominated_by_bdds = (*it)->get_dominated_by_bdds ();
+    const std::vector<BDD> & abs_bdds = (*it)->get_abs_bdds();
+
+    BDD simBDD = sV->zeroBDD();
+    for (int i = 0; i < abs_bdds.size(); i++){
+      simBDD += (abs_bdds[i]*dominated_by_bdds[i].SwapVariables(swapVarsS, swapVarsSp));
+    }
+    tBDD *= simBDD;
+  }
+
+
+}
 
 SymTransition::SymTransition(SymVariables * sVars, 
 			     const Operator * op, int cost_) : 

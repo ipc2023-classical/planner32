@@ -37,6 +37,24 @@ BDD SimulationRelation::getSimulatedBDD(const State & state) const{
   return dominated_by_bdds[abs->get_abstract_state(state)];
 }
 
+BDD SimulationRelation::getSimulatedTRBDD(SymVariables * vars) const{
+  BDD res = vars->zeroBDD();
+  vector<BDD> swapVarsS, swapVarsSp;
+  for (int var : abs->get_varset()){
+    for(int bdd_var : vars->vars_index_pre(var)){
+      swapVarsS.push_back(vars->bddVar(bdd_var));
+    }
+    for(int bdd_var : vars->vars_index_eff(var)){
+      swapVarsSp.push_back(vars->bddVar(bdd_var));
+    }
+  }
+  for (int i = 0; i < abs_bdds.size(); i++){
+    res += (abs_bdds[i]*dominated_by_bdds[i].SwapVariables(swapVarsS, swapVarsSp));
+  } 
+  return res;
+}
+
+
 void SimulationRelation::precompute_dominated_bdds(SymVariables * vars){
   abs->getAbsStateBDDs(vars, abs_bdds);
   cout << "xx" << endl;

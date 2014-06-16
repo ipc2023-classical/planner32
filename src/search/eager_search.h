@@ -11,7 +11,9 @@
 #include "evaluator.h"
 #include "search_progress.h"
 
+
 class Heuristic;
+class PruneHeuristic;
 class Operator;
 class ScalarEvaluator;
 class Options;
@@ -24,6 +26,7 @@ class EagerSearch : public SearchEngine {
 
     OpenList<StateID> *open_list;
     ScalarEvaluator *f_evaluator;
+    PruneHeuristic * prune_heuristic;
 
 protected:
     int step();

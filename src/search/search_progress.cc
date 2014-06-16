@@ -11,6 +11,7 @@ SearchProgress::SearchProgress() {
     evaluations = 0;
     generated_states = 0;
     dead_end_states = 0;
+    pruned_states = 0;
     generated_ops = 0;
     pathmax_corrections = 0;
 
@@ -113,6 +114,7 @@ void SearchProgress::print_statistics() const {
     cout << "Evaluations: " << evaluations << endl;
     cout << "Generated " << generated_states << " state(s)." << endl;
     cout << "Dead ends: " << dead_end_states << " state(s)." << endl;
+    cout << "Pruned: " << pruned_states << " state(s)." << endl;
     if (pathmax_corrections > 0) {
         cout << "Pathmax corrections: " << pathmax_corrections << endl;
     }

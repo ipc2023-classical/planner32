@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include "abstraction.h"
 #include "label_relation.h"
 #include "../sym/sym_variables.h"
 
@@ -98,7 +99,7 @@ class SimulationRelation{
 	      }
 	      if(!found){
 		changes = true;
-                   /*std::cout << lts->name(t) << " does not simulate " <<  lts->name(s) 
+		/*std::cout << lts->name(t) << " does not simulate " <<  lts->name(s) 
 			  << " because of " <<
 		  lts->name(trs.src)  << " => " << lts->name(trs.target) << " (" << trs.label << ")";// << std::endl;
 		std::cout << "  Simulates? "<<simulates (trs.src, trs.target);
@@ -116,7 +117,22 @@ class SimulationRelation{
   void dump(const std::vector<std::string> & names) const;
  
  BDD getSimulatedBDD(const State & state) const;
+ BDD getSimulatedTRBDD(SymVariables * vars) const;
+
  void precompute_dominated_bdds(SymVariables * vars);
+
+ inline const std::vector<BDD> & get_dominated_by_bdds () const{
+   return dominated_by_bdds;
+ }
+
+ inline const std::vector<BDD> & get_abs_bdds() const{
+   return abs_bdds;
+ }
+
+ inline const std::vector <int> & get_varset() const {
+   return abs->get_varset();
+ }
+ 
 };
 
 
