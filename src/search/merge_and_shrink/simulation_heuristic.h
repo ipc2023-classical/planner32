@@ -5,6 +5,7 @@
 #include "../sym/sym_variables.h"
 #include "../sym/sym_params.h"
 
+class MergeStrategy;
 class Abstraction;
 class Labels;
 class SimulationRelation;
@@ -17,10 +18,15 @@ std::ostream & operator<<(std::ostream &os, const PruningType & m);
 extern const std::vector<std::string> PruningTypeValues;
 
 class SimulationHeuristic : public PruneHeuristic {  
+
+  MergeStrategy *const merge_strategy;
+  const bool use_expensive_statistics;
+
  protected:
   std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
 
   bool insert_dominated;
+  int limit_absstates_merge;
   SymParamsMgr mgrParams; //Parameters for SymManager configuration.
   Labels *labels;
 
@@ -39,7 +45,7 @@ class SimulationHeuristic : public PruneHeuristic {
   /* virtual BDD check (const BDD & bdd, int g) = 0; */
   /* virtual void insert (const BDD & bdd, int g) = 0; */
 
-  
+  void build_abstraction();
   virtual int compute_heuristic(const State &state);
  public:
     virtual void initialize(bool explicit_search);

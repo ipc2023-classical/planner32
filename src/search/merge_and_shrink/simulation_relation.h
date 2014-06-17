@@ -19,11 +19,12 @@ class SimulationRelation{
   std::vector<std::vector<bool> > relation;
 
   //For each abstract state, we create a BDD that represents all the
-  //abstract states dominated by it
-  std::vector<BDD> dominated_by_bdds; 
+  //abstract states dominated by it and dominating it
+  std::vector<BDD> dominated_bdds, dominating_bdds; 
 
   //BDDs of each abstract state
   std::vector<BDD> abs_bdds;
+  BDD zeroBDD;
 
  public:
   SimulationRelation(const Abstraction * _abs, int num_states,
@@ -95,8 +96,7 @@ class SimulationRelation{
 	      if(!found){
 		changes = true;
 		remove(t, s);
-		//break;
-		std::cout << lts->name(t) << " does not simulate " <<  lts->name(s) 
+		/*std::cout << lts->name(t) << " does not simulate " <<  lts->name(s) 
 			  << " because of " <<
 		  lts->name(trs.src)  << " => " << lts->name(trs.target) << " (" << trs.label << ")";// << std::endl;
 		std::cout << "  Simulates? "<<simulates (trs.src, trs.target);
@@ -104,7 +104,7 @@ class SimulationRelation{
 		label_dominance.dump(trs.label);
 		for (auto trt : lts->get_transitions(t)){
 		  std::cout << "Tried with: " << lts->name(trt.src)  << " => " << lts->name(trt.target) << " (" << trt.label << ")" << " label dom: "<< label_dominance.dominates(trt.label, trs.label, lts_id) << " target sim " << simulates(trt.target, trs.target) << std::endl;
-		}
+		}*/
 
 		break;
 	      }
@@ -117,12 +117,22 @@ class SimulationRelation{
   void dump(const std::vector<std::string> & names) const;
  
  BDD getSimulatedBDD(const State & state) const;
+ BDD getSimulatingBDD(const State & state) const;
 
- void precompute_dominated_bdds(SymVariables * vars);
+ void precompute_absstate_bdds(SymVariables * vars);
+ void precompute_dominated_bdds();
+ void precompute_dominating_bdds();
 
- inline const std::vector<BDD> & get_dominated_by_bdds () const{
-   return dominated_by_bdds;
+ inline const std::vector<BDD> & get_dominated_bdds () {
+   if(dominated_bdds.empty()) precompute_dominated_bdds();
+   return dominated_bdds;
  }
+
+ inline const std::vector<BDD> & get_dominating_bdds () {
+   if(dominating_bdds.empty()) precompute_dominating_bdds();
+   return dominating_bdds;
+ }
+
 
  inline const std::vector<BDD> & get_abs_bdds() const{
    return abs_bdds;
@@ -130,6 +140,10 @@ class SimulationRelation{
 
  inline const std::vector <int> & get_varset() const {
    return abs->get_varset();
+ }
+
+ inline bool pruned(const State & state) const {
+   return abs->get_abstract_state(state) == -1;
  }
  
 };

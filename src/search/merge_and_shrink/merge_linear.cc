@@ -15,7 +15,11 @@ MergeLinear::MergeLinear(const Options &opts)
       need_first_index(true) {
 }
 
-pair<int, int> MergeLinear::get_next(const std::vector<Abstraction *> &all_abstractions) {
+    // Alvaro: Merge strategies have now a limit on the size of the
+    // merge.  If specified (> 0), the pair returned should fit the
+    // constraint: a1.size()*a2.size()<=limit
+pair<int, int> MergeLinear::get_next(const std::vector<Abstraction *> &all_abstractions, 
+				     int /*limit_abstract_states_merge*/) {
     assert(!done() && !order.done());
 
     int first;

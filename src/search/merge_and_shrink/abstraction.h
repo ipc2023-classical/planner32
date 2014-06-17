@@ -116,7 +116,7 @@ public:
 
     //Returns a description of the abstract state 
     virtual std::string description(int s) const{
-      return "" + s;
+      return std::to_string(s);
     }
 
     static void build_atomic_abstractions(std::vector<Abstraction *> &result,

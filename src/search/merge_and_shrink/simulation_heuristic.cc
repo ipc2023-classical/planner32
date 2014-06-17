@@ -2,6 +2,7 @@
 
 #include "abstraction.h"
 #include "labels.h"
+#include "merge_strategy.h"
 
 #include "simulation_relation.h"
 #include "labelled_transition_system.h"
@@ -19,8 +20,11 @@
 using namespace std;
 
 SimulationHeuristic::SimulationHeuristic(const Options &opts, bool _insert_dominated)
-  : PruneHeuristic(opts), vars(new SymVariables()), 
-    insert_dominated(_insert_dominated), mgrParams(opts) {
+  : PruneHeuristic(opts), merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
+    use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+    vars(new SymVariables()),  insert_dominated(_insert_dominated), 
+    limit_absstates_merge(opts.get<int>("limit_merge")),
+    mgrParams(opts) {
     labels = new Labels(is_unit_cost_problem(), opts, cost_type);
     vector <int> var_order; 
     for(int i = 0; i < g_variable_name.size(); i++){
@@ -31,6 +35,7 @@ SimulationHeuristic::SimulationHeuristic(const Options &opts, bool _insert_domin
 }
 
 SimulationHeuristic::~SimulationHeuristic() {
+    delete merge_strategy;
     delete labels;
     for(auto abs : abstractions){
       delete abs;
@@ -39,13 +44,122 @@ SimulationHeuristic::~SimulationHeuristic() {
     for(auto sim : simulations){
       delete sim;
     }
+    cout << "Expensive statistics: "
+         << (use_expensive_statistics ? "enabled" : "disabled") << endl;
+
+    if (use_expensive_statistics) {
+        string dashes(79, '=');
+        cerr << dashes << endl
+             << ("WARNING! You have enabled extra statistics for "
+            "merge-and-shrink heuristics.\n"
+            "These statistics require a lot of time and memory.\n"
+            "When last tested (around revision 3011), enabling the "
+            "extra statistics\nincreased heuristic generation time by "
+            "76%. This figure may be significantly\nworse with more "
+            "recent code or for particular domains and instances.\n"
+            "You have been warned. Don't use this for benchmarking!")
+        << endl << dashes << endl;
+    }
 }
 
 void SimulationHeuristic::dump_options() const {
+    merge_strategy->dump_options();
     labels->dump_options();
     cout << "Type prunning: ";
 
 }
+void SimulationHeuristic::build_abstraction() {
+    // TODO: We're leaking memory here in various ways. Fix this.
+    //       Don't forget that build_atomic_abstractions also
+    //       allocates memory.
+
+    // vector of all abstractions. entries with 0 have been merged.
+    vector<Abstraction *> all_abstractions;
+    all_abstractions.reserve(g_variable_domain.size() * 2 - 1);
+    Abstraction::build_atomic_abstractions(all_abstractions, labels);
+
+    // cout << "Shrinking atomic abstractions..." << endl;
+    // for (size_t i = 0; i < all_abstractions.size(); ++i) {
+    //     all_abstractions[i]->compute_distances();
+    //     if (!all_abstractions[i]->is_solvable())
+    //         return all_abstractions[i];
+    //     shrink_strategy->shrink_atomic(*all_abstractions[i]);
+    // }
+
+    cout << "Merging abstractions..." << endl;
+
+    while (!merge_strategy->done()) {
+      pair<int, int> next_systems = merge_strategy->get_next(all_abstractions, 
+							     limit_absstates_merge);
+      int system_one = next_systems.first;
+      if(system_one == -1){
+	break; //No pairs to be merged under the limit
+      }
+        Abstraction *abstraction = all_abstractions[system_one];
+        assert(abstraction);
+        int system_two = next_systems.second;
+        assert(system_one != system_two);
+        Abstraction *other_abstraction = all_abstractions[system_two];
+        assert(other_abstraction);
+
+        // Note: we do not reduce labels several times for the same abstraction
+        // bool reduced_labels = false;
+        // if (shrink_strategy->reduce_labels_before_shrinking()) {
+        //     labels->reduce(make_pair(system_one, system_two), all_abstractions);
+        //     reduced_labels = true;
+        //     abstraction->normalize();
+        //     other_abstraction->normalize();
+        //     abstraction->statistics(use_expensive_statistics);
+        //     other_abstraction->statistics(use_expensive_statistics);
+        // }
+
+        // distances need to be computed before shrinking
+        abstraction->compute_distances();
+        other_abstraction->compute_distances();
+        // if (!abstraction->is_solvable())
+        //     return abstraction;
+        // if (!other_abstraction->is_solvable())
+        //     return other_abstraction;
+
+        //shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
+        abstraction->statistics(use_expensive_statistics);
+        other_abstraction->statistics(use_expensive_statistics);
+
+        // if (!reduced_labels) {
+        //     labels->reduce(make_pair(system_one, system_two), all_abstractions);
+        // }
+        abstraction->normalize();
+        other_abstraction->normalize();
+        // if (!reduced_labels) {
+        //     // only print statistics if we just possibly reduced labels
+        //     other_abstraction->statistics(use_expensive_statistics);
+        //     abstraction->statistics(use_expensive_statistics);
+        // }
+
+        Abstraction *new_abstraction = new CompositeAbstraction(labels,
+                                                                abstraction,
+                                                                other_abstraction);
+
+        abstraction->release_memory();
+        other_abstraction->release_memory();
+
+        new_abstraction->statistics(use_expensive_statistics);
+
+        all_abstractions[system_one] = 0;
+        all_abstractions[system_two] = 0;
+        all_abstractions.push_back(new_abstraction);
+    }
+
+    for (size_t i = 0; i < all_abstractions.size(); ++i) {
+        if (all_abstractions[i]) {
+	  abstractions.push_back(all_abstractions[i]);
+	  all_abstractions[i]->compute_distances();
+	  all_abstractions[i]->statistics(use_expensive_statistics);
+	  //all_abstractions[i]->release_memory();
+        }
+    }
+}
+
 
 void SimulationHeuristic::initialize(bool explicit_checker) {
     Timer timer;
@@ -53,7 +167,8 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
     dump_options();
     verify_no_axioms();
  
-    Abstraction::build_atomic_abstractions(abstractions, labels);
+    build_abstraction();
+    //Abstraction::build_atomic_abstractions(abstractions, labels);
 
     cout << "Building LTS" << endl;
     vector<LabelledTransitionSystem *> lts;
@@ -74,7 +189,12 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
 
     if(explicit_checker){
       for (auto sim : simulations){
-	sim->precompute_dominated_bdds(vars.get());
+	sim->precompute_absstate_bdds(vars.get());
+	if(insert_dominated){
+	  sim->precompute_dominated_bdds();
+	}else{
+	  sim->precompute_dominating_bdds();
+	}
       }
     }
 
@@ -85,7 +205,7 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
 SymTransition * SimulationHeuristic::getTR(SymVariables * _vars){
   if (!tr){
     for (auto sim : simulations){
-      sim->precompute_dominated_bdds(_vars);
+      sim->precompute_absstate_bdds(_vars);
     }
     tr = unique_ptr<SymTransition> {new SymTransition(_vars, simulations)};
     cout << "Simulation TR: " << *tr << endl;
@@ -98,6 +218,11 @@ int SimulationHeuristic::compute_heuristic(const State & /*state*/) {
 }
 
 bool SimulationHeuristic::prune_generation(const State &state, int g){
+  for(auto sim : simulations) {
+    if(sim->pruned(state)){
+      return true;
+    }
+  }
   return check(state, g);
 }
 
@@ -142,6 +267,12 @@ static PruneHeuristic *_parse(OptionParser &parser) {
         "which can lead to poor heuristics even when no shrinking is "
         "performed.");
 
+    parser.add_option<MergeStrategy *>(
+        "merge_strategy",
+        "merge strategy; choose between merge_linear and merge_dfp",
+        "merge_linear");
+
+
     vector<string> label_reduction_method;
     label_reduction_method.push_back("NONE");
     label_reduction_method.push_back("OLD");
@@ -180,6 +311,21 @@ static PruneHeuristic *_parse(OptionParser &parser) {
                             "prints a big warning on stderr with information on the performance impact. "
                             "Don't use when benchmarking!)",
                             "false");
+
+    parser.add_option<bool>("expensive_statistics",
+                            "show statistics on \"unique unlabeled edges\" (WARNING: "
+                            "these are *very* slow, i.e. too expensive to show by default "
+                            "(in terms of time and memory). When this is used, the planner "
+                            "prints a big warning on stderr with information on the performance impact. "
+                            "Don't use when benchmarking!)",
+                            "false");
+
+
+    parser.add_option<int>("limit_merge",
+			    "limit on the number of abstract states after the merge"
+			    "By default: 1, does not perform any merge",
+                            "1");
+
 
     Heuristic::add_options_to_parser(parser);
     SymParamsMgr::add_options_to_parser(parser);
@@ -285,13 +431,13 @@ bool SimulationHeuristicBDDMap::check (const State & state, int g){
       }
     }
   }else{
-    BDD dominatedByBDD = vars->oneBDD();
+    BDD simulatingBDD = vars->oneBDD();
     for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-      dominatedByBDD *= (*it)->getSimulatedByBDD(state); 
+      simulatingBDD *= (*it)->getSimulatingBDD(state); 
     }
     for(auto entry : closed){
       if(entry.first > g) break;
-      if(!((entry.second*dominatedByBDD).IsZero()))){
+      if(!((entry.second*simulatingBDD).IsZero())){
 	return true;
       }
     }
@@ -316,8 +462,13 @@ bool SimulationHeuristicBDD::check (const State & state, int /*g*/){
   if(insert_dominated){
     auto sb = vars->getBinaryDescription(state);
     return !(closed.Eval(sb).IsZero());
+  } else{
+    BDD simulatingBDD = vars->oneBDD();
+    for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+      simulatingBDD *= (*it)->getSimulatingBDD(state); 
+    }
+    return !((closed*simulatingBDD).IsZero());
   }
-  return false;
 }
 
 

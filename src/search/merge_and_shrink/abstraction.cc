@@ -1110,10 +1110,21 @@ void Abstraction::dump() const {
 
 
 
-void CompositeAbstraction::getAbsStateBDDs(SymVariables * /*vars*/, std::vector<BDD> & /*abs_bdds*/) const{
-  cout << "getAbsStateBDDs not implemented in composite abstraction" << endl;
-  exit(0);
-  return;
+void CompositeAbstraction::getAbsStateBDDs(SymVariables * vars,
+					   std::vector<BDD> & abs_bdds) const{
+  vector<BDD> bdds1, bdds2;
+  components[0]->getAbsStateBDDs(vars, bdds1);
+  components[1]->getAbsStateBDDs(vars, bdds2);
+  for (int i = 0; i < num_states; i++){
+    abs_bdds.push_back(vars->zeroBDD());
+  }
+  for (int i = 0; i < lookup_table.size(); i++){  
+    for (int j = 0; j < lookup_table[i].size(); j++){  
+      if(lookup_table[i][j] != -1){
+	abs_bdds[lookup_table[i][j]] += bdds1[i]*bdds2[j];
+      }
+    }
+  } 
 }
 
 void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars, 

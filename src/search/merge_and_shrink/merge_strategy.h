@@ -21,7 +21,11 @@ public:
     }
     // implementations of get_next should decrease remaining_merges by one
     // everytime they return a pair of abstractions which are merged next.
-    virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions) = 0;
+    // Alvaro: Merge strategies have now a limit on the size of the
+    // merge.  If specified (> 0), the pair returned should fit the
+    // constraint: a1.size()*a2.size()<=limit
+    virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions, 
+					 int limit_abstract_states_merge = 0) = 0;
     virtual std::string name() const = 0;
 };
 

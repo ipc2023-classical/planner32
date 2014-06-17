@@ -21,7 +21,13 @@ public:
     // for the moment, compute_label_ranks is a non-const method because it
     // possibly needs to normalize and/or compute distances of some
     // abstractions. This should change when abstractions are always valid.
-    virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions);
+
+    // Alvaro: Merge strategies have now a limit on the size of the
+    // merge.  If specified (> 0), the pair returned should fit the
+    // constraint: a1.size()*a2.size()<=limit
+    virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions, 
+					 int limit_abstract_states_merge = 0);
+
     virtual std::string name() const;
 };
 

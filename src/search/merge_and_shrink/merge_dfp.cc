@@ -43,7 +43,11 @@ size_t MergeDFP::get_corrected_index(int index) const {
     return border_atomics_composites - 1 - index;
 }
 
-pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstractions) {
+// Alvaro: Merge strategies have now a limit on the size of the
+// merge.  If specified (> 0), the pair returned should fit the
+// constraint: a1.size()*a2.size()<=limit
+pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstractions, 
+				  int limit_abstract_states_merge) {
     assert(!done());
 
     vector<Abstraction *> sorted_abstractions;
@@ -81,27 +85,30 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
              ++other_abs_index) {
             Abstraction *other_abstraction = sorted_abstractions[other_abs_index];
             assert(other_abstraction);
-            if (abstraction->is_goal_relevant() || other_abstraction->is_goal_relevant()) {
+	    //Alvaro: Added additional condition to check the size of the product
+	    if(abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge){
+	      if (abstraction->is_goal_relevant() || other_abstraction->is_goal_relevant()) {
                 vector<int> &other_label_ranks = abstraction_label_ranks[other_abs_index];
                 assert(!other_label_ranks.empty());
                 assert(label_ranks.size() == other_label_ranks.size());
                 int pair_weight = infinity;
                 for (size_t i = 0; i < label_ranks.size(); ++i) {
-                    if (label_ranks[i] != -1 && other_label_ranks[i] != -1) {
-                        // label is relevant in both abstractions
-                        int max_label_rank = max(label_ranks[i], other_label_ranks[i]);
-                        pair_weight = min(pair_weight, max_label_rank);
-                    }
+		  if (label_ranks[i] != -1 && other_label_ranks[i] != -1) {
+		    // label is relevant in both abstractions
+		    int max_label_rank = max(label_ranks[i], other_label_ranks[i]);
+		    pair_weight = min(pair_weight, max_label_rank);
+		  }
                 }
                 if (pair_weight < minimum_weight) {
-                    minimum_weight = pair_weight;
-                    first = indices_mapping[abs_index];
-                    second = indices_mapping[other_abs_index];
-                    assert(all_abstractions[first] == abstraction);
-                    assert(all_abstractions[second] == other_abstraction);
+		  minimum_weight = pair_weight;
+		  first = indices_mapping[abs_index];
+		  second = indices_mapping[other_abs_index];
+		  assert(all_abstractions[first] == abstraction);
+		  assert(all_abstractions[second] == other_abstraction);
                 }
-            }
-        }
+	      }
+	    }
+	}
     }
     if (first == -1) {
         // No pair with finite weight has been found. In this case, we simply
@@ -117,12 +124,15 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
                  ++other_abs_index) {
                 Abstraction *other_abstraction = sorted_abstractions[other_abs_index];
                 assert(other_abstraction);
-                if (abstraction->is_goal_relevant() || other_abstraction->is_goal_relevant()) {
+		//Alvaro: Added additional condition to check the size of the product
+		if(abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge){
+		  if (abstraction->is_goal_relevant() || other_abstraction->is_goal_relevant()) {
                     first = indices_mapping[abs_index];
                     second = indices_mapping[other_abs_index];
                     assert(all_abstractions[first] == abstraction);
                     assert(all_abstractions[second] == other_abstraction);
-                }
+		  }
+		}
             }
         }
     }
