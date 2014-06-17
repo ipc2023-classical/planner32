@@ -24,10 +24,16 @@ SimulationRelation::SimulationRelation(const Abstraction * _abs, int num_states,
 
 void SimulationRelation::dump(const vector<string> & names) const{ 
   cout << "SIMREL:" << endl;
-  for(int i = 0; i < relation.size(); ++i){
-    for(int j = 0; j < relation.size(); ++j){    
+  for(int j = 0; j < relation.size(); ++j){
+    for(int i = 0; i < relation.size(); ++i){    
       if(simulates(j, i) && i != j){
-	cout << names[i] << " <= " << names[j] << endl;
+	if(simulates(i, j)){
+	  if (j < i){
+	    cout << names[i] << " ~ " << names[j] << endl;
+	  }
+	}else{
+	  cout << names[i] << " <= " << names[j] << endl;
+	}
       }
     }
   }
@@ -37,32 +43,17 @@ BDD SimulationRelation::getSimulatedBDD(const State & state) const{
   return dominated_by_bdds[abs->get_abstract_state(state)];
 }
 
-BDD SimulationRelation::getSimulatedTRBDD(SymVariables * vars) const{
-  BDD res = vars->zeroBDD();
-  vector<BDD> swapVarsS, swapVarsSp;
-  for (int var : abs->get_varset()){
-    for(int bdd_var : vars->vars_index_pre(var)){
-      swapVarsS.push_back(vars->bddVar(bdd_var));
-    }
-    for(int bdd_var : vars->vars_index_eff(var)){
-      swapVarsSp.push_back(vars->bddVar(bdd_var));
-    }
-  }
-  for (int i = 0; i < abs_bdds.size(); i++){
-    res += (abs_bdds[i]*dominated_by_bdds[i].SwapVariables(swapVarsS, swapVarsSp));
-  } 
-  return res;
-}
-
-
 void SimulationRelation::precompute_dominated_bdds(SymVariables * vars){
   abs->getAbsStateBDDs(vars, abs_bdds);
-  cout << "xx" << endl;
   for (int i = 0; i < abs->size(); i++){
     dominated_by_bdds.push_back(vars->zeroBDD());
   }
   for(int i = 0; i < relation.size(); ++i){
-    for(int j = 0; j < relation.size(); ++j){    
+    for(int j = 0; j < relation.size(); ++j){
+      if (i == j && !simulates(i, j)){
+	cerr << "Assertion error: simulation relation is not reflexive" << endl; 
+	exit(0);
+      }
       if(simulates(i, j)){
 	dominated_by_bdds[i] += abs_bdds[j];
       }

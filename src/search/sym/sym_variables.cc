@@ -86,13 +86,19 @@ void SymVariables::init(const vector <int> & v_order, const SymParamsMgr & param
   preconditionBDDs.resize(num_fd_vars);
   effectBDDs.resize(num_fd_vars);
   biimpBDDs.resize(num_fd_vars);
-
+  validValues.resize(num_fd_vars);
+  validBDD = oneBDD();
   //Generate predicate (precondition (s) and effect (s')) BDDs
   for(int var : var_order){
     for (int j = 0; j< g_variable_domain[var]; j++){
       preconditionBDDs[var].push_back(createPreconditionBDD(var, j));
       effectBDDs[var].push_back(createEffectBDD(var, j));
     }
+    validValues[var] = zeroBDD();    
+    for (int j = 0; j< g_variable_domain[var]; j++){
+      validValues[var] += preconditionBDDs[var][j];
+    }
+    validBDD *= validValues[var];
     biimpBDDs[var] = createBiimplicationBDD(bdd_index_pre[var], bdd_index_eff[var]);    
   }    
 
@@ -135,7 +141,7 @@ BDD SymVariables::getStateBDD(const State & state) const {
 
 
 BDD SymVariables::getPartialStateBDD(const vector<pair<int, int> > & state) const {
-  BDD res = _manager->bddOne();
+  BDD res = validBDD;
   for (int i = state.size() - 1; i >= 0; i--){
     // if(find(var_order.begin(), var_order.end(),
     // 		 state[i].first) != var_order.end()) {
@@ -280,9 +286,9 @@ BDD SymVariables::getCube(const set <int> & vars, const vector<vector<int>> & v_
 
 
 void
-exceptionError(string /*message*/)
+exceptionError(string message)
 {
-  //cout << message << endl;
+  cout << message << endl;
   throw BDDError();
 }
 

@@ -7,6 +7,7 @@
 #include "sym_controller.h"
 #include "sym_enums.h"
 #include "../search_engine.h"
+#include "../prune_heuristic.h"
 
 class SymExploration;
 class SymAbstraction;
@@ -25,6 +26,9 @@ class SymEngine : public SearchEngine, public SymController {
   
   // List of hierarchy policies to derive new abstractions
   std::vector <SymPH *> phs;
+  
+  //Prune heuristic
+  std::unique_ptr<PruneHeuristic> prune_heuristic;
     
   // List of abstract state spaces. We store a list with the unique
   // pointer so that if we want ever to delete some hNode we just

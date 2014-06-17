@@ -99,7 +99,7 @@ void EagerSearch::initialize() {
     }
 
     if(prune_heuristic){
-      prune_heuristic->initialize();
+      prune_heuristic->initialize(true);
     }
 }
 

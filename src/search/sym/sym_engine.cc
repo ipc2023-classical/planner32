@@ -8,6 +8,7 @@
 #include "../globals.h"
 #include "../option_parser.h"
 #include "../plugin.h"
+#include "../prune_heuristic.h"
 #include "sym_ph.h"
 #include "test/sym_test.h"
 
@@ -24,9 +25,17 @@ SymEngine::SymEngine(const Options &opts)
       opts.get_list<SymPH *>("ph");
     }
 
+
+  if(opts.contains("prune")){
+    prune_heuristic = unique_ptr<PruneHeuristic> (opts.get<PruneHeuristic *>("prune"));
+  }
 }
 
 void SymEngine::initialize() {
+  if(prune_heuristic){
+    prune_heuristic->initialize(false);
+  }
+  
     cout << "Conducting symbolic search"
 	 << " Operator cost: " << cost_type
          << " (real) bound = " << bound
@@ -39,6 +48,9 @@ void SymEngine::initialize() {
     cout << "Initialize abstraction hierarchy" << endl;
     originalStateSpace = new SymHNode(this, mgrParams);
     nodes.push_back(unique_ptr<SymHNode> (originalStateSpace));
+    if(prune_heuristic){
+       originalStateSpace->getManager()->set_simulation(prune_heuristic->getTR(vars.get()));
+    }
     originalSearch = new SymBDExp(this, searchParams, searchDir);
     unique_ptr<SymBDExp> refExp (originalSearch);
 
@@ -99,6 +111,7 @@ void SymEngine::add_options_to_parser(OptionParser &parser) {
   parser.add_enum_option("search_dir", DirValues,
 			 "search direction", "BIDIR");
   parser.add_list_option<SymPH *>("ph", "policies to generate abstractions. None by default.", "[]");  
+  parser.add_option<PruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
 }
 
 void SymEngine::set_default_options(Options & opts){

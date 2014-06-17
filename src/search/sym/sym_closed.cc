@@ -106,19 +106,37 @@ void SymClosed::insert(int h, const BDD & S){
   //     exit(-1);
   //   }
   // }
+  BDD Ssim = mgr->simulatedBy(S, exploration->isFW());
+  if (!(S <= Ssim)){
+    cerr << "Assertion error: some states are not simulated by themselves" << endl;
+    S.print(2,2);
+    Ssim.print(2,2);
+    cout << "S has " << mgr->getVars()->numStates(S) << " states" << endl;
+    cout << "Ssim has " << mgr->getVars()->numStates(Ssim) << " states" << endl;
+    (S*!Ssim).print(2,2);
+    exit(0);
+  }
   if (closed.count(h)){
-    closed[h] += S;
+    closed[h] += Ssim;
+    if(!h_values.count(h)){
+      cerr << "Assertion error: h_value not present but bucket present: " << h << " in " << *this << endl;
+      exit(-1);
+    }
+  }else{  }
+  if (closed.count(h)){
+    closed[h] += Ssim;
     if(!h_values.count(h)){
       cerr << "Assertion error: h_value not present but bucket present: " << h << " in " << *this << endl;
       exit(-1);
     }
   }else{
-    closed[h] = S;
+
+    closed[h] = Ssim;
     newHValue(h);
   }
 
   zeroCostClosed[h].push_back(S);
-  closedTotal += S;
+  closedTotal += Ssim;
 
   //Introduce in closedUpTo
   auto c = closedUpTo.lower_bound(h);

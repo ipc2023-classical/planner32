@@ -54,12 +54,12 @@ class SymClosed /*: public SymHeuristic */ {
   void setFNotClosed(int f);
   void newHValue(int h_value);
 
-
   BDD evaluate(const BDD & bdd, int fVal, int hVal,
 	       SymExploration * expAsking);
   BDD evaluate(const BDD & bdd, int hVal);
   bool accept(int f, int h) const;
   void getNextF(int f, std::pair<int, int> & upper_bound) const;
+
   const std::set<int> & getHValues() const{
     return h_values;
   }
@@ -90,7 +90,6 @@ class SymClosed /*: public SymHeuristic */ {
   inline std::map<int, BDD> getClosedList() const{
     return closed;
   }
-
 
   inline int getHNotClosed() const{
     return hNotClosed;

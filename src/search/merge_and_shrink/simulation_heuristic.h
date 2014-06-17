@@ -26,7 +26,6 @@ class SimulationHeuristic : public PruneHeuristic {
 
   std::unique_ptr<SymTransition> tr; //TR that computes dominated states
 
-  void initialize_tr();  
   void dump_options() const;
 
   std::vector<Abstraction *> abstractions;
@@ -36,23 +35,20 @@ class SimulationHeuristic : public PruneHeuristic {
   virtual bool check (const State & state, int g) = 0;
   virtual void insert (const State & state, int g) = 0;
 
-  //Methods to keep dominated states in symbolic search
-  virtual BDD check (const BDD & bdd, int g) = 0;
-  virtual void insert (const BDD & bdd, int g) = 0;
+  /* //Methods to keep dominated states in symbolic search */
+  /* virtual BDD check (const BDD & bdd, int g) = 0; */
+  /* virtual void insert (const BDD & bdd, int g) = 0; */
 
   
   virtual int compute_heuristic(const State &state);
  public:
-    virtual void initialize();
+    virtual void initialize(bool explicit_search);
 
     //Methods for pruning explicit search
     virtual bool prune_generation(const State &state, int g);
     virtual bool prune_expansion (const State &state, int g);
 
-    //Methods for pruning symbolic search. Return the BDD without
-    //pruned states.
-    virtual BDD prune_generation(const BDD &bdd, int g);
-    virtual BDD prune_expansion (const BDD &bdd, int g);
+    virtual SymTransition * getTR(SymVariables * vars);
 
     SimulationHeuristic(const Options &opts, bool _insert_dominated);
     virtual ~SimulationHeuristic();
@@ -70,10 +66,6 @@ class SimulationHeuristicBDDMap : public SimulationHeuristic {
   //Methods to keep dominated states in explicit search
   virtual bool check (const State & state, int g);
   virtual void insert (const State & state, int g);
-
-  //Methods to keep dominated states in symbolic search
-  virtual BDD check (const BDD & bdd, int g);
-  virtual void insert (const BDD & bdd, int g);
 };
 
 class SimulationHeuristicBDD : public SimulationHeuristic {
@@ -88,10 +80,6 @@ class SimulationHeuristicBDD : public SimulationHeuristic {
   //Methods to keep dominated states in explicit search
   virtual bool check (const State & state, int g);
   virtual void insert (const State & state, int g);
-
-  //Methods to keep dominated states in symbolic search
-  virtual BDD check (const BDD & bdd, int g);
-  virtual void insert (const BDD & bdd, int g);
 };
 
 /* class SimulationHeuristicADD : public SimulationHeuristic { */

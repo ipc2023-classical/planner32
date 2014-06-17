@@ -46,6 +46,8 @@ class SymManager{
   std::vector<std::vector<BDD>> notMutexBDDsByFluentFw, notMutexBDDsByFluentBw;
   std::vector<std::vector<BDD>> exactlyOneBDDsByFluent;
 
+  SymTransition * simulation_tr;
+
   void init_states();
 
   void zero_preimage(const BDD & bdd, std::vector <BDD> & res, int maxNodes) const;
@@ -254,6 +256,11 @@ class SymManager{
   }
 
 
+  void set_simulation(SymTransition * tr){
+    simulation_tr = tr;
+  }
+
+  BDD simulatedBy(const BDD & bdd, bool fw);
 };
 
 #endif

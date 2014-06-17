@@ -47,7 +47,7 @@ void SimulationHeuristic::dump_options() const {
 
 }
 
-void SimulationHeuristic::initialize() {
+void SimulationHeuristic::initialize(bool explicit_checker) {
     Timer timer;
     cout << "Initializing simulation heuristic..." << endl;
     dump_options();
@@ -62,10 +62,7 @@ void SimulationHeuristic::initialize() {
     }
     
     cout << "Computing simulation..." << endl;
-    SimulationRelation::compute_label_dominance_simulation(lts, labels, vars.get(), simulations);
-
-    cout << "Done initializing simulation heuristic [" << timer << "]"
-         << endl;
+    SimulationRelation::compute_label_dominance_simulation(lts, labels, simulations);
 
     for(int i = 0; i < simulations.size(); i++){ 
       simulations[i]->dump(lts[i]->get_names()); 
@@ -75,8 +72,25 @@ void SimulationHeuristic::initialize() {
       delete l;
     }
 
-    tr = unique_ptr<SymTransition> {new SymTransition(vars.get(), simulations)};
+    if(explicit_checker){
+      for (auto sim : simulations){
+	sim->precompute_dominated_bdds(vars.get());
+      }
+    }
+
+    cout << "Done initializing simulation heuristic [" << timer << "]"
+         << endl;
+}
+
+SymTransition * SimulationHeuristic::getTR(SymVariables * _vars){
+  if (!tr){
+    for (auto sim : simulations){
+      sim->precompute_dominated_bdds(_vars);
+    }
+    tr = unique_ptr<SymTransition> {new SymTransition(_vars, simulations)};
     cout << "Simulation TR: " << *tr << endl;
+  }
+  return tr.get();
 }
 
 int SimulationHeuristic::compute_heuristic(const State & /*state*/) {
@@ -97,17 +111,17 @@ bool SimulationHeuristic::prune_expansion (const State &state, int g){
   return false;
 }
 
-BDD SimulationHeuristic::prune_generation(const BDD &bdd, int g){
-  return check(bdd, g);
-}
+// BDD SimulationHeuristic::prune_generation(const BDD &bdd, int g){
+//   return check(bdd, g);
+// }
 
-BDD SimulationHeuristic::prune_expansion (const BDD &bdd, int g){
-  //a) Get subset of not dominated states with g.closed <= g
-  BDD res = check(bdd, g);
-  //b) Insert state and other states dominated by it
-  insert(res, g);
-  return res;
-}
+// BDD SimulationHeuristic::prune_expansion (const BDD &bdd, int g){
+//   //a) Get subset of not dominated states with g.closed <= g
+//   BDD res = check(bdd, g);
+//   //b) Insert state and other states dominated by it
+//   insert(res, g);
+//   return res;
+// }
 
 
 static PruneHeuristic *_parse(OptionParser &parser) {
@@ -239,7 +253,6 @@ void SimulationHeuristicBDDMap::insert (const State & state, int g){
     res = vars->getStateBDD(state); 
   }
 
-
   if (!closed.count(g)){
     closed[g] = res;
   }else{
@@ -249,24 +262,36 @@ void SimulationHeuristicBDDMap::insert (const State & state, int g){
 
 bool SimulationHeuristicBDDMap::check (const State & state, int g){
 
-  //CODE TO TEST Simulation TR
-  BDD dominatedBDD = vars->oneBDD();
-  for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-    dominatedBDD *= (*it)->getSimulatedBDD(state); 
-  }
+  // //CODE TO TEST Simulation TR
+  // BDD dominatedBDD = vars->oneBDD();
+  // for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+  //   dominatedBDD *= (*it)->getSimulatedBDD(state); 
+  // }
 
-  BDD sBDD = vars->getStateBDD(state);  
-  BDD trBDD = tr->image(sBDD);
-  if (trBDD != dominatedBDD) {
-    cerr << "ERROR: the TR does not work " << endl;
-    exit(0);
-  }
-  //END CODE TO TEST
+  // BDD sBDD = vars->getStateBDD(state);  
+  // BDD trBDD = tr->image(sBDD);
+  // if (trBDD != dominatedBDD) {
+  //   cerr << "ERROR: the TR does not work " << endl;
+  //   exit(0);
+  // }
+
+  // //END CODE TO TEST
   if(insert_dominated){
     auto sb = vars->getBinaryDescription(state);
     for(auto entry : closed){
       if(entry.first > g) break;
       if(!(entry.second.Eval(sb).IsZero())){
+	return true;
+      }
+    }
+  }else{
+    BDD dominatedByBDD = vars->oneBDD();
+    for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+      dominatedByBDD *= (*it)->getSimulatedByBDD(state); 
+    }
+    for(auto entry : closed){
+      if(entry.first > g) break;
+      if(!((entry.second*dominatedByBDD).IsZero()))){
 	return true;
       }
     }
@@ -296,29 +321,29 @@ bool SimulationHeuristicBDD::check (const State & state, int /*g*/){
 }
 
 
-void SimulationHeuristicBDD::insert (const BDD & bdd, int /*g*/){
-  if(insert_dominated){
-    closed += tr->image(bdd);
-  }else{
-    closed += bdd;
-  }
-}
+// void SimulationHeuristicBDD::insert (const BDD & bdd, int /*g*/){
+//   if(insert_dominated){
+//     closed += tr->image(bdd);
+//   }else{
+//     closed += bdd;
+//   }
+// }
 
-BDD SimulationHeuristicBDD::check (const BDD & bdd, int /*g*/){
-  if(insert_dominated){
-    return bdd*!closed;
-  }else{
-    cerr << "Pruning with not insert dominated not supported yet in symbolic search" << endl;
-    exit(0);
-  }
-}
+// BDD SimulationHeuristicBDD::check (const BDD & bdd, int /*g*/){
+//   if(insert_dominated){
+//     return bdd*!closed;
+//   }else{
+//     cerr << "Pruning with not insert dominated not supported yet in symbolic search" << endl;
+//     exit(0);
+//   }
+// }
 
-void SimulationHeuristicBDDMap::insert (const BDD & /*bdd*/, int /*g*/){
-  cerr << "Pruning with BDDMap not supported yet in symbolic search" << endl;
-  exit(0);
-}
+// void SimulationHeuristicBDDMap::insert (const BDD & /*bdd*/, int /*g*/){
+//   cerr << "Pruning with BDDMap not supported yet in symbolic search" << endl;
+//   exit(0);
+// }
 
-BDD SimulationHeuristicBDDMap::check (const BDD & /*bdd*/, int /*g*/){
-  cerr << "Pruning with BDDMap not supported yet in symbolic search" << endl;
-  exit(0);
-}
+// BDD SimulationHeuristicBDDMap::check (const BDD & /*bdd*/, int /*g*/){
+//   cerr << "Pruning with BDDMap not supported yet in symbolic search" << endl;
+//   exit(0);
+// }

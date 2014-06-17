@@ -18,7 +18,7 @@ SymManager::SymManager(SymVariables * v,
 						      initialState(v->zeroBDD()), 
 						      goal(v->zeroBDD()), 
 						      min_transition_cost(0), hasTR0(false), 
-						      mutexInitialized(false), mutexByFluentInitialized(false)  {
+						      mutexInitialized(false), mutexByFluentInitialized(false), simulation_tr(nullptr)  {
   for(const auto & op : g_operators){
     if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
       min_transition_cost = op.get_cost();      
@@ -36,7 +36,7 @@ SymManager::SymManager(SymManager * mgr,
 						      goal(mgr->zeroBDD()), 
 						      min_transition_cost(0), hasTR0(false), 
 
-						      mutexInitialized(false), mutexByFluentInitialized(false)  {  
+						      mutexInitialized(false), mutexByFluentInitialized(false), simulation_tr(nullptr)   {  
   if(mgr){
     min_transition_cost = mgr->getMinTransitionCost();
     hasTR0 = mgr->hasTransitions0();
@@ -541,4 +541,22 @@ int SymManager::filterMutexBucket(vector<BDD> & bucket, bool fw,
   unsetTimeLimit();
 
   return numFiltered;
+}
+
+BDD SymManager::simulatedBy(const BDD & bdd, bool fw) {
+  if(simulation_tr && fw){
+    setTimeLimit(p.max_mutex_time);
+    BDD res = bdd;
+    try{
+      BDD res =  simulation_tr->image(bdd);
+      unsetTimeLimit();
+      return res;
+    }catch(BDDError e){
+      unsetTimeLimit();
+      exit(0);
+	//return bdd;
+    }
+  }else{
+    return bdd;
+  }
 }

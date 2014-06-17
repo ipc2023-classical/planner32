@@ -44,7 +44,6 @@ bool SymExploration::init(SymBDExp * exp, SymManager * manager, bool forward){
   }else{
     Sfilter.push_back(mgr->getGoal());
   }
-  DEBUG_MSG (cout << dirname(forward) << " initialized to "; Sfilter[0].print(0,1); cout << "Init closed" << endl;);
 
   closed->init(this, mgr);
   if(!mgr->hasTransitions0()){    
@@ -690,9 +689,11 @@ bool SymExploration::stepImage(int maxTime, int maxNodes){
     cout << ">> Step: " << *(mgr->getAbstraction());
   else
     cout << ">> Step: original";
-  cout << (fw ? " fw " : " bw ") << "f=" << f << ", g=" << g << endl;
-  DEBUG_MSG(cout << " frontierNodes: " << frontierNodes() << " [" << frontierBuckets() << "]"  << " total time: " << g_timer 
-	    << " total nodes: " << mgr->totalNodes() << " total memory: " << mgr->totalMemory() << endl;);
+  cout << (fw ? " fw " : " bw ") << "f=" << f << ", g=" << g;
+  //<< endl;DEBUG_MSG(
+  cout << " frontierNodes: " << frontierNodes() << " frontierStates: " << frontierStates() << " [" << frontierBuckets() << "]"  << " total time: " << g_timer 
+	    << " total nodes: " << mgr->totalNodes() << " total memory: " << mgr->totalMemory() << endl;
+	    //	    );
 
 #ifdef DEBUG_GST
   gst_plan.checkExploration(this );

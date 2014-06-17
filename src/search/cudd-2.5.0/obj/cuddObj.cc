@@ -164,6 +164,7 @@ DD::checkReturnValue(
 	case CUDD_INTERNAL_ERROR:
 	    p->errorHandler("Internal error.");
 	    break;
+
 	case CUDD_NO_ERROR:
 	default:
 	    p->errorHandler("Unexpected error.");

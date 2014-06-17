@@ -26,7 +26,6 @@ class SimulationRelation{
   std::vector<BDD> abs_bdds;
 
  public:
-
   SimulationRelation(const Abstraction * _abs, int num_states,
 		     const std::vector<bool> & goal_states);
 
@@ -46,7 +45,7 @@ class SimulationRelation{
   // returns a list of simulation relations over them
   template<class LTS>
     static void compute_label_dominance_simulation(const std::vector<LTS *> & lts_list, 
-						   Labels * labels, SymVariables * vars, 
+						   Labels * labels, 
 						   std::vector<SimulationRelation *> & res){
   //Initialization phase
   for(auto & lts : lts_list){
@@ -66,10 +65,6 @@ class SimulationRelation{
     }
   }while(label_dominance.update(lts_list, res));
   //label_dominance.dump();
-
-  for (auto& sim : res){
-   sim->precompute_dominated_bdds(vars);
-  }
 }
 
   template<class LTS>  
@@ -92,20 +87,25 @@ class SimulationRelation{
 	      bool found = false;
 	      for (auto trt : lts->get_transitions(t)){
 		if(label_dominance.dominates(trt.label, trs.label, lts_id) && 
-		   simulates(trt.target, trs.target)){
+		   simulates(trt.target, trs.target)){		
 		  found = true;
 		  break;
 		}
 	      }
 	      if(!found){
 		changes = true;
-		/*std::cout << lts->name(t) << " does not simulate " <<  lts->name(s) 
+		remove(t, s);
+		//break;
+		std::cout << lts->name(t) << " does not simulate " <<  lts->name(s) 
 			  << " because of " <<
 		  lts->name(trs.src)  << " => " << lts->name(trs.target) << " (" << trs.label << ")";// << std::endl;
 		std::cout << "  Simulates? "<<simulates (trs.src, trs.target);
 		std::cout << "  domnoop? "<<label_dominance.dominated_by_noop(trs.label, lts_id) << "   ";
-		label_dominance.dump(trs.label);*/
-		remove(t, s);
+		label_dominance.dump(trs.label);
+		for (auto trt : lts->get_transitions(t)){
+		  std::cout << "Tried with: " << lts->name(trt.src)  << " => " << lts->name(trt.target) << " (" << trt.label << ")" << " label dom: "<< label_dominance.dominates(trt.label, trs.label, lts_id) << " target sim " << simulates(trt.target, trs.target) << std::endl;
+		}
+
 		break;
 	      }
 	    }
@@ -117,7 +117,6 @@ class SimulationRelation{
   void dump(const std::vector<std::string> & names) const;
  
  BDD getSimulatedBDD(const State & state) const;
- BDD getSimulatedTRBDD(SymVariables * vars) const;
 
  void precompute_dominated_bdds(SymVariables * vars);
 

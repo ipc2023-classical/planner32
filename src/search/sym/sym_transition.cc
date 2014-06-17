@@ -42,17 +42,17 @@ SymTransition::SymTransition(SymVariables * sVars,
 
   // d) Compute tBDD
   for(auto it = simulations.rbegin(); it != simulations.rend(); ++it){
-const std::vector<BDD> & dominated_by_bdds = (*it)->get_dominated_by_bdds ();
+    const std::vector<BDD> & dominated_by_bdds = (*it)->get_dominated_by_bdds ();
     const std::vector<BDD> & abs_bdds = (*it)->get_abs_bdds();
 
     BDD simBDD = sV->zeroBDD();
+    BDD totalAbsBDDs = sV->zeroBDD();
     for (int i = 0; i < abs_bdds.size(); i++){
       simBDD += (abs_bdds[i]*dominated_by_bdds[i].SwapVariables(swapVarsS, swapVarsSp));
+      totalAbsBDDs += abs_bdds[i];
     }
     tBDD *= simBDD;
   }
-
-
 }
 
 SymTransition::SymTransition(SymVariables * sVars, 
@@ -175,7 +175,6 @@ BDD SymTransition::image(const BDD & from) const{
   }
   BDD tmp = tBDD.AndAbstract(aux, existsVars);
   BDD res = tmp.SwapVariables(swapVarsS, swapVarsSp);
-
   if(absAfterImage){
     //TODO: HACK: PARAMETER FIXED
     res = absAfterImage->shrinkExists(res, 10000000); 

@@ -430,6 +430,17 @@ class SymExploration  {
     }
   }
 
+  int frontierStates() const{
+    if(!Szero.empty()){
+      return stateCount(Szero);
+    }else if (!S.empty()){
+      return stateCount(S);
+    }else{
+      return stateCount(Sfilter) + stateCount(Smerge);
+    }
+  }
+
+
   int frontierBuckets() const{
     if(!Szero.empty()){
       return Szero.size();

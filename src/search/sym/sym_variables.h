@@ -39,8 +39,11 @@ class SymVariables{
   
   std::vector <std::vector <BDD> > preconditionBDDs; // BDDs associated with the precondition of a predicate
   std::vector <std::vector <BDD> > effectBDDs;       // BDDs associated with the effect of a predicate
-  std::vector<BDD> biimpBDDs; //BDDs associated with the biimplication of one variable(FD)
+  std::vector<BDD> biimpBDDs;    //BDDs associated with the biimplication of one variable(FD)
+  std::vector<BDD> validValues; // BDD that represents the valid values of all the variables
+  BDD validBDD;    // BDD that represents the valid values of all the variables
   
+    
   //Vector to store the binary description of an state
   //Avoid allocating memory during heuristic evaluation
   std::vector <int> binState; 
