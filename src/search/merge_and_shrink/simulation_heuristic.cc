@@ -167,8 +167,8 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
     dump_options();
     verify_no_axioms();
  
-    build_abstraction();
-    //Abstraction::build_atomic_abstractions(abstractions, labels);
+    //build_abstraction();
+    Abstraction::build_atomic_abstractions(abstractions, labels);
 
     cout << "Building LTS" << endl;
     vector<LabelledTransitionSystem *> lts;

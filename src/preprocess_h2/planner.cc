@@ -44,9 +44,12 @@ int main(int argc, const char ** argv) {
     }else if (arg.compare("--not_prune") == 0){
       cout << "*** do not perform relevance analysis ***" << endl;
       g_do_not_prune_variables = true;
+    }else if (arg.compare("--no_h2") == 0){
+      cout << "*** do not perform h2 analysis ***" << endl;
+      h2_mutex_time = 0;
     }else{
       cerr << "unknown option " << arg << endl << endl;
-      cout << "Usage: ./preprocess [--cgamer] [--opt_ordering] < output"<< endl;
+      cout << "Usage: ./preprocess [--cgamer] [--opt_ordering]  [--no_h2] < output"<< endl;
       exit(2);
     }
   }
