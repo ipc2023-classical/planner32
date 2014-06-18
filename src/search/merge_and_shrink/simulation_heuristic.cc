@@ -179,9 +179,11 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
     cout << "Computing simulation..." << endl;
     SimulationRelation::compute_label_dominance_simulation(lts, labels, simulations);
 
-    for(int i = 0; i < simulations.size(); i++){ 
-      simulations[i]->dump(lts[i]->get_names()); 
-    } 
+    if(use_expensive_statistics){
+      for(int i = 0; i < simulations.size(); i++){ 
+	simulations[i]->dump(lts[i]->get_names()); 
+      } 
+    }
 
     for (auto l : lts){
       delete l;
@@ -200,6 +202,28 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
 
     cout << "Done initializing simulation heuristic [" << timer << "]"
          << endl;
+    int num_equi = num_equivalences();
+    int num_sims = num_simulations();
+    cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
+    cout << "Similarity equivalences: " << num_equi  << endl;
+    cout << "Only Simulations: " << num_sims << endl;
+}
+
+int SimulationHeuristic::num_equivalences() const {
+  int res = 0;
+  for(int i = 0; i < simulations.size(); i++){ 
+    res += simulations[i]->num_equivalences(); 
+  } 
+  return res;  
+}
+
+
+int SimulationHeuristic::num_simulations() const {
+  int res = 0;
+  for(int i = 0; i < simulations.size(); i++){ 
+    res += simulations[i]->num_simulations(); 
+  } 
+  return res;  
 }
 
 SymTransition * SimulationHeuristic::getTR(SymVariables * _vars){

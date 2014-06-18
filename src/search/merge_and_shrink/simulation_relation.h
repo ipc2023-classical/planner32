@@ -38,6 +38,11 @@ class SimulationRelation{
     relation[s][t] = false;
   }
 
+
+  int num_equivalences() const;
+  int num_simulations() const;
+
+
   /*
    * THIS IMPLEMENTATION IS VERY INNEFICIENT
    * ONLY TO BE USED AS A PROOF OF CONCEPT

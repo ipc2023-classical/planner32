@@ -29,7 +29,7 @@ void SimulationRelation::dump(const vector<string> & names) const{
       if(simulates(j, i) && i != j){
 	if(simulates(i, j)){
 	  if (j < i){
-	    cout << names[i] << " ~ " << names[j] << endl;
+	    cout << names[i] << " <=> " << names[j] << endl;
 	  }
 	}else{
 	  cout << names[i] << " <= " << names[j] << endl;
@@ -91,4 +91,31 @@ void SimulationRelation::precompute_dominating_bdds(){
       }
     }
   }
+}
+
+
+
+int SimulationRelation::num_equivalences() const{
+  int res = 0;
+  for(int i = 0; i < relation.size(); ++i){
+    for(int j = 0; j < i; ++j){
+      if (simulates(j, i) && simulates(i, j)){
+	res ++;
+      }
+    }
+  }
+  return res;
+}
+
+int SimulationRelation::num_simulations() const{
+  int res = 0;
+  for(int i = 0; i < relation.size(); ++i){
+    for(int j = 0; j < i; ++j){
+      if ((!simulates(j, i) && simulates(i, j)) ||
+	  (simulates(j, i) && !simulates(i, j))){
+	res ++;
+      }
+    }
+  }
+  return res;
 }

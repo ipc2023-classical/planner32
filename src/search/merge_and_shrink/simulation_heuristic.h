@@ -34,6 +34,9 @@ class SimulationHeuristic : public PruneHeuristic {
 
   void dump_options() const;
 
+  int num_equivalences() const;
+  int num_simulations() const;
+
   std::vector<Abstraction *> abstractions;
   std::vector<SimulationRelation *> simulations;
 
