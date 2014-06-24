@@ -57,6 +57,32 @@ void SymParamsMgr::add_options_to_parser(OptionParser &parser){
 }
 
 
+void SymParamsMgr::add_options_to_parser_simulation(OptionParser &parser){
+  parser.add_option<long> ("cudd_init_nodes", "Initial number of nodes in the cudd manager.",
+			   "16000000L");
+
+  parser.add_option<long> ("cudd_init_cache_size", 
+			   "Initial number of cache entries in the cudd manager.", "16000000L");
+  
+  parser.add_option<long> ("cudd_init_available_memory", 
+			   "Total available memory for the cudd manager.", "0L");
+  
+  parser.add_option<int> ("max_tr_size", "maximum size of TR BDDs", "1");
+  
+  parser.add_option<int> ("max_tr_time",
+			  "maximum time (ms) to generate TR BDDs", "1");
+     
+  parser.add_enum_option("mutex_type", MutexTypeValues,
+			 "mutex type", "MUTEX_AND");
+
+  parser.add_option<int> ("max_mutex_size",
+			  "maximum size of mutex BDDs", "100000");
+
+  parser.add_option<int> ("max_mutex_time",
+			  "maximum time (ms) to generate mutex BDDs", "10000");
+}
+
+
 
 
 

@@ -14,23 +14,30 @@
 #include "../timer.h"
 
 #include "../sym/sym_transition.h"
+#include "../sym/sym_manager.h"
 
 #include <cassert>
 #include <vector>
 using namespace std;
 
-SimulationHeuristic::SimulationHeuristic(const Options &opts, bool _insert_dominated)
-  : PruneHeuristic(opts), merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
-    use_expensive_statistics(opts.get<bool>("expensive_statistics")),
-    vars(new SymVariables()),  insert_dominated(_insert_dominated), 
+SimulationHeuristic::SimulationHeuristic(const Options &opts)
+  : PruneHeuristic(opts), use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+    mgrParams(opts), 
+    remove_spurious_dominated_states(opts.get<bool>("remove_spurious")), 
+    insert_dominated(opts.get<bool>("insert_dominated")), 
     limit_absstates_merge(opts.get<int>("limit_merge")),
-    mgrParams(opts) {
+    merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
+    vars(new SymVariables()), states_inserted(0) {
     labels = new Labels(is_unit_cost_problem(), opts, cost_type);
     vector <int> var_order; 
     for(int i = 0; i < g_variable_name.size(); i++){
       var_order.push_back(i);
     }
     vars->init(var_order, mgrParams);
+    if(remove_spurious_dominated_states){
+      mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams));
+      mgr->init();
+    }
     mgrParams.print_options();
 }
 
@@ -273,6 +280,27 @@ bool SimulationHeuristic::prune_expansion (const State &state, int g){
 // }
 
 
+BDD SimulationHeuristic::getBDDToInsert(const State &state){
+  if(insert_dominated){
+    BDD res = vars->oneBDD();
+    for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+      res *= (*it)->getSimulatedBDD(state); 
+    }
+    if(remove_spurious_dominated_states){
+      res = mgr->filter_mutex(res, true, 1000000, true);
+      res = mgr->filter_mutex(res, false, 1000000, true);
+    }
+    //Small optimization: If we have a single state, not include it
+    if(vars->numStates(res) == 1){
+      return vars->zeroBDD();
+    }else{
+      return res;
+    }
+  }else{
+    return vars->getStateBDD(state);
+  }  
+}
+
 static PruneHeuristic *_parse(OptionParser &parser) {
     parser.document_synopsis("Simulation heuristic", "");
     parser.document_language_support("action costs", "supported");
@@ -336,12 +364,8 @@ static PruneHeuristic *_parse(OptionParser &parser) {
                             "Don't use when benchmarking!)",
                             "false");
 
-    parser.add_option<bool>("expensive_statistics",
-                            "show statistics on \"unique unlabeled edges\" (WARNING: "
-                            "these are *very* slow, i.e. too expensive to show by default "
-                            "(in terms of time and memory). When this is used, the planner "
-                            "prints a big warning on stderr with information on the performance impact. "
-                            "Don't use when benchmarking!)",
+    parser.add_option<bool>("remove_spurious",
+			    "If activated, remove spurious states from the sets of simulated/simulating states",
                             "false");
 
 
@@ -352,20 +376,20 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
 
     Heuristic::add_options_to_parser(parser);
-    SymParamsMgr::add_options_to_parser(parser);
+    SymParamsMgr::add_options_to_parser_simulation(parser);
 
     parser.add_enum_option
       ("pruning_type", PruningTypeValues,
        "Implementation of the simulation pruning: "
-       "BDD_DOMINATED: (default) inserts in a map of BDDs all the dominated states "
-       "ADD_DOMINATED: inserts in an ADD all the dominated states "
-       "BDD_DOMINATED_BLIND: inserts in a BDD all the dominated states (does"
-       "not consider the g-value so it is not safe to use it with A* search)"
-       "BDD_CLOSED: inserts in a map of BDDs only the reached states "
-       "ADD_CLOSED: inserts in an ADD only the reached states "
-       "BDD_CLOSED_BLIND: inserts in a BDD only the reached states (does"
+       "BDD: (default) inserts in a map of BDDs all the dominated states "
+       "ADD: inserts in an ADD all the dominated states "
+       "BDD_MAP (default): inserts in a BDD all the dominated states (does"
        "not consider the g-value so it is not safe to use it with A* search)", 
-       "BDD_DOMINATED");
+       "BDD_MAP");
+
+    parser.add_option<bool>("insert_dominated",
+			    "Whether we store the set of dominated states (default) or just the set of closed.",
+                            "true");
 
     
     Options opts = parser.parse();
@@ -375,12 +399,9 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     } else {
       
       switch(PruningType(opts.get_enum("pruning_type"))){
-      case PruningType::BDD_DOMINATED: return new SimulationHeuristicBDDMap (opts, true);
+      case PruningType::BDD_MAP: return new SimulationHeuristicBDDMap (opts);
 	//case PruningType::ADD_DOMINATED: return new SimulationHeuristicADD (opts, true);
-      case PruningType::BDD_DOMINATED_BLIND: return new SimulationHeuristicBDD (opts, true);
-      case PruningType::BDD_CLOSED: return new SimulationHeuristicBDDMap (opts, false);
-	//case PruningType::ADD_CLOSED:  return new SimulationHeuristicADD (opts, false);
-      case PruningType::BDD_CLOSED_BLIND: return new SimulationHeuristicBDD (opts, false);
+      case PruningType::BDD: return new SimulationHeuristicBDD (opts);
       default:
 	std::cerr << "Name of PruningTypeStrategy not known";
 	exit(-1);  
@@ -395,12 +416,9 @@ static Plugin<PruneHeuristic> _plugin("simulation", _parse);
 
 std::ostream & operator<<(std::ostream &os, const PruningType & pt){
   switch(pt){
-  case PruningType::BDD_DOMINATED: return os << "BDD dominated";
-  case PruningType::ADD_DOMINATED: return os << "ADD dominated";
-  case PruningType::BDD_DOMINATED_BLIND: return os << "BDD dominated blind";
-  case PruningType::BDD_CLOSED: return os << "BDD closed";
-  case PruningType::ADD_CLOSED: return os << "ADD closed";
-  case PruningType::BDD_CLOSED_BLIND: return os << "BDD closed blind";
+  case PruningType::BDD_MAP: return os << "BDD map";
+  case PruningType::ADD: return os << "ADD";
+  case PruningType::BDD: return os << "BDD";
   default:
     std::cerr << "Name of PruningTypeStrategy not known";
     exit(-1);
@@ -408,26 +426,25 @@ std::ostream & operator<<(std::ostream &os, const PruningType & pt){
 }
 
 const std::vector<std::string> PruningTypeValues {
-  "BDD_DOMINATED",   "ADD_DOMINATED",   "BDD_DOMINATED_BLIND",   
-  "BDD_CLOSED",   "ADD_CLOSED",   "BDD_CLOSED_BLIND"
+  "BDD_MAP", "ADD",   "BDD"
 };
 
 
 void SimulationHeuristicBDDMap::insert (const State & state, int g){
-  BDD res = vars->oneBDD();
-  if(insert_dominated){
-    for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-      res *= (*it)->getSimulatedBDD(state); 
-    }
-  }else{
-    res = vars->getStateBDD(state); 
-  }
-
+  BDD res = getBDDToInsert(state);
   if (!closed.count(g)){
     closed[g] = res;
   }else{
     closed[g] += res;
   }
+  if(use_expensive_statistics && states_inserted++ % 1000 == 0){
+    cout << "SimulationClosed: ";
+    for (auto & entry : closed){
+      cout << " " << entry.first << "("<<entry.second.nodeCount()<< "),";
+    }
+    cout << " after " << states_inserted << endl;
+  }
+
 }
 
 bool SimulationHeuristicBDDMap::check (const State & state, int g){
@@ -468,18 +485,13 @@ bool SimulationHeuristicBDDMap::check (const State & state, int g){
   }
   return false;
 }
-
 void SimulationHeuristicBDD::insert (const State & state, int /*g*/){
-  if(insert_dominated){
-    BDD res = vars->oneBDD();
-    for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-      res *= (*it)->getSimulatedBDD(state); 
-    }
-    closed += res;
-  }else{
-    closed += vars->getStateBDD(state);
-  }
+  closed += getBDDToInsert(state);
 
+  if(use_expensive_statistics && states_inserted++ % 1000 == 0){
+    cout << "SimulationClosed: " << vars->numStates(closed) << "   " << closed.nodeCount() 
+	 << " after " << states_inserted << " using " <<closed_inserted.nodeCount() << endl;
+  }
 }
 
 bool SimulationHeuristicBDD::check (const State & state, int /*g*/){

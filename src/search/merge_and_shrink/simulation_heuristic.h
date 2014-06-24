@@ -10,27 +10,35 @@ class Abstraction;
 class Labels;
 class SimulationRelation;
 class SymVariables;
+class SymManager;
 class SymTransition;
 
-enum class PruningType {BDD_DOMINATED, ADD_DOMINATED, BDD_DOMINATED_BLIND, 
-    BDD_CLOSED, ADD_CLOSED, BDD_CLOSED_BLIND};
+enum class PruningType {BDD_MAP, ADD, BDD};
 std::ostream & operator<<(std::ostream &os, const PruningType & m);
 extern const std::vector<std::string> PruningTypeValues;
 
 class SimulationHeuristic : public PruneHeuristic {  
-
-  MergeStrategy *const merge_strategy;
-  const bool use_expensive_statistics;
-
  protected:
-  std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
+  const bool use_expensive_statistics;
+  
+  //Parameters to control the pruning
+  const SymParamsMgr mgrParams; //Parameters for SymManager configuration.
+  const bool remove_spurious_dominated_states;
+  const bool insert_dominated;
 
-  bool insert_dominated;
-  int limit_absstates_merge;
-  SymParamsMgr mgrParams; //Parameters for SymManager configuration.
+  //Parameters to control the simulation
+  const int limit_absstates_merge;
+  MergeStrategy *const merge_strategy;
+
+  std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
+  std::unique_ptr<SymManager> mgr;    //The symbolic manager to handle mutex BDDs
+
+  //TODO: Should labels be deleted after the simulation algorithm? If
+  //yes, declare there. If no, consider using unique_ptr
   Labels *labels;
 
   std::unique_ptr<SymTransition> tr; //TR that computes dominated states
+  int states_inserted; //Count the number of states inserted.
 
   void dump_options() const;
 
@@ -39,6 +47,10 @@ class SimulationHeuristic : public PruneHeuristic {
 
   std::vector<Abstraction *> abstractions;
   std::vector<SimulationRelation *> simulations;
+
+
+  /* Methods to help concrete classes */
+  BDD getBDDToInsert(const State &state);
 
   //Methods to keep dominated states in explicit search
   virtual bool check (const State & state, int g) = 0;
@@ -59,16 +71,15 @@ class SimulationHeuristic : public PruneHeuristic {
 
     virtual SymTransition * getTR(SymVariables * vars);
 
-    SimulationHeuristic(const Options &opts, bool _insert_dominated);
+    SimulationHeuristic(const Options &opts);
     virtual ~SimulationHeuristic();
 };
 
 class SimulationHeuristicBDDMap : public SimulationHeuristic {
   std::map<int, BDD> closed;
  public:
-  SimulationHeuristicBDDMap (const Options &opts, 
-			     bool _insert_dominated) : 
-  SimulationHeuristic(opts, _insert_dominated)
+  SimulationHeuristicBDDMap (const Options &opts) : 
+  SimulationHeuristic(opts)
   {}
   virtual ~SimulationHeuristicBDDMap (){}
 
@@ -78,11 +89,10 @@ class SimulationHeuristicBDDMap : public SimulationHeuristic {
 };
 
 class SimulationHeuristicBDD : public SimulationHeuristic {
-  BDD closed;
+  BDD closed, closed_inserted;
  public:
-  SimulationHeuristicBDD (const Options &opts, 
-			  bool _insert_dominated) : 
-  SimulationHeuristic(opts, _insert_dominated), closed(vars->zeroBDD())
+  SimulationHeuristicBDD (const Options &opts) : 
+  SimulationHeuristic(opts), closed(vars->zeroBDD()), closed_inserted(vars->zeroBDD())
   {}
   virtual ~SimulationHeuristicBDD (){}
 
