@@ -12,6 +12,7 @@ LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs) :
   for(int i = 0; i < num_states; i++){
     name_states.push_back(abs->description(i));
   }
+
   transitions_src.resize(abs->size());
   transitions_label.resize(abs->get_num_labels());
  
@@ -35,6 +36,7 @@ LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs) :
 	}*/
     }
   }
+
 }
 
 

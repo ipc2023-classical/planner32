@@ -29,6 +29,7 @@ class SimulationHeuristic : public PruneHeuristic {
   //Parameters to control the simulation
   const int limit_absstates_merge;
   MergeStrategy *const merge_strategy;
+  const bool use_bisimulation;
 
   std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
   std::unique_ptr<SymManager> mgr;    //The symbolic manager to handle mutex BDDs

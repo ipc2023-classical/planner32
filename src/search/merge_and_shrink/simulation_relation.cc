@@ -96,26 +96,63 @@ void SimulationRelation::precompute_dominating_bdds(){
 
 
 int SimulationRelation::num_equivalences() const{
+
+  int num = 0;
+  std::vector<bool> counted (abs_bdds.size(), false);
+  for(int i = 0; i < counted.size(); i++){
+    if(!counted[i]){
+      for(int j = i + 1; j < relation.size(); j++){
+	if(similar(i, j)){
+	  counted [j] = true;
+	}
+      }
+    }else{
+      num++;
+    }
+  }
+  return num;
+}
+
+int SimulationRelation::num_simulations() const{
   int res = 0;
+  std::vector<bool> counted (abs_bdds.size(), false);
   for(int i = 0; i < relation.size(); ++i){
-    for(int j = 0; j < i; ++j){
-      if (simulates(j, i) && simulates(i, j)){
-	res ++;
+    if(!counted[i]){
+      for(int j = i+1; j < relation.size(); ++j){
+	if(similar(i, j)){
+	  counted[j] = true;
+	}
+      }
+    }
+  }
+  for(int i = 0; i < relation.size(); ++i){
+    if(!counted[i]){
+      for(int j = i+1; j < relation.size(); ++j){
+	if(!counted[j]){
+	  if(!similar(i, j) && (simulates(i, j) || simulates(j, i))){
+	    res ++;
+	  }
+	}
       }
     }
   }
   return res;
 }
 
-int SimulationRelation::num_simulations() const{
-  int res = 0;
-  for(int i = 0; i < relation.size(); ++i){
-    for(int j = 0; j < i; ++j){
-      if ((!simulates(j, i) && simulates(i, j)) ||
-	  (simulates(j, i) && !simulates(i, j))){
-	res ++;
+
+int SimulationRelation::num_different_states() const{
+  int num = 0;
+  std::vector<bool> counted (abs_bdds.size(), false);
+  for(int i = 0; i < counted.size(); i++){
+    if(!counted[i]){
+      num++;
+      for(int j = i + 1; j < relation.size(); j++){
+	if(similar(i, j)){
+	  counted [j] = true;
+	}
       }
     }
   }
-  return res;
+  return num;
 }
+

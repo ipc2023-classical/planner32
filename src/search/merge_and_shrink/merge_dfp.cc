@@ -86,7 +86,7 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
             Abstraction *other_abstraction = sorted_abstractions[other_abs_index];
             assert(other_abstraction);
 	    //Alvaro: Added additional condition to check the size of the product
-	    if(abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge){
+	    if(!limit_abstract_states_merge || abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge){
 	      if (abstraction->is_goal_relevant() || other_abstraction->is_goal_relevant()) {
                 vector<int> &other_label_ranks = abstraction_label_ranks[other_abs_index];
                 assert(!other_label_ranks.empty());
@@ -125,7 +125,7 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
                 Abstraction *other_abstraction = sorted_abstractions[other_abs_index];
                 assert(other_abstraction);
 		//Alvaro: Added additional condition to check the size of the product
-		if(abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge){
+		if(!limit_abstract_states_merge || abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge){
 		  if (abstraction->is_goal_relevant() || other_abstraction->is_goal_relevant()) {
                     first = indices_mapping[abs_index];
                     second = indices_mapping[other_abs_index];

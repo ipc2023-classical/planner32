@@ -836,6 +836,19 @@ string CompositeAbstraction::description() const {
     return s.str();
 }
 
+string CompositeAbstraction::description(int s) const{
+  stringstream ss;
+  ss << "s" << s;
+  // for(int i = 0; i < lookup_table.size(); i++){
+  //   for(int j = 0; j < lookup_table[i].size(); j++){
+  //     if(lookup_table[i][j] == s){
+  // 	ss << "(" << components[0]->description(i) << " AND " << components[1]->description(j) << ")";
+  //     }
+  //   }
+  // }
+  return ss.str();
+}
+
 AbstractStateRef AtomicAbstraction::get_abstract_state(const State &state) const {
     int value = state[variable];
     return lookup_table[value];
@@ -1118,13 +1131,14 @@ void CompositeAbstraction::getAbsStateBDDs(SymVariables * vars,
   for (int i = 0; i < num_states; i++){
     abs_bdds.push_back(vars->zeroBDD());
   }
+
   for (int i = 0; i < lookup_table.size(); i++){  
     for (int j = 0; j < lookup_table[i].size(); j++){  
       if(lookup_table[i][j] != -1){
 	abs_bdds[lookup_table[i][j]] += bdds1[i]*bdds2[j];
       }
     }
-  } 
+  }
 }
 
 void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars, 

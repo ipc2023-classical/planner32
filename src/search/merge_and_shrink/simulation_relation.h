@@ -34,14 +34,22 @@ class SimulationRelation{
     return relation[s][t];
   }
 
+  inline bool similar (int s, int t) const {
+    return relation[s][t] && relation[t][s];
+  }
+
+
   inline void remove (int s, int t) {
     relation[s][t] = false;
   }
 
-
   int num_equivalences() const;
   int num_simulations() const;
+  int num_states() const{
+    return abs_bdds.size();
+  }
 
+  int num_different_states() const;
 
   /*
    * THIS IMPLEMENTATION IS VERY INNEFICIENT

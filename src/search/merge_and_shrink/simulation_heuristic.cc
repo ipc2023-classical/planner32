@@ -6,6 +6,7 @@
 
 #include "simulation_relation.h"
 #include "labelled_transition_system.h"
+#include "shrink_bisimulation.h"
 
 #include "../globals.h"
 #include "../option_parser.h"
@@ -27,6 +28,7 @@ SimulationHeuristic::SimulationHeuristic(const Options &opts)
     insert_dominated(opts.get<bool>("insert_dominated")), 
     limit_absstates_merge(opts.get<int>("limit_merge")),
     merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
+    use_bisimulation(opts.get<bool>("use_bisimulation")), 
     vars(new SymVariables()), states_inserted(0) {
     labels = new Labels(is_unit_cost_problem(), opts, cost_type);
     vector <int> var_order; 
@@ -85,14 +87,18 @@ void SimulationHeuristic::build_abstraction() {
     all_abstractions.reserve(g_variable_domain.size() * 2 - 1);
     Abstraction::build_atomic_abstractions(all_abstractions, labels);
 
-    // cout << "Shrinking atomic abstractions..." << endl;
-    // for (size_t i = 0; i < all_abstractions.size(); ++i) {
-    //     all_abstractions[i]->compute_distances();
-    //     if (!all_abstractions[i]->is_solvable())
-    //         return all_abstractions[i];
-    //     shrink_strategy->shrink_atomic(*all_abstractions[i]);
-    // }
-
+    unique_ptr<ShrinkStrategy> shrink_strategy;
+    if(use_bisimulation){
+      shrink_strategy = unique_ptr<ShrinkStrategy>(ShrinkBisimulation::create_default());
+      cout << "Shrinking atomic abstractions..." << endl;
+      for (size_t i = 0; i < all_abstractions.size(); ++i) {
+	all_abstractions[i]->compute_distances();
+	// if (!all_abstractions[i]->is_solvable())
+	// 	return all_abstractions[i];
+	shrink_strategy->shrink_atomic(*all_abstractions[i]);
+      }
+    }
+    
     cout << "Merging abstractions..." << endl;
 
     while (!merge_strategy->done()) {
@@ -102,23 +108,23 @@ void SimulationHeuristic::build_abstraction() {
       if(system_one == -1){
 	break; //No pairs to be merged under the limit
       }
-        Abstraction *abstraction = all_abstractions[system_one];
-        assert(abstraction);
-        int system_two = next_systems.second;
-        assert(system_one != system_two);
-        Abstraction *other_abstraction = all_abstractions[system_two];
-        assert(other_abstraction);
+      Abstraction *abstraction = all_abstractions[system_one];
+      assert(abstraction);
+      int system_two = next_systems.second;
+      assert(system_one != system_two);
+      Abstraction *other_abstraction = all_abstractions[system_two];
+      assert(other_abstraction);
 
         // Note: we do not reduce labels several times for the same abstraction
-        // bool reduced_labels = false;
-        // if (shrink_strategy->reduce_labels_before_shrinking()) {
-        //     labels->reduce(make_pair(system_one, system_two), all_abstractions);
-        //     reduced_labels = true;
-        //     abstraction->normalize();
-        //     other_abstraction->normalize();
-        //     abstraction->statistics(use_expensive_statistics);
-        //     other_abstraction->statistics(use_expensive_statistics);
-        // }
+        bool reduced_labels = false;
+        if (shrink_strategy && shrink_strategy->reduce_labels_before_shrinking()) {
+            labels->reduce(make_pair(system_one, system_two), all_abstractions);
+            reduced_labels = true;
+            abstraction->normalize();
+            other_abstraction->normalize();
+            abstraction->statistics(use_expensive_statistics);
+            other_abstraction->statistics(use_expensive_statistics);
+        }
 
         // distances need to be computed before shrinking
         abstraction->compute_distances();
@@ -128,25 +134,25 @@ void SimulationHeuristic::build_abstraction() {
         // if (!other_abstraction->is_solvable())
         //     return other_abstraction;
 
-        //shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
-        abstraction->statistics(use_expensive_statistics);
-        other_abstraction->statistics(use_expensive_statistics);
+	if(shrink_strategy){
+	  shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
+	  abstraction->statistics(use_expensive_statistics);
+	  other_abstraction->statistics(use_expensive_statistics);
+	}
 
-        // if (!reduced_labels) {
-        //     labels->reduce(make_pair(system_one, system_two), all_abstractions);
-        // }
+	if (shrink_strategy && !reduced_labels) {
+	  labels->reduce(make_pair(system_one, system_two), all_abstractions);
+	}
         abstraction->normalize();
         other_abstraction->normalize();
-        // if (!reduced_labels) {
-        //     // only print statistics if we just possibly reduced labels
-        //     other_abstraction->statistics(use_expensive_statistics);
-        //     abstraction->statistics(use_expensive_statistics);
-        // }
-
+        if (!reduced_labels) {
+	  // only print statistics if we just possibly reduced labels
+	   other_abstraction->statistics(use_expensive_statistics);
+	   abstraction->statistics(use_expensive_statistics);
+	}
         Abstraction *new_abstraction = new CompositeAbstraction(labels,
                                                                 abstraction,
                                                                 other_abstraction);
-
         abstraction->release_memory();
         other_abstraction->release_memory();
 
@@ -174,13 +180,14 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
     dump_options();
     verify_no_axioms();
  
-    //build_abstraction();
-    Abstraction::build_atomic_abstractions(abstractions, labels);
+    build_abstraction();
+    //Abstraction::build_atomic_abstractions(abstractions, labels);
 
     cout << "Building LTS" << endl;
     vector<LabelledTransitionSystem *> lts;
     for (auto a : abstractions){
       lts.push_back(new LabelledTransitionSystem(a));
+      cout << "LTS built: " << lts.back()->size() << " states" << endl;
     }
     
     cout << "Computing simulation..." << endl;
@@ -214,13 +221,17 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
     cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
     cout << "Similarity equivalences: " << num_equi  << endl;
     cout << "Only Simulations: " << num_sims << endl;
+    for(int i = 0; i < simulations.size(); i++){ 
+      cout << "States after simulation: " << simulations[i]->num_states() << " " 
+	   << simulations[i]->num_different_states() << endl;
+    }
 }
 
 int SimulationHeuristic::num_equivalences() const {
   int res = 0;
   for(int i = 0; i < simulations.size(); i++){ 
     res += simulations[i]->num_equivalences(); 
-  } 
+  }
   return res;  
 }
 
@@ -342,7 +353,7 @@ static PruneHeuristic *_parse(OptionParser &parser) {
                            "all_abstractions: compute the 'combinable relation' "
                            "for labels once for every abstraction and reduce "
                            "labels."
-                           "all_abstractions_with_fixpoint: keep computing the "
+                           "all_abstractions_with_fixpoaint: keep computing the "
                            "'combinable relation' for labels iteratively for all "
                            "abstractions until no more labels can be reduced.",
                            "ALL_ABSTRACTIONS_WITH_FIXPOINT");
@@ -368,11 +379,14 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 			    "If activated, remove spurious states from the sets of simulated/simulating states",
                             "false");
 
-
     parser.add_option<int>("limit_merge",
 			    "limit on the number of abstract states after the merge"
 			    "By default: 1, does not perform any merge",
                             "1");
+
+    parser.add_option<bool>("use_bisimulation",
+			    "If activated, use bisimulation to shrink abstractions before computing the simulation",
+                            "false");
 
 
     Heuristic::add_options_to_parser(parser);

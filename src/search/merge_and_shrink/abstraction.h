@@ -209,6 +209,7 @@ class CompositeAbstraction : public Abstraction {
     std::vector<std::vector<AbstractStateRef> > lookup_table;
 protected:
     virtual std::string description() const;
+    virtual std::string description(int s) const;
     virtual void apply_abstraction_to_lookup_table(
         const std::vector<AbstractStateRef> &abstraction_mapping);
     virtual int memory_estimate() const;
