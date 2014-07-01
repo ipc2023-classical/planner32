@@ -7,7 +7,9 @@
 #include "sym_params.h"
 #include <vector>
 #include <map>
+#include <memory> 
 
+class PruneHeuristic;
 /*
  * All the methods may throw exceptions in case the time or nodes are exceeded.
  *
@@ -46,6 +48,7 @@ class SymManager{
   std::vector<std::vector<BDD>> notMutexBDDsByFluentFw, notMutexBDDsByFluentBw;
   std::vector<std::vector<BDD>> exactlyOneBDDsByFluent;
 
+  PruneHeuristic * prune_heuristic;
   SymTransition * simulation_tr;
 
   void init_states();
@@ -68,6 +71,7 @@ class SymManager{
   void init(){
     init_mutex(g_mutex_groups);
     init_transitions();
+    init_simulation();
   }
 
   //Be careful of calling init_mutex and init_transitions before actually calling filter_mutex or image
@@ -77,6 +81,7 @@ class SymManager{
   void init_mutex(const std::vector<MutexGroup> & mutex_groups,
 		  bool genMutexBDD, bool genMutexBDDByFluent, bool fw);
 
+  void init_simulation();
 
   //void mutexRegression(int maxTime, int maxNodes);
   void init_transitions();
@@ -238,7 +243,6 @@ class SymManager{
     return exactlyOneBDDsByFluent[var][val];
   }
 
-
   BDD filter_mutex(const BDD & bdd,
 		   bool fw, int maxNodes,
 		   bool initialization);
@@ -255,9 +259,11 @@ class SymManager{
     vars->unsetTimeLimit();
   }
 
-
-  void set_simulation(SymTransition * tr){
-    simulation_tr = tr;
+  void set_simulation(PruneHeuristic * prune){
+    prune_heuristic = prune;
+    if(mutexInitialized){
+      init_simulation();
+    }
   }
 
   BDD simulatedBy(const BDD & bdd, bool fw);

@@ -91,6 +91,10 @@ void SearchProgress::print_line() const {
     if (reopened_states > 0) {
         cout << reopened_states << " reopened, ";
     }
+    if (pruned_states > 0) {
+        cout << pruned_states << " pruned, ";
+    }
+
     cout << "t=" << g_timer;
     cout << ", " << get_peak_memory_in_kb() << " KB";
 }

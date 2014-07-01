@@ -13,7 +13,11 @@ class SymVariables;
 class SymManager;
 class SymTransition;
 
-enum class PruningType {BDD_MAP, ADD, BDD};
+enum class PruningDD {BDD_MAP, ADD, BDD};
+std::ostream & operator<<(std::ostream &os, const PruningDD & m);
+extern const std::vector<std::string> PruningDDValues;
+
+enum class PruningType {Expansion, Generation};
 std::ostream & operator<<(std::ostream &os, const PruningType & m);
 extern const std::vector<std::string> PruningTypeValues;
 
@@ -25,6 +29,7 @@ class SimulationHeuristic : public PruneHeuristic {
   const SymParamsMgr mgrParams; //Parameters for SymManager configuration.
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
+  const PruningType pruning_type;
 
   //Parameters to control the simulation
   const int limit_absstates_merge;
@@ -54,6 +59,7 @@ class SimulationHeuristic : public PruneHeuristic {
   BDD getBDDToInsert(const State &state);
 
   //Methods to keep dominated states in explicit search
+  //Check: returns true if a better or equal state is known
   virtual bool check (const State & state, int g) = 0;
   virtual void insert (const State & state, int g) = 0;
 
@@ -70,7 +76,7 @@ class SimulationHeuristic : public PruneHeuristic {
     virtual bool prune_generation(const State &state, int g);
     virtual bool prune_expansion (const State &state, int g);
 
-    virtual SymTransition * getTR(SymVariables * vars);
+    virtual SymTransition * getTR(SymManager * mgr);
 
     SimulationHeuristic(const Options &opts);
     virtual ~SimulationHeuristic();

@@ -10,10 +10,10 @@
 
 using namespace std;
 
-SymTransition::SymTransition(SymVariables * sVars, 
+SymTransition::SymTransition(SymManager * mgr, 
 			     const vector<SimulationRelation*> & simulations) : 
-  sV(sVars), cost(0), tBDD (sVars->oneBDD()), 
-  existsVars(sVars->oneBDD()), existsBwVars(sVars->oneBDD()), 
+  sV(mgr->getVars()), cost(0), tBDD (mgr->getVars()->oneBDD()), 
+  existsVars(mgr->getVars()->oneBDD()), existsBwVars(mgr->getVars()->oneBDD()), 
   absAfterImage(nullptr){
 
   // a) Collect effect variables
@@ -46,12 +46,22 @@ SymTransition::SymTransition(SymVariables * sVars,
     const std::vector<BDD> & abs_bdds = (*it)->get_abs_bdds();
 
     BDD simBDD = sV->zeroBDD();
-    BDD totalAbsBDDs = sV->zeroBDD();
+    //    BDD totalAbsBDDs = sV->zeroBDD();
     for (int i = 0; i < abs_bdds.size(); i++){
       simBDD += (abs_bdds[i]*dominated_bdds[i].SwapVariables(swapVarsS, swapVarsSp));
-      totalAbsBDDs += abs_bdds[i];
+      //totalAbsBDDs += abs_bdds[i];
     }
     tBDD *= simBDD;
+  }
+
+  try{
+    cout << "Simulation TR size before filtering mutex: " << tBDD.nodeCount() << endl;
+    tBDD = mgr->filter_mutex(tBDD, true, 1000000, true);
+    cout << "Simulation TR size in the middle of filtering mutex: " << tBDD.nodeCount() << endl;
+    tBDD = mgr->filter_mutex(tBDD, false, 1000000, true);
+    cout << "Simulation TR size after filtering mutex: " << tBDD.nodeCount() << endl;
+  }catch(BDDError e){
+    cout << "Simulation TR mutex could not be filtered: " << tBDD.nodeCount() << endl;    
   }
 }
 

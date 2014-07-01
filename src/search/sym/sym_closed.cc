@@ -106,7 +106,9 @@ void SymClosed::insert(int h, const BDD & S){
   //     exit(-1);
   //   }
   // }
+  Timer t;
   BDD Ssim = mgr->simulatedBy(S, exploration->isFW());
+  cout << S.nodeCount() << " sim by: " << Ssim.nodeCount() << " computed in " << t();
   if (!(S <= Ssim)){
     cerr << "Assertion error: some states are not simulated by themselves" << endl;
     S.print(2,2);
@@ -117,20 +119,12 @@ void SymClosed::insert(int h, const BDD & S){
     exit(0);
   }
   if (closed.count(h)){
-    closed[h] += Ssim;
+    closed[h] += S;
     if(!h_values.count(h)){
       cerr << "Assertion error: h_value not present but bucket present: " << h << " in " << *this << endl;
       exit(-1);
     }
-  }else{  }
-  if (closed.count(h)){
-    closed[h] += Ssim;
-    if(!h_values.count(h)){
-      cerr << "Assertion error: h_value not present but bucket present: " << h << " in " << *this << endl;
-      exit(-1);
-    }
-  }else{
-
+  }else{  
     closed[h] = Ssim;
     newHValue(h);
   }
@@ -144,6 +138,7 @@ void SymClosed::insert(int h, const BDD & S){
     c->second += S;
     c++;
   }
+  cout << " inserted: " << t() << " closedTotal: " << closedTotal.nodeCount() << endl;
 
     if(exploration->isAbstracted()){
     //1) Update evals and get pruned_notifications

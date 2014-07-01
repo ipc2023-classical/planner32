@@ -26,6 +26,7 @@ SimulationHeuristic::SimulationHeuristic(const Options &opts)
     mgrParams(opts), 
     remove_spurious_dominated_states(opts.get<bool>("remove_spurious")), 
     insert_dominated(opts.get<bool>("insert_dominated")), 
+    pruning_type(PruningType(opts.get_enum("pruning_type"))),
     limit_absstates_merge(opts.get<int>("limit_merge")),
     merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
     use_bisimulation(opts.get<bool>("use_bisimulation")), 
@@ -74,7 +75,7 @@ SimulationHeuristic::~SimulationHeuristic() {
 void SimulationHeuristic::dump_options() const {
     merge_strategy->dump_options();
     labels->dump_options();
-    cout << "Type prunning: ";
+    cout << "Type pruning: " << pruning_type;
 
 }
 void SimulationHeuristic::build_abstraction() {
@@ -150,6 +151,9 @@ void SimulationHeuristic::build_abstraction() {
 	   other_abstraction->statistics(use_expensive_statistics);
 	   abstraction->statistics(use_expensive_statistics);
 	}
+
+
+	//TODO: UPDATE SIMULATION WHEN DOING INCREMENTAL COMPUTATION 
         Abstraction *new_abstraction = new CompositeAbstraction(labels,
                                                                 abstraction,
                                                                 other_abstraction);
@@ -180,8 +184,11 @@ void SimulationHeuristic::initialize(bool explicit_checker) {
     dump_options();
     verify_no_axioms();
  
-    build_abstraction();
-    //Abstraction::build_atomic_abstractions(abstractions, labels);
+    if(limit_absstates_merge > 1){
+      build_abstraction();
+    }else{
+      Abstraction::build_atomic_abstractions(abstractions, labels);
+    }
 
     cout << "Building LTS" << endl;
     vector<LabelledTransitionSystem *> lts;
@@ -244,12 +251,12 @@ int SimulationHeuristic::num_simulations() const {
   return res;  
 }
 
-SymTransition * SimulationHeuristic::getTR(SymVariables * _vars){
+SymTransition * SimulationHeuristic::getTR(SymManager * mgr){
   if (!tr){
     for (auto sim : simulations){
-      sim->precompute_absstate_bdds(_vars);
+      sim->precompute_absstate_bdds(mgr->getVars());
     }
-    tr = unique_ptr<SymTransition> {new SymTransition(_vars, simulations)};
+    tr = unique_ptr<SymTransition> {new SymTransition(mgr, simulations)};
     cout << "Simulation TR: " << *tr << endl;
   }
   return tr.get();
@@ -265,7 +272,16 @@ bool SimulationHeuristic::prune_generation(const State &state, int g){
       return true;
     }
   }
-  return check(state, g);
+  //a) Check if state is in a BDD with g.closed <= g
+  if (check(state, g)){
+    return true;
+  }
+
+  //b) Insert state and other states dominated by it
+  if(pruning_type == PruningType::Generation) insert(state, g);
+  return false;
+
+
 }
 
 bool SimulationHeuristic::prune_expansion (const State &state, int g){
@@ -274,7 +290,7 @@ bool SimulationHeuristic::prune_expansion (const State &state, int g){
     return true;
   }
   //b) Insert state and other states dominated by it
-  insert(state, g);
+  if(pruning_type == PruningType::Expansion) insert(state, g);
   return false;
 }
 
@@ -301,12 +317,13 @@ BDD SimulationHeuristic::getBDDToInsert(const State &state){
       res = mgr->filter_mutex(res, true, 1000000, true);
       res = mgr->filter_mutex(res, false, 1000000, true);
     }
-    //Small optimization: If we have a single state, not include it
-    if(vars->numStates(res) == 1){
-      return vars->zeroBDD();
-    }else{
-      return res;
+    if(pruning_type == PruningType::Generation){
+      res -= vars->getStateBDD(state); //Remove the state 
+    }else if (vars->numStates(res) == 1) {
+      //Small optimization: If we have a single state, not include it
+       return vars->zeroBDD();  
     }
+    return res;
   }else{
     return vars->getStateBDD(state);
   }  
@@ -395,9 +412,16 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     parser.add_enum_option
       ("pruning_type", PruningTypeValues,
        "Implementation of the simulation pruning: "
-       "BDD: (default) inserts in a map of BDDs all the dominated states "
+       "Expansion: prunes states when they are simulated by an expanded state"
+       "Generation: prunes states when they are simulated by a generated state ",
+       "generation");
+
+    parser.add_enum_option
+      ("pruning_dd", PruningDDValues,
+       "Implementation data structure of the simulation pruning: "
+       "BDD_MAP: (default) inserts in a map of BDDs all the dominated states "
        "ADD: inserts in an ADD all the dominated states "
-       "BDD_MAP (default): inserts in a BDD all the dominated states (does"
+       "BDD: inserts in a BDD all the dominated states (does"
        "not consider the g-value so it is not safe to use it with A* search)", 
        "BDD_MAP");
 
@@ -411,15 +435,15 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     if (parser.dry_run()) {
         return 0;
     } else {
-      
-      switch(PruningType(opts.get_enum("pruning_type"))){
-      case PruningType::BDD_MAP: return new SimulationHeuristicBDDMap (opts);
+      switch(PruningDD(opts.get_enum("pruning_dd"))){
+      case PruningDD::BDD_MAP: return new SimulationHeuristicBDDMap (opts);
 	//case PruningType::ADD_DOMINATED: return new SimulationHeuristicADD (opts, true);
-      case PruningType::BDD: return new SimulationHeuristicBDD (opts);
+      case PruningDD::BDD: return new SimulationHeuristicBDD (opts);
       default:
 	std::cerr << "Name of PruningTypeStrategy not known";
 	exit(-1);  
       }
+
       return nullptr;
     }
 }
@@ -428,20 +452,36 @@ static Plugin<PruneHeuristic> _plugin("simulation", _parse);
 
 
 
-std::ostream & operator<<(std::ostream &os, const PruningType & pt){
+std::ostream & operator<<(std::ostream &os, const PruningDD & pt){
   switch(pt){
-  case PruningType::BDD_MAP: return os << "BDD map";
-  case PruningType::ADD: return os << "ADD";
-  case PruningType::BDD: return os << "BDD";
+  case PruningDD::BDD_MAP: return os << "BDD map";
+  case PruningDD::ADD: return os << "ADD";
+  case PruningDD::BDD: return os << "BDD";
   default:
     std::cerr << "Name of PruningTypeStrategy not known";
     exit(-1);
   }
 }
 
-const std::vector<std::string> PruningTypeValues {
+std::ostream & operator<<(std::ostream &os, const PruningType & pt){
+  switch(pt){
+  case PruningType::Expansion: return os << "expansion";
+  case PruningType::Generation: return os << "generation";
+  default:
+    std::cerr << "Name of PruningTypeStrategy not known";
+    exit(-1);
+  }
+}
+
+
+const std::vector<std::string> PruningDDValues {
   "BDD_MAP", "ADD",   "BDD"
 };
+
+const std::vector<std::string> PruningTypeValues {
+  "expansion", "generation"
+};
+
 
 
 void SimulationHeuristicBDDMap::insert (const State & state, int g){

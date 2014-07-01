@@ -49,8 +49,10 @@ void SymEngine::initialize() {
     originalStateSpace = new SymHNode(this, mgrParams);
     nodes.push_back(unique_ptr<SymHNode> (originalStateSpace));
     if(prune_heuristic){
-       originalStateSpace->getManager()->set_simulation(prune_heuristic->getTR(vars.get()));
+      originalStateSpace->getManager()->set_simulation(prune_heuristic.get());
     }
+
+
     originalSearch = new SymBDExp(this, searchParams, searchDir);
     unique_ptr<SymBDExp> refExp (originalSearch);
 

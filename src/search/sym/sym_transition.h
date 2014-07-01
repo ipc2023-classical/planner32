@@ -35,7 +35,7 @@ class SymTransition{
  const SymAbstraction * absAfterImage;
  public:
   //Constructor for abstraction transitions
- SymTransition(SymVariables * sV, 
+ SymTransition(SymManager * mgr, 
 	       const std::vector<SimulationRelation*> & sim_relations);
 
   //Constructor for transitions irrelevant for the abstraction

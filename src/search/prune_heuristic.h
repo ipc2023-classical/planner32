@@ -9,7 +9,7 @@ class OptionParser;
 class Options;
 class BDD;
 class SymTransition;
-class SymVariables;
+class SymManager;
 
 class PruneHeuristic : public Heuristic {
 protected:
@@ -31,7 +31,7 @@ public:
 
     //Returns a TR that can be used to generate dominated/dominating
     //state sets
-    virtual SymTransition * getTR(SymVariables * vars) =0;
+    virtual SymTransition * getTR(SymManager * mgr) = 0;
 
     static void add_options_to_parser(OptionParser &parser);
     static Options default_options();

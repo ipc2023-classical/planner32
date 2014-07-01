@@ -8,7 +8,7 @@
 #include "../globals.h"
 #include "../timer.h"
 #include "test/sym_test_mutex.h" 
-
+#include "../prune_heuristic.h"
 using namespace std;
 
 
@@ -550,6 +550,12 @@ BDD SymManager::simulatedBy(const BDD & bdd, bool fw) {
     try{
       BDD res =  simulation_tr->image(bdd);
       unsetTimeLimit();
+      try{
+	res = filter_mutex(res, true, 1000000, true);
+	res = filter_mutex(res, false, 1000000, true);
+      }catch(BDDError e){
+	//I couldn't filter mutex but I can leave with it
+      }
       return res;
     }catch(BDDError e){
       unsetTimeLimit();
@@ -558,5 +564,10 @@ BDD SymManager::simulatedBy(const BDD & bdd, bool fw) {
     }
   }else{
     return bdd;
+  }
+}
+void SymManager::init_simulation(){
+  if(prune_heuristic){
+    simulation_tr = prune_heuristic->getTR(this);
   }
 }

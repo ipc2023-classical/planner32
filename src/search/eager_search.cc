@@ -162,6 +162,15 @@ int EagerSearch::step() {
         if (succ_node.is_dead_end())
             continue;
 
+	if(prune_heuristic && 
+	   prune_heuristic->prune_generation(succ_state, node.get_g() + get_adjusted_cost(*op))){
+	  if(succ_node.is_new()){
+	    search_progress.inc_pruned();
+	  }
+	  continue;
+	}
+
+
         // update new path
         if (use_multi_path_dependence || succ_node.is_new()) {
             bool h_is_dirty = false;
@@ -180,11 +189,6 @@ int EagerSearch::step() {
         }
 
         if (succ_node.is_new()) {
-	  /*if(prune_heuristic && 
-	     prune_heuristic->prune_generation(succ_state, node.get_g() + get_adjusted_cost(*op))){
-	    //search_progress.inc_pruned();
-	    continue;
-	  }*/
 	  // We have not seen this state before.
 	  // Evaluate and create a new node.
             for (size_t i = 0; i < heuristics.size(); i++)
