@@ -56,6 +56,7 @@ HEADERS = \
           timer.h \
           utilities.h \
           weighted_evaluator.h \
+          scc.h \
           \
           open_lists/alternation_open_list.h \
           open_lists/open_list_buckets.h \
@@ -91,6 +92,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/merge_strategy.h \
            merge_and_shrink/shrink_bisimulation.h \
            merge_and_shrink/shrink_bucket_based.h \
+           merge_and_shrink/shrink_own_labels.h \
            merge_and_shrink/shrink_fh.h \
            merge_and_shrink/shrink_random.h \
            merge_and_shrink/shrink_strategy.h \

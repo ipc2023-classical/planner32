@@ -4,6 +4,7 @@
 #include "../operator_cost.h"
 
 #include <vector>
+#include <set>
 
 class Abstraction;
 class Label;
@@ -37,6 +38,11 @@ public:
     bool is_unit_cost() const {
         return unit_cost;
     }
+
+    void set_relevant_for (int label_no, Abstraction * abstraction);
+    void set_irrelevant_for (int label_no, Abstraction * abstraction);
+    const std::set<Abstraction *> & get_relevant_for (int label_no) const;
+
 };
 
 #endif
