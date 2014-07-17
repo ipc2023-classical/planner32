@@ -178,15 +178,16 @@ ShrinkOwnLabels *ShrinkOwnLabels::create_default() {
 static ShrinkStrategy *_parse(OptionParser &parser) {
     ShrinkStrategy::add_options_to_parser(parser);
 
-    Options opts = parser.parse();
-    ShrinkStrategy::handle_option_defaults(opts);
-
     parser.add_option<bool>("goal_shrinking",
                             "performs goal shrinking. Aggregate state s with goal state g if:"
 			    "   (a) this parameter is activated"
 			    "   (b) all goal variables are in abstraction and"
 			    "   (c) there is an own-label path from s to g",
                             "true");
+
+    Options opts = parser.parse();
+    ShrinkStrategy::handle_option_defaults(opts);
+
 
 
     if (!parser.dry_run())
