@@ -881,6 +881,10 @@ void Abstraction::apply_abstraction(
     // distances must have been computed before
     assert(are_distances_computed());
 
+    // Don't apply abstractions if they are the identity function
+    if(size() == collapsed_groups.size()) return;
+
+
     cout << tag() << "applying abstraction (" << size()
          << " to " << collapsed_groups.size() << " states)" << endl;
 

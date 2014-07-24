@@ -36,12 +36,20 @@ void ShrinkComposite::shrink(Abstraction &abs, int target, bool force) {
     //TODO: This method does not make much sense in here. Should it be
     //removed from shrink_strategy?
     for(int i = 0; i < strategies.size(); ++i) {
+	if(i!=0){
+	    abs.normalize();
+	    abs.compute_distances();
+	}
 	strategies[i]->shrink(abs, target, force);
     }   
 }
 
 void ShrinkComposite::shrink_atomic(Abstraction &abs) {
     for(int i = 0; i < strategies.size(); ++i) {
+	if(i!=0){
+	    abs.normalize();
+	    abs.compute_distances();
+	}
 	strategies[i]->shrink_atomic(abs);
     }
 }
@@ -49,6 +57,12 @@ void ShrinkComposite::shrink_atomic(Abstraction &abs) {
 void ShrinkComposite::shrink_before_merge(
     Abstraction &abs1, Abstraction &abs2) {
     for(int i = 0; i < strategies.size(); ++i) {
+	if(i != 0) {
+	    abs1.normalize();
+	    abs2.normalize();
+	    abs1.compute_distances();
+	    abs2.compute_distances();
+	}
 	strategies[i]->shrink_before_merge(abs1, abs2);
     }
 }
