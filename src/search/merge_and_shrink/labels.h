@@ -41,6 +41,8 @@ public:
 
     void set_relevant_for (int label_no, Abstraction * abstraction);
     void set_irrelevant_for (int label_no, Abstraction * abstraction);
+    void set_irrelevant_for_all_labels (Abstraction * abstraction);
+
     const std::set<Abstraction *> & get_relevant_for (int label_no) const;
 
 };
