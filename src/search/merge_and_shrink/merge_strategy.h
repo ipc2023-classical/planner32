@@ -23,6 +23,10 @@ public:
     // everytime they return a pair of abstractions which are merged next.
     virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions) = 0;
     virtual std::string name() const = 0;
+
+    //Alvaro: Added to know whether a merge strategy is linear or not
+    // (more general than old way comparing the strategy name)
+    virtual bool is_linear() const = 0;
 };
 
 #endif

@@ -100,6 +100,22 @@ public:
         return predecessors[var];
     }
 
+    const std::vector<std::vector<int> > & get_successors() const {
+		return successors;
+    }
+
+    const std::vector<std::vector<int> > & get_predecessors() const {
+		return predecessors;
+    }
+
+    const std::vector<std::vector<int> > & get_pre_to_eff() const {
+		return pre_to_eff;
+    }
+
+    const std::vector<std::vector<int> > & get_eff_to_pre() const {
+		return eff_to_pre;
+    }
+
     void dump() const;
 };
 

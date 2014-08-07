@@ -100,22 +100,27 @@ void ShrinkOwnLabels::shrink(Abstraction &abs, int target, bool /*force*/) {
 
     /* perform Tarjan's algorithm for finding SCCs */
     EquivalenceRelation final_sccs;
-    SCC::compute_scc_equivalence (adjacency_matrix, is_goal, final_sccs);
-
-    /*cout << "===========================================" << endl;
-      for (int i = 0; i < num_states; i++) {
-      cout << "edges from " << i << " to";
-      for (int j = 0; j < adjacency_matrix[i].size(); j++)
-      cout << " " << adjacency_matrix[i][j];
-      cout << endl;
-      }
-      cout << "found SCCs:" << endl;
-      for (int i = 0; i < final_sccs.size(); i++) {
-      for (int j = 0; j < final_sccs[i].size(); j++)
-      cout << final_sccs[i][j] << " ";
-      cout << endl;
-      }
-      cout << "===========================================" << endl;*/
+    SCC::compute_scc_equivalence (adjacency_matrix, final_sccs, &is_goal);
+	
+    //cout << "===========================================" << endl;
+    // for (int i = 0; i < num_states; i++) {
+    // 	cout << "edges from " << i << " to";
+    // 	for (int j = 0; j < adjacency_matrix[i].size(); j++)
+    // 	    cout << " " << adjacency_matrix[i][j];
+    // 	cout << endl;
+    // }
+    //   cout << "found SCCs:" << final_sccs.size() << endl;
+    //   for (int i = 0; i < final_sccs.size(); i++) {
+    // 	  cout << final_sccs[i].front() << " ";
+    // 	  //for (int j = 0; j < final_sccs[i].size(); j++)
+    // 	  //cout << final_sccs[i][j] << " ";
+    // 	  //cout << endl;
+    //     }
+    //   cout << "===========================================" << endl;
+    //   for (int i = 0; i < is_goal.size(); i++) {
+    // 	  cout << is_goal[i];
+    //   }
+    //cout << endl;
 
     /* free some memory */
     vector<vector<int> > ().swap(adjacency_matrix);

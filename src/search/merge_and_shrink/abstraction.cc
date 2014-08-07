@@ -467,7 +467,7 @@ void Abstraction::normalize() {
                 // marked as relevant in order to avoid confusions when
                 // considering all relevant labels).
                 relevant_labels[parent_id] = false;
-		labels->set_irrelevant_for(parent_id, this); 
+        labels->set_irrelevant_for(parent_id, this); 
             } else {
                 some_parent_is_irrelevant = true;
             }
@@ -477,11 +477,11 @@ void Abstraction::normalize() {
                 // new label is irrelevant (implicit self-loops)
                 // remove all transitions (later)
                 labels_made_irrelevant.insert(reduced_label_no);
-		labels->set_irrelevant_for(reduced_label_no, this);
+        labels->set_irrelevant_for(reduced_label_no, this);
             } else {
                 // new label is relevant
                 relevant_labels[reduced_label_no] = true;
-		labels->set_relevant_for(reduced_label_no, this);
+        labels->set_relevant_for(reduced_label_no, this);
                 // make self loops explicit
                 for (int i = 0; i < num_states; ++i) {
                     target_buckets[i].push_back(
@@ -491,7 +491,7 @@ void Abstraction::normalize() {
         } else {
             // new label is relevant
             relevant_labels[reduced_label_no] = true;
-	    labels->set_relevant_for(reduced_label_no, this);
+        labels->set_relevant_for(reduced_label_no, this);
         }
     }
 
@@ -601,7 +601,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
             AbstractTransition trans(value, value);
             abs->transitions_by_label[label_no].push_back(trans);
             abs->relevant_labels[label_no] = true;
-	    labels->set_relevant_for(label_no, abs);
+        labels->set_relevant_for(label_no, abs);
         }
         const vector<PrePost> &pre_post = label->get_pre_post();
         for (int i = 0; i < pre_post.size(); i++) {
@@ -664,7 +664,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
             }
 
             abs->relevant_labels[label_no] = true;
-	    labels->set_relevant_for(label_no, abs);
+        labels->set_relevant_for(label_no, abs);
         }
     }
 
@@ -763,7 +763,7 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
         bool relevant2 = abs2->relevant_labels[label_no];
         if (relevant1 || relevant2) {
             relevant_labels[label_no] = true;
-	    labels->set_relevant_for(label_no, this);
+        labels->set_relevant_for(label_no, this);
             vector<AbstractTransition> &transitions = transitions_by_label[label_no];
             const vector<AbstractTransition> &bucket1 =
                 abs1->transitions_by_label[label_no];
@@ -1113,7 +1113,51 @@ void Abstraction::dump() const {
 
 bool Abstraction::is_own_label(int label_no){
     const set<Abstraction *> & relevant_abstractions =
-	labels->get_relevant_for(label_no);
+    labels->get_relevant_for(label_no);
     assert(relevant_abstractions.count(this));
     return relevant_abstractions.size() == 1;
+}
+
+void Abstraction::count_transitions_by_label() {
+    assert(is_normalized());
+    num_transitions_by_label.resize(num_labels, 0); 
+    num_goal_transitions_by_label.resize(num_labels, 0); 
+
+    for(int i = 0; i < transitions_by_label.size(); ++i){
+	if(transitions_by_label[i].empty()) continue;
+	for(int j = 0; j < transitions_by_label[i].size(); j++){
+	    if(transitions_by_label[i][j].target != transitions_by_label[i][j].src){
+		num_transitions_by_label[i] ++;
+		if(goal_states[transitions_by_label[i][j].target]){
+		    num_goal_transitions_by_label[i] ++;
+		}
+	    }
+	}
+    }
+}
+
+void Abstraction::count_transitions
+(const vector<Abstraction *> &all_abstractions, 
+ const vector<int> & remaining, bool only_empty,
+ bool only_goal, vector<int> & result){
+    result.resize(g_variable_name.size(), 0);
+    if (num_transitions_by_label.empty()){
+    count_transitions_by_label();
+    }
+    for (size_t label_no = 0; label_no < num_labels; ++label_no) {
+	int num_tr_label = only_goal ? num_goal_transitions_by_label[label_no] :
+	    num_transitions_by_label[label_no];
+	if(num_tr_label){
+	    labels->get_label_by_index(label_no)->dump();
+	    for(int i = 0; i < remaining.size(); ++i){
+		int var = remaining[i];
+		const Label *l = labels->get_label_by_index(label_no);
+		assert(l->get_relevant_for().size() > 1);
+		if((!only_empty || l->get_relevant_for().size() == 2) &&
+		   l->is_relevant_for(all_abstractions[var])){
+		    result[var] += num_tr_label;
+		}
+	    }    
+	}
+    }
 }

@@ -4,65 +4,54 @@
 
 using namespace std;
 
-void SCC::dfs_equivalence(const vector<vector<int> > &graph, 
-	     vector<bool> &is_goal, 
-	     int vertex, int & current_dfs_number,
-	     vector<int> & stack,
-	     vector<int> & stack_indices,
-	     vector<int> & dfs_numbers,
-	     vector<int> & dfs_minima,
-             std::vector<__gnu_cxx::slist<int> >  & final_sccs) {
-    int vertex_dfs_number = current_dfs_number++;
-    dfs_numbers[vertex] = dfs_minima[vertex] = vertex_dfs_number;
-    stack_indices[vertex] = stack.size();
-    stack.push_back(vertex);
-
-    const vector<int> &successors = graph[vertex];
-    for (int i = 0; i < successors.size(); i++) {
-	int succ = successors[i];
-	int succ_dfs_number = dfs_numbers[succ];
-	if (succ_dfs_number == -1) {
-	    dfs_equivalence(graph, is_goal, succ, current_dfs_number, 
-			    stack, stack_indices, dfs_numbers, dfs_minima, final_sccs);
-	    dfs_minima[vertex] = min(dfs_minima[vertex], dfs_minima[succ]);
-	} else if (succ_dfs_number < vertex_dfs_number && stack_indices[succ] != -1) {
-	    dfs_minima[vertex] = min(dfs_minima[vertex], succ_dfs_number);
-	}
-	if(is_goal[succ]){
-	    is_goal[vertex] = true;
-	}
-    }
-
-    if (dfs_minima[vertex] == vertex_dfs_number) {
-	int stack_index = stack_indices[vertex];
-	final_sccs.push_back(__gnu_cxx::slist<int>());
-	__gnu_cxx::slist<int> & scc = final_sccs.back();
-	for (int i = stack_index; i < stack.size(); i++) {
-	    scc.push_front(stack[i]);
-	    stack_indices[stack[i]] = -1;
-	}
-	stack.erase(stack.begin() + stack_index, stack.end());
-    }
+SCC::SCC(const std::vector<std::vector<int> > &_graph) : graph(_graph){
+    compute_scc_equivalence(graph, sccs);
 }
 
+void SCC::compute_scc_graph() { 
+    if(!vertex_scc.empty()) return; //Avoid recomputing  
 
-void SCC::compute_scc_equivalence(const vector<vector<int> > &graph, 
-				  vector<bool> &is_goal, 
-				  std::vector<__gnu_cxx::slist<int> >  & result){
     int node_count = graph.size();
+    //Compute the SCC associated with each vertex
+    vertex_scc.resize(node_count, -1);
+    for (int i = 0; i < sccs.size(); i++) {
+	for (int j = 0; j < sccs[i].size(); j++){
+	    vertex_scc[sccs[i][j]] = i;
+	}
+    }    
 
-    // The following three are indexed by vertex number.
-    vector<int> dfs_numbers(node_count, -1);
-    vector<int> dfs_minima (node_count, -1);
-    vector<int> stack_indices (node_count, -1);
-    vector<int> stack; // This is indexed by the level of recursion.
-    stack.reserve(node_count);
-    int current_dfs_number = 0;
+    scc_graph.resize(sccs.size());
+    //Compute the layer in the CG of each scc and var.
+    scc_layer.resize(sccs.size(), -1);
+    vertex_layer.resize(node_count, 0);
+    //Initially all the sccs are considered to have layer 0 (root)
+    for (int i = 0; i < sccs.size(); i++) {
+	//If no one pointed this scc, it is a root.
+	if(scc_layer[i] == -1)
+	    scc_layer[i] = 0; 
+	int layer = scc_layer[i];
+	for (int j = 0; j < sccs[i].size(); j++){
+	    int var = sccs[i][j];
+	    vertex_layer[var] = layer; //Assign the layer of the scc to its
+	    //variables
 
-    for (int i = 0; i < node_count; i++)
-	if (dfs_numbers[i] == -1)
-	    dfs_equivalence(graph, is_goal, i, current_dfs_number, 
-			    stack, stack_indices, dfs_numbers, dfs_minima, result);
-    //reverse(result.begin(), result.end());
-    //reverse(scc_goal.begin(), scc_goal.end());
+	    //Each element pointed by var and not in scc i, it is a
+	    //descendant of scc i
+	    for(int k = 0; k < graph[var].size(); k++){
+		int var2 = graph[var][k];
+		int scc_var2 = vertex_scc[var2];
+		//If this is the first time we point it, we have found a
+		//shortest path from the root to scc_var2
+		if(scc_var2 != i){
+		    scc_graph[i].insert(scc_var2);
+		    if(scc_layer[scc_var2] == -1){
+			//cout << var << " => " << var2 << ": " << scc_var2 << " updated to " << layer +1 << endl;
+			scc_layer[scc_var2] = layer + 1;
+		    }
+		}
+	    }
+	}
+    }
 }
+
+

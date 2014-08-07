@@ -18,6 +18,7 @@ public:
 
     virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions);
     virtual std::string name() const;
+    virtual bool is_linear() const;
 };
 
 #endif

@@ -49,6 +49,10 @@ string MergeLinear::name() const {
     return "linear";
 }
 
+bool MergeLinear::is_linear() const {
+    return true;
+}
+
 static MergeStrategy *_parse(OptionParser &parser) {
     vector<string> merge_strategies;
     //TODO: it's a bit dangerous that the merge strategies here

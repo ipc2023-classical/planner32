@@ -65,6 +65,13 @@ class Abstraction {
     std::vector<std::vector<AbstractTransition> > transitions_by_label;
     std::vector<bool> relevant_labels;
 
+    // Alvaro: Information regarding the number of transitions by label
+    // (needed by some merge_criterions, only computed on demand)
+    // TODO: added as attribute in abstractions to avoid recomputation
+    // when different criterions use this data. Move somewhere else?
+    std::vector<int> num_transitions_by_label;
+    std::vector<int> num_goal_transitions_by_label;
+
     int num_states;
 
     std::vector<int> init_distances;
@@ -89,6 +96,11 @@ class Abstraction {
     void compute_goal_distances_unit_cost();
     void compute_init_distances_general_cost();
     void compute_goal_distances_general_cost();
+
+    //Alvaro: Computes num_transitions_by_label and
+    //num_goal_transitions_by_label
+    void count_transitions_by_label();
+
 
     // are_transitions_sorted_unique() is used to determine whether the
     // transitions of an abstraction are sorted uniquely or not after
@@ -180,6 +192,17 @@ public:
 	return goal_states;
     }
 
+    //Alvaro: used by merge criterions. For each remaining
+    //abstraction, counts the number of transitions in this
+    //transitions labelled with a relevant label for that
+    //abstraction. If only_empty is activated, only the transitions
+    //that are relevant for 2 abstractions are counted (this
+    //abstraction and the other). If only_goal is activated, only
+    //transitions leading to a goal state are counted.
+    void count_transitions(const std::vector<Abstraction *> &all_abstractions, 
+			   const std::vector<int> & remaining, bool only_empty,
+			   bool only_goal, std::vector<int> & result);
+    
     bool is_own_label(int label_no);
 };
 
