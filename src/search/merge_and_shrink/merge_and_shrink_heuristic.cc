@@ -130,6 +130,9 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
 		other_abstraction->statistics(use_expensive_statistics);
 		abstraction->statistics(use_expensive_statistics);
 	    }
+	}else{
+	    abstraction->normalize();
+	    other_abstraction->normalize();
 	}
 
         Abstraction *new_abstraction = new CompositeAbstraction(labels,
@@ -155,9 +158,11 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
 	    return new_abstraction;
 
 	if(shrink_after_merge){
-            labels->reduce(make_pair(all_abstractions.size() - 1, -1), all_abstractions);
+            labels->reduce(make_pair(all_abstractions.size() - 1, 
+				     all_abstractions.size() - 1), all_abstractions);
 	    new_abstraction->normalize();
-	    shrink_strategy->shrink(*new_abstraction, numeric_limits<int>::max(), true);    
+	    shrink_strategy->shrink(*new_abstraction, numeric_limits<int>::max(), true);
+	    assert (new_abstraction->is_solvable());
 	}
     }
 

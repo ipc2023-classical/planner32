@@ -37,8 +37,9 @@ void ShrinkComposite::shrink(Abstraction &abs, int target, bool force) {
     //removed from shrink_strategy?
     for(int i = 0; i < strategies.size(); ++i) {
 	if(i!=0){
-	    abs.normalize();
 	    abs.compute_distances();
+	    abs.normalize();
+	    assert(abs.is_solvable());
 	}
 	strategies[i]->shrink(abs, target, force);
     }   
@@ -79,8 +80,6 @@ static ShrinkStrategy *_parse(OptionParser &parser) {
     ShrinkStrategy::handle_option_defaults(opts);
 
     opts.verify_list_non_empty<ShrinkStrategy *>("strategies");
-
-
 
     if (!parser.dry_run())
         return new ShrinkComposite(opts);
