@@ -89,7 +89,8 @@ ShrinkBisimulation::ShrinkBisimulation(const Options &opts)
       greedy(opts.get<bool>("greedy")),
       threshold(opts.get<int>("threshold")),
       group_by_h(opts.get<bool>("group_by_h")),
-      at_limit(AtLimit(opts.get_enum("at_limit"))) {
+      at_limit(AtLimit(opts.get_enum("at_limit"))), 
+      aggregate_goals(opts.get<bool>("aggregate_goals")){
 }
 
 ShrinkBisimulation::~ShrinkBisimulation() {
@@ -111,6 +112,8 @@ void ShrinkBisimulation::dump_strategy_specific_options() const {
     } else {
         ABORT("Unknown setting for at_limit.");
     }
+    cout << "Aggregate goals: " << (aggregate_goals ? "yes" : "no") << endl;
+
     cout << endl;
 }
 
@@ -232,6 +235,10 @@ void ShrinkBisimulation::compute_signatures(
                 int target_h = abs.get_goal_distance(trans.target);
                 assert(target_h + label_cost >= src_h);
                 skip_transition = (target_h + label_cost != src_h);
+            }
+            if (aggregate_goals && abs.get_all_goal_vars_in() 
+		&& abs.is_goal_state(trans.src)) {
+            	skip_transition = true;
             }
             if (!skip_transition) {
                 int target_group = state_to_group[trans.target];
@@ -402,6 +409,7 @@ ShrinkStrategy *ShrinkBisimulation::create_default() {
     opts.set("threshold", 1);
     opts.set("group_by_h", false);
     opts.set<int>("at_limit", RETURN);
+    opts.set<bool>("aggregate_goals", false);
 
     return new ShrinkBisimulation(opts);
 }
@@ -418,6 +426,15 @@ static ShrinkStrategy *_parse(OptionParser &parser) {
     parser.add_enum_option(
         "at_limit", at_limit,
         "what to do when the size limit is hit", "RETURN");
+
+    parser.add_option<bool>("aggregate_goals", "Goal states in abstractions" 
+			    "with all goal variables will always remain goal"
+			    "-> we can ignore all outgoing transitions, as we can"
+			    "never leave this state; should help aggregating more states, as"
+			    "all goal states should become bisimilar (can also increase the"
+			    "abstraction size by making more abstract states reachable)",
+			    "false");
+
 
     Options opts = parser.parse();
 

@@ -8,6 +8,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <set>
+
 
 using namespace std;
 
@@ -50,4 +52,16 @@ void Labels::dump() const {
 
 void Labels::dump_options() const {
     label_reducer->dump_options();
+}
+
+void Labels::set_irrelevant_for(int label_no, Abstraction * abstraction){
+    labels[label_no]->set_irrelevant_for(abstraction);
+}
+
+void Labels::set_relevant_for(int label_no, Abstraction * abstraction){
+    labels[label_no]->set_relevant_for(abstraction);
+}
+
+const std::set<Abstraction *> & Labels::get_relevant_for (int label_no) const{
+    return labels[label_no]->get_relevant_for();
 }

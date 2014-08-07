@@ -30,6 +30,8 @@ CompositeLabel::CompositeLabel(int id, const std::vector<Label *> &parents_)
             assert(parent->get_cost() == parents_[i - 1]->get_cost());
         parent->update_root(this);
         parents.push_back(parent);
+	relevant_for.insert(parent->relevant_for.begin(), 
+			    parent->relevant_for.end());
     }
 }
 
@@ -51,4 +53,17 @@ void Label::dump() const {
     cout << id << "->" << root->get_id() << endl;
     //cout << "index: " << id << (id < g_operators.size() ? " regular operator" : "" ) << endl;
     //cout << "cost: " << cost << endl;
+}
+
+
+void Label::set_relevant_for(Abstraction * abstraction){
+    relevant_for.insert(abstraction);
+}
+
+void Label::set_irrelevant_for(Abstraction * abstraction){
+    relevant_for.erase(abstraction);
+}
+
+bool Label::is_relevant_for(Abstraction * abstraction) const {
+    return relevant_for.count(abstraction) > 0;
 }

@@ -4,8 +4,10 @@
 #include "../operator.h"
 
 #include <vector>
+#include <set>
 
 class CompositeLabel;
+class Abstraction;
 
 /* This class implements labels as used by merge-and-shrink abstractions.
    It abstracts from the underlying regular operators and allows to store
@@ -21,6 +23,11 @@ class Label {
     // the "first" label of all parent labels when constructing a CompositeLabel.
     const std::vector<Prevail> &prevail;
     const std::vector<PrePost> &pre_post;
+    
+    //Alvaro: Sets of abstraction the label is relevant for. This is
+    //needed to compute the own-labels for an abstraction (those that
+    //are only relevant for the abstraction).
+    std::set<Abstraction *> relevant_for; 
 protected:
     // root is a pointer to a composite label that this label has been reduced
     // to, if such a label exists, or to itself, if the label has not been
@@ -43,6 +50,15 @@ public:
     bool is_reduced() const;
     virtual const std::vector<Label *> &get_parents() const = 0;
     void dump() const;
+
+    //Alvaro: Methods to access relevant_for.
+    void set_relevant_for(Abstraction * abstraction);
+    void set_irrelevant_for(Abstraction * abstraction);
+    bool is_relevant_for(Abstraction * abstraction) const;
+
+    const std::set<Abstraction *> & get_relevant_for () const{
+	return relevant_for;
+    }
 };
 
 class OperatorLabel : public Label {

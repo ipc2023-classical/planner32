@@ -49,7 +49,9 @@ class Abstraction {
     // There should only be one instance of Labels at runtime. It is created
     // and managed by MergeAndShrinkHeuristic. All abstraction instances have
     // a copy of this object to ease access to the set of labels.
-    const Labels *labels;
+    // Alvaro: Removed const to allow setting the abstraction as
+    // irrelevant for some labels during normalize().
+    Labels *labels;
     /* num_labels equals to the number of labels that this abstraction is
        "aware of", i.e. that have
        been incorporated into transitions_by_label. Whenever new labels are
@@ -75,7 +77,10 @@ class Abstraction {
     int max_h;
 
     bool transitions_sorted_unique;
-    bool goal_relevant;
+    //Alvaro: substituted goal_relevant by number of goal variables =>
+    //allow easy check of whether all the goal variables are relevant
+    int goal_relevant_vars; 
+    bool all_goals_relevant;
 
     mutable int peak_memory;
 
@@ -160,12 +165,22 @@ public:
     // These methods are used by non_linear_merge_strategy
     void compute_label_ranks(std::vector<int> &label_ranks);
     bool is_goal_relevant() const {
-        return goal_relevant;
+        return goal_relevant_vars > 0;
+    }
+    bool get_all_goal_vars_in() const{
+	return all_goals_relevant;
     }
     // This is used by the "old label reduction" method
     const std::vector<int> &get_varset() const {
         return varset;
     }
+    
+    //Alvaro: used by shrink_empty_labels
+    const std::vector<bool> & get_goal_states() const {
+	return goal_states;
+    }
+
+    bool is_own_label(int label_no);
 };
 
 class AtomicAbstraction : public Abstraction {

@@ -467,6 +467,7 @@ void Abstraction::normalize() {
                 // marked as relevant in order to avoid confusions when
                 // considering all relevant labels).
                 relevant_labels[parent_id] = false;
+		labels->set_irrelevant_for(parent_id, this); 
             } else {
                 some_parent_is_irrelevant = true;
             }
@@ -476,9 +477,11 @@ void Abstraction::normalize() {
                 // new label is irrelevant (implicit self-loops)
                 // remove all transitions (later)
                 labels_made_irrelevant.insert(reduced_label_no);
+		labels->set_irrelevant_for(reduced_label_no, this);
             } else {
                 // new label is relevant
                 relevant_labels[reduced_label_no] = true;
+		labels->set_relevant_for(reduced_label_no, this);
                 // make self loops explicit
                 for (int i = 0; i < num_states; ++i) {
                     target_buckets[i].push_back(
@@ -488,6 +491,7 @@ void Abstraction::normalize() {
         } else {
             // new label is relevant
             relevant_labels[reduced_label_no] = true;
+	    labels->set_relevant_for(reduced_label_no, this);
         }
     }
 
@@ -597,6 +601,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
             AbstractTransition trans(value, value);
             abs->transitions_by_label[label_no].push_back(trans);
             abs->relevant_labels[label_no] = true;
+	    labels->set_relevant_for(label_no, abs);
         }
         const vector<PrePost> &pre_post = label->get_pre_post();
         for (int i = 0; i < pre_post.size(); i++) {
@@ -659,6 +664,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
             }
 
             abs->relevant_labels[label_no] = true;
+	    labels->set_relevant_for(label_no, abs);
         }
     }
 
@@ -680,14 +686,15 @@ AtomicAbstraction::AtomicAbstraction(Labels *labels, int variable_)
 
     int init_value = g_initial_state()[variable];
     int goal_value = -1;
-    goal_relevant = false;
+    goal_relevant_vars = 0;
     for (int goal_no = 0; goal_no < g_goal.size(); goal_no++) {
         if (g_goal[goal_no].first == variable) {
-            goal_relevant = true;
+            goal_relevant_vars++;
             assert(goal_value == -1);
             goal_value = g_goal[goal_no].second;
         }
     }
+    all_goals_relevant = goal_relevant_vars == g_goal.size();
 
     num_states = range;
     lookup_table.reserve(range);
@@ -723,8 +730,8 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
 
     num_states = abs1->size() * abs2->size();
     goal_states.resize(num_states, false);
-    goal_relevant = (abs1->goal_relevant || abs2->goal_relevant);
-
+    goal_relevant_vars = (abs1->goal_relevant_vars + abs2->goal_relevant_vars);
+    all_goals_relevant = goal_relevant_vars == g_goal.size();
     lookup_table.resize(abs1->size(), vector<AbstractStateRef> (abs2->size()));
     for (int s1 = 0; s1 < abs1->size(); s1++) {
         for (int s2 = 0; s2 < abs2->size(); s2++) {
@@ -756,6 +763,7 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
         bool relevant2 = abs2->relevant_labels[label_no];
         if (relevant1 || relevant2) {
             relevant_labels[label_no] = true;
+	    labels->set_relevant_for(label_no, this);
             vector<AbstractTransition> &transitions = transitions_by_label[label_no];
             const vector<AbstractTransition> &bucket1 =
                 abs1->transitions_by_label[label_no];
@@ -872,6 +880,10 @@ void Abstraction::apply_abstraction(
     assert(num_labels == labels->get_size());
     // distances must have been computed before
     assert(are_distances_computed());
+
+    // Don't apply abstractions if they are the identity function
+    if(size() == collapsed_groups.size()) return;
+
 
     cout << tag() << "applying abstraction (" << size()
          << " to " << collapsed_groups.size() << " states)" << endl;
@@ -1094,4 +1106,11 @@ void Abstraction::dump() const {
         }
     }
     cout << "}" << endl;
+}
+
+bool Abstraction::is_own_label(int label_no){
+    const set<Abstraction *> & relevant_abstractions =
+	labels->get_relevant_for(label_no);
+    assert(relevant_abstractions.count(this));
+    return relevant_abstractions.size() == 1;
 }
