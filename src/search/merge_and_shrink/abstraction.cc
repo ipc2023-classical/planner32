@@ -814,6 +814,9 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
     // TODO do not check if transitions are sorted but just assume they are not?
     if (!are_transitions_sorted_unique())
         transitions_sorted_unique = false;
+
+    labels->set_irrelevant_for_all_labels(abs1);
+    labels->set_irrelevant_for_all_labels(abs2);
 }
 
 CompositeAbstraction::~CompositeAbstraction() {

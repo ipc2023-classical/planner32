@@ -58,6 +58,12 @@ void Labels::set_irrelevant_for(int label_no, Abstraction * abstraction){
     labels[label_no]->set_irrelevant_for(abstraction);
 }
 
+void Labels::set_irrelevant_for_all_labels (Abstraction * abstraction){    
+    for (size_t i = 0; i < labels.size(); ++i) {
+	labels[i]->set_irrelevant_for(abstraction);
+    }
+}
+
 void Labels::set_relevant_for(int label_no, Abstraction * abstraction){
     labels[label_no]->set_relevant_for(abstraction);
 }
