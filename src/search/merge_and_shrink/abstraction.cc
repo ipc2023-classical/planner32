@@ -1148,7 +1148,6 @@ void Abstraction::count_transitions
 	int num_tr_label = only_goal ? num_goal_transitions_by_label[label_no] :
 	    num_transitions_by_label[label_no];
 	if(num_tr_label){
-	    labels->get_label_by_index(label_no)->dump();
 	    for(int i = 0; i < remaining.size(); ++i){
 		int var = remaining[i];
 		const Label *l = labels->get_label_by_index(label_no);
