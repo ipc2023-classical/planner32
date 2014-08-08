@@ -34,6 +34,7 @@ class Options;
 #include <vector>
 #include <set>
 #include <string>
+#include <iostream>
 #include <sstream>
 #include <limits>
 #include "../scc.h"
@@ -61,18 +62,34 @@ class MergeCriterion {
     template<class T>
 	void filter_best(std::vector <int> & vars, 
 			 const std::vector<T> & criterion, 
-			 bool minimize) const {
+			 bool minimize, double opt_margin=1, double opt_diff=0)  const {
 	std::vector<int> aux; 
-	double best = (minimize ? std::numeric_limits<double>::max() : 0.0); 
-	for(int i =0; i < vars.size(); i++){
-	    double score = criterion[vars[i]];
-	    if((minimize && score < best) || 
-	       (!minimize && score > best)){
-		std::vector<int>().swap(aux);
-		best = score;
+
+	if(opt_diff == 0 && opt_margin == 1){
+	    T best = (minimize ? std::numeric_limits<T>::max() : 0.0); 
+	    for(int i =0; i < vars.size(); i++){
+		T score = criterion[vars[i]];
+		if((minimize && score < best) || 
+		   (!minimize && score > best)){
+		    std::vector<int>().swap(aux);
+		    best = score;
+		}
+		if(score == best){
+		    aux.push_back(vars[i]);
+		}
 	    }
-	    if(score == best){
-		aux.push_back(vars[i]);
+	}else{
+	    T best = (minimize ? *(std::min_element(criterion.begin(), criterion.end())) :
+		                  *(std::max_element(criterion.begin(), criterion.end())));
+	    T bestcmp = (minimize ? std::max(best*opt_margin, best + opt_diff) :
+			 std::min(best*opt_margin, best - opt_diff));
+            std::cout << " (" << best << " " << bestcmp << ") ";
+	    for(int i =0; i < vars.size(); i++){
+		T score = criterion[vars[i]];
+		if((minimize && score <= bestcmp) || 
+		   (!minimize && score >= bestcmp)){
+		    aux.push_back(vars[i]);
+		}		    
 	    }
 	}
 	if(!aux.empty()){
@@ -168,6 +185,16 @@ class MergeCriterionMinSCC : public MergeCriterion {
 class MergeCriterionTRs : public MergeCriterion {
     const bool only_goals;
     const bool only_empty;
+
+    // By default, this criterion discards all the variables that do
+    // have the maximum number of shared TRs.  In practice, however,
+    // if the maximum is 1000 and there is a variable with 9999, it
+    // may make sense to let that as well.  We add two parameters to
+    // control the amount of suboptimality allowed (in terms of a
+    // factor or a difference)
+    // allowed_value = min(best*opt_factor, best - opt_diff)
+    const double opt_factor;
+    const int opt_diff;
  public:
     MergeCriterionTRs(const Options & opts);
     virtual void init();
@@ -177,7 +204,7 @@ class MergeCriterionTRs : public MergeCriterion {
     virtual std::string get_name() const {
 	std::stringstream ss;
 	ss << "TRs(";
-	if(only_goals) ss << "goals";
+	if(only_goals) ss << "goals ";
 	if(only_empty) ss << "empty";
         ss << ")";
         return ss.str();

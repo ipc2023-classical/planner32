@@ -158,9 +158,12 @@ void MergeCriterionMinSCC::filter(const std::vector<Abstraction *> &/*all_abstra
        cout << endl;*/
 }
 
+
 MergeCriterionTRs::MergeCriterionTRs(const Options & opts) : 
     only_goals(opts.get<bool> ("goal")), 
-    only_empty(opts.get<bool>("empty")){
+    only_empty(opts.get<bool>("empty")), 
+    opt_factor(opts.get<double>("opt_factor")), 
+    opt_diff(opts.get<int>("opt_diff")) {
 }
 
 
@@ -175,7 +178,9 @@ void MergeCriterionTRs::filter(const std::vector<Abstraction *> &all_abstraction
 				       only_empty, only_goals, score);
 	//for(int i = 0; i < vars.size(); i++)
 	//    cout << "ScoreTRs(" << only_empty << ", " << only_goals << ") " << vars[i] << ": " << score[vars[i]] << " " << endl;
-	MergeCriterion::filter_best(vars, score, false);
+	cout << "TRS criterion: " << vars.size();
+	MergeCriterion::filter_best(vars, score, false, opt_factor, opt_diff);
+	cout << " => " << vars.size() << endl;
     }
 }
 
@@ -227,6 +232,8 @@ static MergeCriterion *_parse_scc(OptionParser & parser) {
 static MergeCriterion *_parse_tr(OptionParser & parser) {
     parser.add_option<bool>("goal", "only counts transitions leading to a goal state", "false");
     parser.add_option<bool>("empty", "only counts transitions that will become empty", "false");
+    parser.add_option<double>("opt_factor", "allows for a multiplicative factor of suboptimality in the number of TRs", "1.0");
+    parser.add_option<int>("opt_diff", "allows for a constant factor of suboptimality in the number of TRs", "0");
     Options opts = parser.parse();
 
     if (parser.dry_run()) {
