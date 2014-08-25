@@ -43,7 +43,7 @@ MergeLinearCriteria::~MergeLinearCriteria() {
 
 
 pair<int, int> MergeLinearCriteria::get_next(const std::vector<Abstraction *> &all_abstractions,
-					     int /*limit_abstract_states_merge*/) {
+					     int limit_abstract_states_merge) {
     assert(!done());
 
     int first;
@@ -58,7 +58,22 @@ pair<int, int> MergeLinearCriteria::get_next(const std::vector<Abstraction *> &a
         // all_abstractions in merge_and_shrink.cc
         first = all_abstractions.size() - 1;
     }
-    int second = next(all_abstractions, all_abstractions[first]);
+    int second;
+    do{
+	second = next(all_abstractions, all_abstractions[first], limit_abstract_states_merge);
+	if(second < 0){
+	    if(remaining_vars.size() < 2){
+		return pair<int,int> (-1, -1);
+	    }
+	    //Select another variable as first
+	    first = next(all_abstractions);
+	    cout << "First variable: #" << first;
+	    for(int i = 0; i < g_fact_names[first].size(); ++i) 
+	    	cout << " " << g_fact_names[first][i]; 
+	    cout << endl;
+	}
+    }while(second < 0);
+
     cout << "Next variable: #" << second;
     for(int i = 0; i < g_fact_names[second].size(); ++i) 
 		cout << " " << g_fact_names[second][i]; 
@@ -104,16 +119,31 @@ void MergeLinearCriteria::select_next(int var_no) {
   vector<int>::iterator position = find(remaining_vars.begin(), remaining_vars.end(), var_no);
   assert(position != remaining_vars.end());
   remaining_vars.erase(position);
-  selected_vars.push_back(var_no);
+  //selected_vars.push_back(var_no);
   for(int i = 0; i < criteria.size(); ++i){
     criteria[i]->select_next(var_no);
   }
 }
 
 int MergeLinearCriteria::next(const std::vector<Abstraction *> &all_abstractions,
-			      Abstraction * abstraction) {
+			      Abstraction * abstraction, int limit_abstract_states_merge) {
   assert(!done());
   vector<int> candidate_vars (remaining_vars);
+
+  //Remove candidate vars
+  if(limit_abstract_states_merge > 0){
+      int limit = limit_abstract_states_merge/abstraction->size();
+      candidate_vars.erase(remove_if(begin(candidate_vars), 
+				     end(candidate_vars),
+				     [all_abstractions, limit](int var){
+					 return (!all_abstractions[var] ||
+						 all_abstractions[var]->size() > limit);
+				     }), end(candidate_vars));
+  }
+
+  if(candidate_vars.empty()) 
+      return -1;
+
   //Apply the criteria in order, until its finished or there is only one remaining variable  
   for(int i = 0; candidate_vars.size() > 1 && 
 	i < criteria.size(); ++i){

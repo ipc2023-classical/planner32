@@ -17,14 +17,14 @@ class MergeLinearCriteria : public MergeStrategy {
   const std::vector <MergeCriterion *> criteria;
   const MergeOrder order;
 
-  std::vector<int> selected_vars;
+  //  std::vector<int> selected_vars;
   std::vector<int> remaining_vars;
 
   void select_next(int var_no);
 
   //Selects an abstraction based on the criterions
   virtual int next(const std::vector<Abstraction *> &all_abstractions, 
-		   Abstraction * abstraction = 0);
+		   Abstraction * abstraction = 0, int limit_abstract_states_merge = 0);
 protected:
     virtual void dump_strategy_specific_options() const;
  public:
