@@ -1,19 +1,17 @@
 #ifndef MERGE_AND_SHRINK_LABELLED_TRANSITION_SYSTEM_H
 #define MERGE_AND_SHRINK_LABELLED_TRANSITION_SYSTEM_H
 
-
 #include <vector>
 #include <string>
 
-
-
+typedef int AbstractStateRef;
 class Abstraction;
-
 
 class LTSTransition {
  public:
-  int src, target, label;
- LTSTransition(int _src, int _target, int _label) : 
+  AbstractStateRef src, target;
+  int label;
+ LTSTransition(AbstractStateRef _src, AbstractStateRef _target, int _label) : 
   src(_src), target(_target), label(_label) {
   }
 
@@ -21,14 +19,32 @@ class LTSTransition {
   src(t.src), target(t.target), label(t.label) {
   }
 
+  bool operator==(const LTSTransition &other) const {
+    return src == other.src && target == other.target && label == other.label;
+  }
+
+  bool operator!=(const LTSTransition &other) const {
+    return !(*this == other);
+  }
+
+  bool operator<(const LTSTransition &other) const {
+    return src < other.src || (src == other.src && target < other.target) 
+      || (src == other.src && target == other.target && label < other.label);
+  }
+
+  bool operator>=(const LTSTransition &other) const {
+    return !(*this < other);
+  }
 };
 
 //Alvaro: Class added to implement the simple simulation
 class LabelledTransitionSystem {
   Abstraction * abs;
 
+  //Duplicated from abstraction
   int num_states;
   std::vector <bool> goal_states;
+  AbstractStateRef init_state;
   std::vector<int> relevant_labels;
   std::vector<int> irrelevant_labels;
 
@@ -49,6 +65,11 @@ class LabelledTransitionSystem {
     return num_states;
   }
 
+  int num_transitions() const{
+      return transitions.size();
+  }
+
+
   const std::vector<LTSTransition> & get_transitions() const{
     return transitions;
   }
@@ -67,10 +88,6 @@ class LabelledTransitionSystem {
 
   const std::string & name (int s) const {
     return name_states[s];
-  }
-
-  inline bool is_relevant_label(int l) const {
-    return relevant_labels [l];
   }
 
   const std::vector<int> & get_irrelevant_labels() const {

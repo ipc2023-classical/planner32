@@ -43,7 +43,6 @@ class LabelRelation {
       simulated_by_irrelevant[i].resize(lts.size(), true);
     }
     
-
     dominates_in.resize(labels->get_size());
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
       dominated_by_noop_in.resize(labels->get_size(), DOMINATES_IN_ALL);
@@ -55,12 +54,31 @@ class LabelRelation {
 	}
       }
     }
-
+    std::cout << "Update label dominance: " << lts.size() << std::endl;
     for (int i = 0; i < lts.size(); ++i){
       update(i, lts[i], sim[i]);
     }
+  }
+
+  void reset(){
+    for (int i = 0; i < labels->get_size(); i++){
+      for(int j = 0; j < simulates_irrelevant[i].size(); j++){
+	simulates_irrelevant[i][j] = true;
+	simulated_by_irrelevant[i][j] = true;
+      }
+    }
+    for (int l1 = 0; l1 < dominates_in.size(); ++l1){
+      dominated_by_noop_in[l1] = DOMINATES_IN_ALL;
+      for (int l2 = 0; l2 < dominates_in[l1].size(); ++l2){
+	if(labels->get_label_by_index(l1)->get_cost() <=
+	   labels->get_label_by_index(l2)->get_cost()){
+	  dominates_in[l1][l2] = DOMINATES_IN_ALL;
+	}
+      }
+    }
 
   }
+
 
   template <typename LTS, typename SimRel> 
     bool update(const std::vector<LTS*> & lts,
@@ -72,6 +90,7 @@ class LabelRelation {
     return changes;
   }
 
+  /* TODO: REALLY INEFFICIENT VERSION THAT SHOULD BE IMPROVED */
   template <typename LTS, typename SimRel>
     bool update(int i, const LTS * lts, const SimRel * sim){
     bool changes = false;
@@ -84,10 +103,10 @@ class LabelRelation {
 	  //Check if it really simulates
 	  //For each transition s--l2-->t, and evey label l1 that dominates
 	  //l2, exist s--l1-->t', t <= t'?
-	  for(auto tr : lts->get_transitions_label(l2)){
+	  for(auto & tr : lts->get_transitions_label(l2)){
 	    bool found = false;
 	    //TODO: for(auto tr2 : lts->get_transitions_for_label_src(l1, tr.src)){
-	    for(auto tr2 : lts->get_transitions_label(l1)){
+	    for(auto & tr2 : lts->get_transitions_label(l1)){
 	      if(tr2.src == tr.src &&
 		 sim->simulates(tr2.target, tr.target)){
 		found = true;
@@ -148,14 +167,14 @@ class LabelRelation {
   void dump(int label) const;
 
   //Returns true if l dominates l2 in lts (simulates l2 in all j \neq lts)
-  inline bool dominates (int l1, int l2, int lts){
+  inline bool dominates (int l1, int l2, int lts) const{
     return dominates_in[l1][l2] != DOMINATES_IN_NONE &&
       (dominates_in[l1][l2] == DOMINATES_IN_ALL || 
        dominates_in[l1][l2] == lts);
   }
 
   //Returns true if l1 simulates l2 in lts
-  inline bool simulates (int l1, int l2, int lts){
+  inline bool simulates (int l1, int l2, int lts) const{
     return dominates_in[l1][l2] !=  DOMINATES_IN_NONE &&
       (dominates_in[l1][l2] == DOMINATES_IN_ALL || 
        dominates_in[l1][l2] != lts);
@@ -186,12 +205,11 @@ class LabelRelation {
     return false;
   }
 
-  inline bool dominated_by_noop (int l, int lts){
+  inline bool dominated_by_noop (int l, int lts) const {
     return dominated_by_noop_in[l] != DOMINATES_IN_NONE &&
       (dominated_by_noop_in[l] == DOMINATES_IN_ALL || 
        dominated_by_noop_in[l] == lts);
   }
-
 };
 
 #endif

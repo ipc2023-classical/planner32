@@ -292,14 +292,14 @@ class SymExploration  {
     return bdExp;
   }
 
-  inline BDD getClosedTotal(){
+   inline BDD getClosedTotal(){
     return closed->getClosed();
   }
 
   inline BDD notClosed(){
     return closed->notClosed();
   }
-
+  
 
   void desactivate(){
     closed->desactivate();

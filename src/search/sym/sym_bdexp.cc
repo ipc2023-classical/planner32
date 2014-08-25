@@ -152,7 +152,6 @@ void SymBDExp::getPlan(const BDD & cut,
 		BDD state = hnode->getManager()->getVars()->getStateBDD(s);
 		BDD res = state*hnode->getManager()->getNotMutexBDDs(false)[0];
 		if (res.IsZero()){
-		  cout << "BOOM" << endl;
 		  s.dump_pddl();
 		  
 		  for(auto & mg : g_mutex_groups){

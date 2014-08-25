@@ -18,7 +18,7 @@ protected:
 public:
     PruneHeuristic(const Options &options);
     virtual ~PruneHeuristic();
-    virtual void initialize(bool explicit_search) = 0;
+    virtual void initialize() = 0;
 
     //Methods for pruning explicit search
     virtual bool prune_generation(const State &state, int g) = 0;
@@ -31,7 +31,7 @@ public:
 
     //Returns a TR that can be used to generate dominated/dominating
     //state sets
-    virtual SymTransition * getTR(SymManager * mgr) = 0;
+    //virtual SymTransition * getTR(SymManager * mgr) = 0;
 
     static void add_options_to_parser(OptionParser &parser);
     static Options default_options();

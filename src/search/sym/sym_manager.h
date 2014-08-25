@@ -9,7 +9,7 @@
 #include <map>
 #include <memory> 
 
-class PruneHeuristic;
+class SymPruneHeuristic;
 /*
  * All the methods may throw exceptions in case the time or nodes are exceeded.
  *
@@ -48,8 +48,8 @@ class SymManager{
   std::vector<std::vector<BDD>> notMutexBDDsByFluentFw, notMutexBDDsByFluentBw;
   std::vector<std::vector<BDD>> exactlyOneBDDsByFluent;
 
-  PruneHeuristic * prune_heuristic;
-  SymTransition * simulation_tr;
+  SymPruneHeuristic * prune_heuristic;
+  //std::unique_ptr<SymTransition> simulation_tr;
 
   void init_states();
 
@@ -259,7 +259,7 @@ class SymManager{
     vars->unsetTimeLimit();
   }
 
-  void set_simulation(PruneHeuristic * prune){
+  void set_simulation(SymPruneHeuristic * prune){
     prune_heuristic = prune;
     if(mutexInitialized){
       init_simulation();

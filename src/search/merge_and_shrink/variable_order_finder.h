@@ -2,7 +2,6 @@
 #define MERGE_AND_SHRINK_VARIABLE_ORDER_FINDER_H
 
 #include <vector>
-
 enum VariableOrderType {
     CG_GOAL_LEVEL,
     CG_GOAL_RANDOM,

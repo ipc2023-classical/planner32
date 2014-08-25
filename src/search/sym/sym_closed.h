@@ -44,6 +44,8 @@ class SymClosed /*: public SymHeuristic */ {
   std::vector<SymClosed *> children; // Related heuristics derived from relaxations of this search
   std::map<SymExploration *, Evaluation> evals;
 
+  std::vector<BDD> prunedStates;
+
  public:
   SymClosed();
   void init(SymExploration * exp, SymManager * manager); 
@@ -86,6 +88,11 @@ class SymClosed /*: public SymHeuristic */ {
   inline BDD notClosed() const{ 
     return !closedTotal;
   }
+
+  inline BDD remove_duplicates(const BDD & bdd) const{ 
+    return bdd*!closedTotal;
+  }
+
 
   inline std::map<int, BDD> getClosedList() const{
     return closed;

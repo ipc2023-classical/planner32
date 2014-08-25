@@ -39,7 +39,6 @@ SymTransition::SymTransition(SymManager * mgr,
     existsVars *= swapVarsS[i];
     existsBwVars *= swapVarsSp[i];
   }  
-
   // d) Compute tBDD
   for(auto it = simulations.rbegin(); it != simulations.rend(); ++it){
     const std::vector<BDD> & dominated_bdds = (*it)->get_dominated_bdds ();
@@ -48,13 +47,19 @@ SymTransition::SymTransition(SymManager * mgr,
     BDD simBDD = sV->zeroBDD();
     //    BDD totalAbsBDDs = sV->zeroBDD();
     for (int i = 0; i < abs_bdds.size(); i++){
-      simBDD += (abs_bdds[i]*dominated_bdds[i].SwapVariables(swapVarsS, swapVarsSp));
+      BDD dom = dominated_bdds[i];
+      try{
+	dom = mgr->filter_mutex(dom, true, 1000000, true);
+	dom = mgr->filter_mutex(dom, false, 1000000, true);
+      }catch(BDDError e){
+	cout << "Simulation TR error: " << endl;
+      }
+      simBDD += (abs_bdds[i]*dom.SwapVariables(swapVarsS, swapVarsSp));
       //totalAbsBDDs += abs_bdds[i];
     }
     tBDD *= simBDD;
   }
-
-  try{
+   try{
     cout << "Simulation TR size before filtering mutex: " << tBDD.nodeCount() << endl;
     tBDD = mgr->filter_mutex(tBDD, true, 1000000, true);
     cout << "Simulation TR size in the middle of filtering mutex: " << tBDD.nodeCount() << endl;

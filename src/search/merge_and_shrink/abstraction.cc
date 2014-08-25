@@ -382,6 +382,7 @@ void Abstraction::normalize() {
     if (is_normalized()) {
         return;
     }
+    lts.reset(); //In future versions, normalize the LTS instead
     //cout << tag() << "normalizing" << endl;
 
     typedef vector<pair<AbstractStateRef, int> > StateBucket;
@@ -991,6 +992,7 @@ void Abstraction::apply_abstraction(
     // TODO do not check if transitions are sorted but just assume they are not?
     if (!are_transitions_sorted_unique())
         transitions_sorted_unique = false;
+    lts.reset();
 }
 
 bool Abstraction::is_solvable() const {
@@ -1038,6 +1040,7 @@ int CompositeAbstraction::memory_estimate() const {
 void Abstraction::release_memory() {
     vector<bool>().swap(relevant_labels);
     vector<vector<AbstractTransition> >().swap(transitions_by_label);
+    lts.reset();
 }
 
 int Abstraction::total_transitions() const {

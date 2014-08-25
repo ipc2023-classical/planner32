@@ -98,7 +98,7 @@ void SymExploration::init(SymBDExp * exp, SymExploration * other){
   for(auto openIt : other->open){
     int g_val = openIt.first;
     for(const BDD & bdd : openIt.second){
-      open[g_val].push_back(bdd*other->closed->notClosed());
+      open[g_val].push_back(other->closed->remove_duplicates(bdd));
     }
   }
   DEBUG_MSG (cout <<"  open copy, total time: " << g_timer() << endl;);
@@ -325,7 +325,7 @@ void SymExploration::checkCut(Bucket & bucket, int g_val, bool close){
 	// Solution found :)
 	engine->new_solution(sol);
       }
-      bucket[i] *= perfectHeuristic->notClosed();   //Prune everything closed in opposite direction
+      bucket[i] *= perfectHeuristic->notClosed(); //Prune everything closed in opposite direction
     }
   }
 
@@ -890,7 +890,7 @@ void SymExploration::extract_states(Bucket & buck, int fVal, int hVal,
   for(int i = 0; i < buck.size(); ++i){
     DEBUG_MSG(cout << "Extract from: " << buck[i].nodeCount(););
     if(duplicates){
-      buck[i] *= closed->notClosed();
+      buck[i] = closed->remove_duplicates(buck[i]);
       DEBUG_MSG(cout << ", duplicates: " << buck[i].nodeCount(););
       if(perfectHeuristic && 
 	 perfectHeuristic->getFNotClosed() == numeric_limits<int>::max()){

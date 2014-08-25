@@ -106,10 +106,7 @@ void SymClosed::insert(int h, const BDD & S){
   //     exit(-1);
   //   }
   // }
-  Timer t;
-  BDD Ssim = mgr->simulatedBy(S, exploration->isFW());
-  cout << S.nodeCount() << " sim by: " << Ssim.nodeCount() << " computed in " << t();
-  if (!(S <= Ssim)){
+  /*if (!(S <= Ssim)){ This may happen if we remove spurious simulated states but not from S
     cerr << "Assertion error: some states are not simulated by themselves" << endl;
     S.print(2,2);
     Ssim.print(2,2);
@@ -117,7 +114,7 @@ void SymClosed::insert(int h, const BDD & S){
     cout << "Ssim has " << mgr->getVars()->numStates(Ssim) << " states" << endl;
     (S*!Ssim).print(2,2);
     exit(0);
-  }
+    }*/
   if (closed.count(h)){
     closed[h] += S;
     if(!h_values.count(h)){
@@ -125,12 +122,11 @@ void SymClosed::insert(int h, const BDD & S){
       exit(-1);
     }
   }else{  
-    closed[h] = Ssim;
+    closed[h] = S;
     newHValue(h);
   }
 
   zeroCostClosed[h].push_back(S);
-  closedTotal += Ssim;
 
   //Introduce in closedUpTo
   auto c = closedUpTo.lower_bound(h);
@@ -138,6 +134,12 @@ void SymClosed::insert(int h, const BDD & S){
     c->second += S;
     c++;
   }
+  //Only valid for blind search
+  Timer t;
+  BDD Ssim = mgr->simulatedBy(S, exploration->isFW());
+  cout << S.nodeCount() << " sim by: " << Ssim.nodeCount() << " computed in " << t();
+  closedTotal += Ssim;
+
   cout << " inserted: " << t() << " closedTotal: " << closedTotal.nodeCount() << endl;
 
     if(exploration->isAbstracted()){

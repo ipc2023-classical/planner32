@@ -8,7 +8,9 @@
 #include "../globals.h"
 #include "../timer.h"
 #include "test/sym_test_mutex.h" 
-#include "../prune_heuristic.h"
+#include "../merge_and_shrink/ld_simulation.h"
+#include "sym_prune_heuristic.h"
+
 using namespace std;
 
 
@@ -18,7 +20,10 @@ SymManager::SymManager(SymVariables * v,
 						      initialState(v->zeroBDD()), 
 						      goal(v->zeroBDD()), 
 						      min_transition_cost(0), hasTR0(false), 
-						      mutexInitialized(false), mutexByFluentInitialized(false), simulation_tr(nullptr)  {
+						      mutexInitialized(false), 
+						      mutexByFluentInitialized(false), 
+						      prune_heuristic(nullptr)  {
+
   for(const auto & op : g_operators){
     if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
       min_transition_cost = op.get_cost();      
@@ -36,7 +41,7 @@ SymManager::SymManager(SymManager * mgr,
 						      goal(mgr->zeroBDD()), 
 						      min_transition_cost(0), hasTR0(false), 
 
-						      mutexInitialized(false), mutexByFluentInitialized(false), simulation_tr(nullptr)   {  
+						      mutexInitialized(false), mutexByFluentInitialized(false), prune_heuristic(nullptr)   {  
   if(mgr){
     min_transition_cost = mgr->getMinTransitionCost();
     hasTR0 = mgr->hasTransitions0();
@@ -544,23 +549,17 @@ int SymManager::filterMutexBucket(vector<BDD> & bucket, bool fw,
 }
 
 BDD SymManager::simulatedBy(const BDD & bdd, bool fw) {
-  if(simulation_tr && fw){
+  if(prune_heuristic && fw){
     setTimeLimit(p.max_mutex_time);
-    BDD res = bdd;
     try{
-      BDD res =  simulation_tr->image(bdd);
+      BDD res = prune_heuristic->simulatedBy(bdd); 
       unsetTimeLimit();
-      try{
-	res = filter_mutex(res, true, 1000000, true);
-	res = filter_mutex(res, false, 1000000, true);
-      }catch(BDDError e){
-	//I couldn't filter mutex but I can leave with it
-      }
+      res = filter_mutex(res, true, 1000000, true);
+      res = filter_mutex(res, false, 1000000, true);
       return res;
     }catch(BDDError e){
       unsetTimeLimit();
       exit(0);
-	//return bdd;
     }
   }else{
     return bdd;
@@ -568,6 +567,6 @@ BDD SymManager::simulatedBy(const BDD & bdd, bool fw) {
 }
 void SymManager::init_simulation(){
   if(prune_heuristic){
-    simulation_tr = prune_heuristic->getTR(this);
+    prune_heuristic->initialize(this);
   }
 }

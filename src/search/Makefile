@@ -96,6 +96,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/simulation_heuristic.h \
            merge_and_shrink/label_relation.h \
            merge_and_shrink/labelled_transition_system.h \
+           merge_and_shrink/ld_simulation.h \
 
 
 HEADERS += landmarks/exploration.h \
@@ -154,6 +155,8 @@ HEADERS += sym/sym_controller.h \
            sym/sym_estimate.h \
            sym/sym_estimate_linear.h \
            sym/sym_solution.h \
+           sym/sym_prune_heuristic.h \
+
 	# sym/sym_ph_pdbs.h \
 	   #sym/sym_ph_smas.h \
            # sym/smas_shrink_bisimulation.h \

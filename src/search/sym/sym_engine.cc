@@ -11,6 +11,7 @@
 #include "../prune_heuristic.h"
 #include "sym_ph.h"
 #include "test/sym_test.h"
+#include "sym_prune_heuristic.h"
 
 #include <set>
 using namespace std;
@@ -27,19 +28,17 @@ SymEngine::SymEngine(const Options &opts)
 
 
   if(opts.contains("prune")){
-    prune_heuristic = unique_ptr<PruneHeuristic> (opts.get<PruneHeuristic *>("prune"));
+    prune_heuristic = unique_ptr<SymPruneHeuristic> (opts.get<SymPruneHeuristic *>("prune"));
   }
 }
 
-void SymEngine::initialize() {
-  if(prune_heuristic){
-    prune_heuristic->initialize(false);
-  }
-  
-    cout << "Conducting symbolic search"
-	 << " Operator cost: " << cost_type
-         << " (real) bound = " << bound
-         << endl;
+SymEngine::~SymEngine(){}
+
+void SymEngine::initialize() { 
+  cout << "Conducting symbolic search"
+       << " Operator cost: " << cost_type
+       << " (real) bound = " << bound
+       << endl;
     
 #ifdef DEBUG_GST
     gst_plan.loadPlan("plan.test", *(vars.get()));
@@ -51,7 +50,6 @@ void SymEngine::initialize() {
     if(prune_heuristic){
       originalStateSpace->getManager()->set_simulation(prune_heuristic.get());
     }
-
 
     originalSearch = new SymBDExp(this, searchParams, searchDir);
     unique_ptr<SymBDExp> refExp (originalSearch);

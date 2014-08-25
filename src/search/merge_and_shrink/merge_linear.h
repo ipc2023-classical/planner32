@@ -6,7 +6,8 @@
 #include "variable_order_finder.h"
 
 class Options;
-
+//Alvaro: Merge linear will behave as a non-linear merge in case that
+// limit_abstract_states_merge is set
 class MergeLinear : public MergeStrategy {
     VariableOrderFinder order;
     bool need_first_index;

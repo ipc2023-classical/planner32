@@ -3,6 +3,7 @@
 #include "../option_parser.h"
 #include "../plugin.h"
 #include "../utilities.h"
+#include "abstraction.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -15,11 +16,11 @@ MergeLinear::MergeLinear(const Options &opts)
       need_first_index(true) {
 }
 
-    // Alvaro: Merge strategies have now a limit on the size of the
-    // merge.  If specified (> 0), the pair returned should fit the
-    // constraint: a1.size()*a2.size()<=limit
+// Alvaro: Merge strategies have now a limit on the size of the merge.
+// If specified (> 0), the pair returned should fit the constraint:
+// a1.size()*a2.size()<=limit
 pair<int, int> MergeLinear::get_next(const std::vector<Abstraction *> &all_abstractions, 
-				     int /*limit_abstract_states_merge*/) {
+				     int limit_abstract_states_merge) {
     assert(!done() && !order.done());
 
     int first;
@@ -33,6 +34,7 @@ pair<int, int> MergeLinear::get_next(const std::vector<Abstraction *> &all_abstr
         first = all_abstractions.size() - 1;
     }
     int second = order.next();
+
     cout << "Next variable: " << second << endl;
     assert(all_abstractions[first]);
     assert(all_abstractions[second]);
@@ -40,6 +42,14 @@ pair<int, int> MergeLinear::get_next(const std::vector<Abstraction *> &all_abstr
     if (done() && !order.done()) {
         cerr << "Variable order finder not done, but no merges remaining" << endl;
         exit_with(EXIT_CRITICAL_ERROR);
+    }
+    if(limit_abstract_states_merge && 
+       all_abstractions[first]->size()*all_abstractions[second]->size() > limit_abstract_states_merge){
+      if(!done()){
+	return get_next(all_abstractions, limit_abstract_states_merge);
+      }else{
+	return make_pair(-1, -1);
+      }
     }
     return make_pair(first, second);
 }

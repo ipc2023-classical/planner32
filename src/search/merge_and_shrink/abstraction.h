@@ -4,6 +4,7 @@
 #include "shrink_strategy.h"
 #include "../utilities.h"
 #include "../sym/sym_variables.h"
+#include "labelled_transition_system.h"
 
 #include <ext/slist>
 #include <string>
@@ -66,6 +67,9 @@ class Abstraction {
        original labels. */
     std::vector<std::vector<AbstractTransition> > transitions_by_label;
     std::vector<bool> relevant_labels;
+
+    //TODO: Unify with transitions by label??
+    std::unique_ptr<LabelledTransitionSystem> lts;
 
     int num_states;
 
@@ -185,6 +189,15 @@ public:
 
     virtual AbstractStateRef get_abstract_state(const State &state) const = 0;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
+
+    LabelledTransitionSystem * get_lts(){
+	if(!lts){
+	    lts = std::unique_ptr<LabelledTransitionSystem> 
+		(new LabelledTransitionSystem(this));
+	}
+	return lts.get();
+    }
+
 };
 
 class AtomicAbstraction : public Abstraction {

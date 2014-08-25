@@ -7,7 +7,6 @@
 #include "sym_controller.h"
 #include "sym_enums.h"
 #include "../search_engine.h"
-#include "../prune_heuristic.h"
 
 class SymExploration;
 class SymAbstraction;
@@ -17,6 +16,7 @@ class SymVariables;
 class Options;
 class SymPH;
 class SymBDExp;
+class SymPruneHeuristic;
 
 class SymEngine : public SearchEngine, public SymController { 
  protected:
@@ -28,7 +28,7 @@ class SymEngine : public SearchEngine, public SymController {
   std::vector <SymPH *> phs;
   
   //Prune heuristic
-  std::unique_ptr<PruneHeuristic> prune_heuristic;
+  std::unique_ptr<SymPruneHeuristic> prune_heuristic;
     
   // List of abstract state spaces. We store a list with the unique
   // pointer so that if we want ever to delete some hNode we just
@@ -51,7 +51,7 @@ class SymEngine : public SearchEngine, public SymController {
   int stepReturn() const;
  public:
   SymEngine(const Options &opts);
-  virtual ~SymEngine(){}
+  virtual ~SymEngine();
 
   void statistics() const;
   void dump_search_space();

@@ -17,6 +17,10 @@ class SimulationRelation{
   //By now we assume that the partition is unitary... we can improve
   //this later with EquivalenceRelation
   std::vector<std::vector<bool> > relation;
+  //To compute intermediate simulations. ]
+  //If fixed_relation is set, then we can skip checking it 
+  std::vector<std::vector<bool> > fixed_relation;
+
 
   //For each abstract state, we create a BDD that represents all the
   //abstract states dominated by it and dominating it
@@ -27,8 +31,12 @@ class SimulationRelation{
   BDD zeroBDD;
 
  public:
-  SimulationRelation(const Abstraction * _abs, int num_states,
-		     const std::vector<bool> & goal_states);
+  SimulationRelation(const Abstraction * _abs);
+
+  SimulationRelation(const Abstraction * _abs,
+		     SimulationRelation * s1,
+		     SimulationRelation * s2);
+
 
   inline bool simulates (int s, int t) const {
     return relation[s][t];
@@ -51,44 +59,21 @@ class SimulationRelation{
 
   int num_different_states() const;
 
+  void reset();
+
   /*
    * THIS IMPLEMENTATION IS VERY INNEFICIENT
    * ONLY TO BE USED AS A PROOF OF CONCEPT
    */
-  //Template class method that gets as input a list of LTSs and
-  // returns a list of simulation relations over them
-  template<class LTS>
-    static void compute_label_dominance_simulation(const std::vector<LTS *> & lts_list, 
-						   Labels * labels, 
-						   std::vector<SimulationRelation *> & res){
-  //Initialization phase
-  for(auto & lts : lts_list){
-    //Create initial goal-respecting relation
-    res.push_back(new SimulationRelation(lts->get_abstraction(),
-					 lts->size(), lts->get_goal_states()));
-  }
-  LabelRelation label_dominance(labels);
-  label_dominance.init(lts_list, res);
-
-  do{
-    std::cout << "Loop" << std::endl;
-    //label_dominance.dump();
-    for (int i = 0; i < lts_list.size(); i++){
-      res[i]->update(i, lts_list[i], label_dominance);
-      //res[i]->dump(lts_list[i]->get_names());
-    }
-  }while(label_dominance.update(lts_list, res));
-  //label_dominance.dump();
-}
-
   template<class LTS>  
-    void update(int lts_id, const LTS * lts, LabelRelation & label_dominance){
+    void update(int lts_id, const LTS * lts, const LabelRelation & label_dominance){
     bool changes = true;
     while(changes){
+	//std::cout << "looping" << std::endl;
       changes = false;
       for (int s = 0; s < lts->size(); s++){
 	for (int t = 0; t < lts->size(); t++){ //for each pair of states t, s
-	  if(s != t && simulates(t, s)){
+	  if(s != t && simulates(t, s) && (fixed_relation.empty() || !fixed_relation[s][t])){
 	    //Check if really t simulates s
 	    //for each transition s--l->s':
 	    // a) with noop t >= s' and l dominated by noop?

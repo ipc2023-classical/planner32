@@ -8,7 +8,9 @@
 
 using namespace std;
 
-SimulationRelation::SimulationRelation(const Abstraction * _abs, int num_states, const vector<bool> & goal_states) : abs(_abs){
+SimulationRelation::SimulationRelation(const Abstraction * _abs) : abs(_abs){
+  int num_states = abs->size();
+  const std::vector <bool> & goal_states = abs->get_goal_states();
   relation.resize(num_states);
   for(int i = 0; i < num_states; i++){
     relation[i].resize(num_states, true);
@@ -17,6 +19,34 @@ SimulationRelation::SimulationRelation(const Abstraction * _abs, int num_states,
 	if (goal_states[j]){
 	  relation[i][j] = false;
 	}
+      }
+    }
+  }
+}
+
+SimulationRelation::SimulationRelation(const Abstraction * _abs, 
+				       SimulationRelation * /*s1*/, 
+				       SimulationRelation * /*s2*/) : SimulationRelation(_abs){
+  //Set fixed relations from s1 and s2
+  // for(int i1 = 0; i1 < s1->num_states(); i1++){
+  //   for(int i2 = 0; i2 < s1->num_states(); i2++){
+  //     if(s1->simulates(i1, i2)){
+  //     }
+  //   }
+  // }
+}
+
+void SimulationRelation::reset() {
+  int num_states = abs->size();
+  const std::vector <bool> & goal_states = abs->get_goal_states();
+  fixed_relation.resize(num_states);
+  for(int i = 0; i < num_states; i++){   
+    fixed_relation[i].resize(num_states, false); 
+    for (int j = 0; j < num_states; j++){
+      if(relation[i][j]){
+	fixed_relation[i][j] = true;
+      }else if(goal_states[i] || !goal_states[j]){
+	relation[i][j] = true;
       }
     }
   }
@@ -96,9 +126,8 @@ void SimulationRelation::precompute_dominating_bdds(){
 
 
 int SimulationRelation::num_equivalences() const{
-
   int num = 0;
-  std::vector<bool> counted (abs_bdds.size(), false);
+  std::vector<bool> counted (relation.size(), false);
   for(int i = 0; i < counted.size(); i++){
     if(!counted[i]){
       for(int j = i + 1; j < relation.size(); j++){
@@ -115,7 +144,8 @@ int SimulationRelation::num_equivalences() const{
 
 int SimulationRelation::num_simulations() const{
   int res = 0;
-  std::vector<bool> counted (abs_bdds.size(), false);
+  std::vector<bool> counted (relation.size(), false);
+
   for(int i = 0; i < relation.size(); ++i){
     if(!counted[i]){
       for(int j = i+1; j < relation.size(); ++j){
