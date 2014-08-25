@@ -91,7 +91,7 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
         return;
     }
 
-    // Make sure that we start with an index not ouf of range for
+    // Make sure that we start with an index not out of range for
     // all_abstractions
     size_t system_order_index = 0;
     assert(!system_order.empty());

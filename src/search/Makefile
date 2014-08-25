@@ -46,6 +46,7 @@ HEADERS = \
           pref_evaluator.h \
           relaxation_heuristic.h \
           rng.h \
+          scc.h \
           search_engine.h \
           search_node_info.h \
           search_progress.h \
@@ -88,12 +89,16 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/labels.h \
            merge_and_shrink/label_reducer.h \
            merge_and_shrink/merge_and_shrink_heuristic.h \
+           merge_and_shrink/merge_criterion.h \
            merge_and_shrink/merge_dfp.h \
            merge_and_shrink/merge_linear.h \
+           merge_and_shrink/merge_linear_criteria.h \
            merge_and_shrink/merge_strategy.h \
            merge_and_shrink/shrink_bisimulation.h \
            merge_and_shrink/shrink_bucket_based.h \
+           merge_and_shrink/shrink_composite.h \
            merge_and_shrink/shrink_fh.h \
+           merge_and_shrink/shrink_own_labels.h \
            merge_and_shrink/shrink_random.h \
            merge_and_shrink/shrink_strategy.h \
            merge_and_shrink/variable_order_finder.h \

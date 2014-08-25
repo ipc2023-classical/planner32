@@ -47,6 +47,7 @@ class OpenList;
 class SearchEngine;
 class MergeStrategy;
 class ShrinkStrategy;
+class MergeCriterion;
 class SymPH;
 class PruneHeuristic;
 
@@ -132,13 +133,17 @@ public:
     static inline ShrinkStrategy *parse(OptionParser &p);
 };
 
+template <>
+class TokenParser<MergeCriterion *> {
+public:
+    static inline MergeCriterion *parse(OptionParser &p);
+};
 
 template <>
 class TokenParser<SymPH *> {
 public:
     static inline SymPH *parse(OptionParser &p);
 };
-
 
 template <class T>
 class TokenParser<std::vector<T > > {
@@ -400,9 +405,14 @@ ShrinkStrategy *TokenParser<ShrinkStrategy *>::parse(OptionParser &p) {
     return lookup_in_registry<ShrinkStrategy>(p);
 }
 
+MergeCriterion *TokenParser<MergeCriterion *>::parse(OptionParser &p) {
+    return lookup_in_registry<MergeCriterion>(p);
+}
+
 SymPH *TokenParser<SymPH *>::parse(OptionParser &p) {
 return lookup_in_registry<SymPH>(p);
 }
+
 
 Synergy *TokenParser<Synergy *>::parse(OptionParser &p) {
     return lookup_in_registry<Synergy>(p);

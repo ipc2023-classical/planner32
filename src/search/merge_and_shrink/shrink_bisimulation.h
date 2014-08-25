@@ -23,6 +23,14 @@ class ShrinkBisimulation : public ShrinkStrategy {
     const bool group_by_h;
     const AtLimit at_limit;
 
+    // Goal states in abstractions with all goal variables will always
+    // remain goal -> we can ignore all outgoing transitions, as we
+    // can never leave this state; should help aggregating more
+    // states, as all goal states should become bisimilar (can also
+    // increase the abstraction size by making more abstract states
+    // reachable)
+    const bool aggregate_goals;
+
     void compute_abstraction(
         Abstraction &abs,
         int target_size,

@@ -10,6 +10,7 @@
 #include "../plugin.h"
 #include "../state.h"
 #include "../timer.h"
+#include "../operator_cost.h"
 
 #include <cassert>
 #include <vector>
@@ -20,8 +21,9 @@ MergeAndShrinkHeuristic::MergeAndShrinkHeuristic(const Options &opts)
     : Heuristic(opts),
       merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
       shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
-      use_expensive_statistics(opts.get<bool>("expensive_statistics")) {
-    labels = new Labels(is_unit_cost_problem(), opts, cost_type);
+      use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+      shrink_after_merge(opts.get<bool>("shrink_after_merge")) {
+    labels = new Labels(is_unit_cost_problem() || cost_type == ZERO, opts, cost_type);
 }
 
 MergeAndShrinkHeuristic::~MergeAndShrinkHeuristic() {
@@ -86,47 +88,52 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
         Abstraction *other_abstraction = all_abstractions[system_two];
         assert(other_abstraction);
 
-        // Note: we do not reduce labels several times for the same abstraction
-        bool reduced_labels = false;
-        if (shrink_strategy->reduce_labels_before_shrinking()) {
-            labels->reduce(make_pair(system_one, system_two), all_abstractions);
-            reduced_labels = true;
-            abstraction->normalize();
-            other_abstraction->normalize();
-            abstraction->statistics(use_expensive_statistics);
-            other_abstraction->statistics(use_expensive_statistics);
-        }
+	if(!shrink_after_merge){
+	    // Note: we do not reduce labels several times for the same abstraction
+	    bool reduced_labels = false;
+	    if (shrink_strategy->reduce_labels_before_shrinking()) {
+		labels->reduce(make_pair(system_one, system_two), all_abstractions);
+		reduced_labels = true;
+		abstraction->normalize();
+		other_abstraction->normalize();
+		abstraction->statistics(use_expensive_statistics);
+		other_abstraction->statistics(use_expensive_statistics);
+	    }
 
-        // distances need to be computed before shrinking
-        abstraction->compute_distances();
-        other_abstraction->compute_distances();
-        if (!abstraction->is_solvable())
-            return abstraction;
-        if (!other_abstraction->is_solvable())
-            return other_abstraction;
+	    // distances need to be computed before shrinking
+	    abstraction->compute_distances();
+	    other_abstraction->compute_distances();
+	    if (!abstraction->is_solvable())
+		return abstraction;
+	    if (!other_abstraction->is_solvable())
+		return other_abstraction;
 
-        shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
-        // TODO: Make shrink_before_merge return a pair of bools
-        //       that tells us whether they have actually changed,
-        //       and use that to decide whether to dump statistics?
-        // (The old code would print statistics on abstraction iff it was
-        // shrunk. This is not so easy any more since this method is not
-        // in control, and the shrink strategy doesn't know whether we want
-        // expensive statistics. As a temporary aid, we just print the
-        // statistics always now, whether or not we shrunk.)
-        abstraction->statistics(use_expensive_statistics);
-        other_abstraction->statistics(use_expensive_statistics);
+	    shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
+	    // TODO: Make shrink_before_merge return a pair of bools
+	    //       that tells us whether they have actually changed,
+	    //       and use that to decide whether to dump statistics?
+	    // (The old code would print statistics on abstraction iff it was
+	    // shrunk. This is not so easy any more since this method is not
+	    // in control, and the shrink strategy doesn't know whether we want
+	    // expensive statistics. As a temporary aid, we just print the
+	    // statistics always now, whether or not we shrunk.)
+	    abstraction->statistics(use_expensive_statistics);
+	    other_abstraction->statistics(use_expensive_statistics);
 
-        if (!reduced_labels) {
-            labels->reduce(make_pair(system_one, system_two), all_abstractions);
-        }
-        abstraction->normalize();
-        other_abstraction->normalize();
-        if (!reduced_labels) {
-            // only print statistics if we just possibly reduced labels
-            other_abstraction->statistics(use_expensive_statistics);
-            abstraction->statistics(use_expensive_statistics);
-        }
+	    if (!reduced_labels) {
+		labels->reduce(make_pair(system_one, system_two), all_abstractions);
+	    }
+	    abstraction->normalize();
+	    other_abstraction->normalize();
+	    if (!reduced_labels) {
+		// only print statistics if we just possibly reduced labels
+		other_abstraction->statistics(use_expensive_statistics);
+		abstraction->statistics(use_expensive_statistics);
+	    }
+	}else{
+	    abstraction->normalize();
+	    other_abstraction->normalize();
+	}
 
         Abstraction *new_abstraction = new CompositeAbstraction(labels,
                                                                 abstraction,
@@ -140,6 +147,23 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
         all_abstractions[system_one] = 0;
         all_abstractions[system_two] = 0;
         all_abstractions.push_back(new_abstraction);
+
+	/* this can help pruning unreachable/irrelevant states before starting on label reduction
+	 * problem before: label reduction ran out of memory if unreachable/irrelevant states not
+	 * pruned beforehand (at least in some instances)
+	 * possible downside: Too many transitions here
+	 */
+	new_abstraction->compute_distances();
+	if (!new_abstraction->is_solvable())
+	    return new_abstraction;
+
+	if(shrink_after_merge){
+            labels->reduce(make_pair(all_abstractions.size() - 1, 
+				     all_abstractions.size() - 1), all_abstractions);
+	    new_abstraction->normalize();
+	    shrink_strategy->shrink(*new_abstraction, numeric_limits<int>::max(), true);
+	    assert (new_abstraction->is_solvable());
+	}
     }
 
     assert(all_abstractions.size() == g_variable_domain.size() * 2 - 1);
@@ -293,6 +317,11 @@ static Heuristic *_parse(OptionParser &parser) {
                             "prints a big warning on stderr with information on the performance impact. "
                             "Don't use when benchmarking!)",
                             "false");
+
+    parser.add_option<bool>("shrink_after_merge",
+                            "If true, performs the shrinking after merge instead of before",
+                            "false");
+
     Heuristic::add_options_to_parser(parser);
     Options opts = parser.parse();
 
@@ -300,7 +329,7 @@ static Heuristic *_parse(OptionParser &parser) {
         return 0;
     } else {
         if (opts.get_enum("label_reduction_method") == 1
-                && opts.get<MergeStrategy *>("merge_strategy")->name() != "linear") {
+                && !opts.get<MergeStrategy *>("merge_strategy")->is_linear()) {
             parser.error("old label reduction is only correct when used with a "
                          "linear merge strategy!");
         }

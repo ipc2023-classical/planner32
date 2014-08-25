@@ -153,6 +153,10 @@ string MergeDFP::name() const {
     return "dfp";
 }
 
+bool MergeDFP::is_linear() const {
+    return false;
+}
+
 static MergeStrategy *_parse(OptionParser &parser) {
     if (parser.dry_run())
         return 0;

@@ -29,6 +29,7 @@ public:
 					 int limit_abstract_states_merge = 0);
 
     virtual std::string name() const;
+    virtual bool is_linear() const;
 };
 
 #endif
