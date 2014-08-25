@@ -54,6 +54,8 @@ class SimulationHeuristic : public PruneHeuristic {
     virtual bool prune_generation(const State &state, int g);
     virtual bool prune_expansion (const State &state, int g);
 
+    virtual bool is_dead_end(const State &state) const;
+
     SimulationHeuristic(const Options &opts);
     virtual ~SimulationHeuristic();
 };

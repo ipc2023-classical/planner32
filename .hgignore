@@ -7,6 +7,11 @@
 ^src/preprocess/preprocess$
 ^src/preprocess/preprocess-debug$
 ^src/preprocess/preprocess-profile$
+^src/preprocess_h2/\.obj/
+^src/preprocess_h2/Makefile\.depend$
+^src/preprocess_h2/preprocess$
+^src/preprocess_h2/preprocess-debug$
+^src/preprocess_h2/preprocess-profile$
 ^src/search/\.obj/
 ^src/search/Makefile\.depend$
 ^src/search/downward-[124]$

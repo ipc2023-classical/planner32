@@ -23,6 +23,7 @@ public:
     //Methods for pruning explicit search
     virtual bool prune_generation(const State &state, int g) = 0;
     virtual bool prune_expansion (const State &state, int g) = 0;
+    virtual bool is_dead_end(const State &state) const = 0;
 
     //Methods for pruning symbolic search. Return the BDD without
     //pruned states.

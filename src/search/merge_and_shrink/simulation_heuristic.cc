@@ -73,6 +73,11 @@ int SimulationHeuristic::compute_heuristic(const State & /*state*/) {
   return 0;
 }
 
+bool SimulationHeuristic::is_dead_end(const State &state) const{
+    return ldSimulation->pruned_state(state);
+}
+
+
 bool SimulationHeuristic::prune_generation(const State &state, int g){
   if(ldSimulation->pruned_state(state)){
     return true;
