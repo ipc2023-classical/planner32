@@ -324,6 +324,17 @@ bool LDSimulation::pruned_state(const State &state) const {
   return false;
 }
 
+int LDSimulation::get_cost(const State &state) const {
+    int cost = 0;
+    for(auto sim : simulations) {
+	int new_cost = sim->get_cost(state);
+	if (new_cost == -1) return -1;
+	cost = max (cost, new_cost);
+    }
+    return cost;
+}
+
+
 BDD LDSimulation::getSimulatedBDD(SymVariables * vars, const State &state ) const{
   BDD res = vars->oneBDD();
   for (auto it = simulations.rbegin(); it != simulations.rend(); it++){

@@ -23,8 +23,8 @@
 using namespace std;
 
 SimulationHeuristic::SimulationHeuristic(const Options &opts)
-  : PruneHeuristic(opts), 
-    mgrParams(opts), 
+    : PruneHeuristic(opts),
+      mgrParams(opts), initialized(false),
     remove_spurious_dominated_states(opts.get<bool>("remove_spurious")), 
     insert_dominated(opts.get<bool>("insert_dominated")), 
     pruning_type(PruningType(opts.get_enum("pruning_type"))),
@@ -49,12 +49,15 @@ void SimulationHeuristic::dump_options() const {
 }
 
 void SimulationHeuristic::initialize() {
-  ldSimulation->initialize();
-  if(insert_dominated){
-    ldSimulation->precompute_dominated_bdds(vars.get());
-  }else{
-    ldSimulation->precompute_dominating_bdds(vars.get());
-  }
+    if(!initialized){
+	initialized = true;
+	ldSimulation->initialize();
+	if(insert_dominated){
+	    ldSimulation->precompute_dominated_bdds(vars.get());
+	}else{
+	    ldSimulation->precompute_dominating_bdds(vars.get());
+	}
+    }
 }
 
 
@@ -69,14 +72,16 @@ void SimulationHeuristic::initialize() {
   return tr.get();
   }*/
 
-int SimulationHeuristic::compute_heuristic(const State & /*state*/) {
-  return 0;
-}
-
 bool SimulationHeuristic::is_dead_end(const State &state) const{
     return ldSimulation->pruned_state(state);
 }
 
+int SimulationHeuristic::compute_heuristic(const State &state) {
+    int cost = ldSimulation->get_cost(state);
+    if (cost == -1)
+        return DEAD_END;
+    return cost;
+}
 
 bool SimulationHeuristic::prune_generation(const State &state, int g){
   if(ldSimulation->pruned_state(state)){

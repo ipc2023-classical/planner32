@@ -7,6 +7,7 @@
 #include "successor_generator.h"
 #include "g_evaluator.h"
 #include "sum_evaluator.h"
+#include "max_evaluator.h"
 #include "plugin.h"
 
 #include <cassert>
@@ -424,7 +425,10 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
                             "use pathmax correction", "false");
     parser.add_option<bool>("mpd",
                             "use multi-path dependence (LM-A*)", "false");
-
+    parser.add_option<bool>("use_prune_as_heuristic",
+                            "uses the abstraction constructed for pruning as a heuristic", "false");
+    parser.add_option<bool>("disable_pruning",
+                            "disables pruning and uses only the heuristic", "false");
     parser.add_option<PruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
 
     SearchEngine::add_options_to_parser(parser);
@@ -436,7 +440,19 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
         vector<ScalarEvaluator *> sum_evals;
         sum_evals.push_back(g);
         ScalarEvaluator *eval = opts.get<ScalarEvaluator *>("eval");
-        sum_evals.push_back(eval);
+        if(opts.get<bool>("use_prune_as_heuristic") && opts.contains("prune")){
+	    PruneHeuristic * prune_heuristic = opts.get<PruneHeuristic *>("prune");
+	    std::vector<ScalarEvaluator *> subevaluators;
+	    subevaluators.push_back(eval);
+	    subevaluators.push_back(prune_heuristic);
+	    eval = new MaxEvaluator(subevaluators);
+	    if(!opts.get<bool>("disable_pruning")){
+		opts.set("prune", prune_heuristic);
+	    }else{
+		opts.remove("prune");
+	    }
+	}
+	sum_evals.push_back(eval);
         ScalarEvaluator *f_eval = new SumEvaluator(sum_evals);
 
         // use eval for tiebreaking

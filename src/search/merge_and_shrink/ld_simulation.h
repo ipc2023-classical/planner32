@@ -61,6 +61,8 @@ class LDSimulation {
     void precompute_dominating_bdds(SymVariables * vars);
 
     bool pruned_state(const State &state) const;
+    int get_cost(const State &state) const;
+
     BDD getSimulatedBDD(SymVariables * vars, const State &state) const;
     BDD getSimulatingBDD(SymVariables * vars, const State &state) const;
 

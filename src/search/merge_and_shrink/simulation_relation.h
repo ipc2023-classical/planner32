@@ -144,6 +144,9 @@ class SimulationRelation{
    return abs->get_abstract_state(state) == -1;
  }
  
+ inline int get_cost(const State & state) const {
+   return abs->get_cost(state);
+ }
 };
 
 

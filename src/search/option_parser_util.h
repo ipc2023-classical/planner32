@@ -369,6 +369,10 @@ public:
         storage[key] = value;
     }
 
+    void remove(std::string key) {
+        storage.erase(key);;
+    }
+
     template <class T>
     T get(std::string key) const {
         std::map<std::string, boost::any>::const_iterator it;

@@ -21,6 +21,8 @@ class SimulationHeuristic : public PruneHeuristic {
  protected:
   //Parameters to control the pruning
   const SymParamsMgr mgrParams; //Parameters for SymManager configuration.
+
+  bool initialized;
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
   const PruningType pruning_type;
@@ -46,9 +48,8 @@ class SimulationHeuristic : public PruneHeuristic {
   /* virtual void insert (const BDD & bdd, int g) = 0; */
 
   //void build_abstraction();
-  virtual int compute_heuristic(const State &state);
  public:
-    virtual void initialize();
+  virtual void initialize();
 
     //Methods for pruning explicit search
     virtual bool prune_generation(const State &state, int g);
@@ -56,6 +57,7 @@ class SimulationHeuristic : public PruneHeuristic {
 
     virtual bool is_dead_end(const State &state) const;
 
+    virtual int compute_heuristic(const State &state);
     SimulationHeuristic(const Options &opts);
     virtual ~SimulationHeuristic();
 };
