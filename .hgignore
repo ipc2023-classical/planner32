@@ -14,9 +14,9 @@
 ^src/preprocess_h2/preprocess-profile$
 ^src/search/\.obj/
 ^src/search/Makefile\.depend$
-^src/search/downward-[124]$
-^src/search/downward-[124]-debug$
-^src/search/downward-[124]-profile$
+^src/search/downward-release$
+^src/search/downward-debug$
+^src/search/downward-profile$
 ^src/search/lp/coin/
 ^src/search/cudd-2.5.0/include/
 ^src/search/cudd-2.5.0/nanotrav/nanotrav
