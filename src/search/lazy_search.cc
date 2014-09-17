@@ -7,6 +7,7 @@
 #include "weighted_evaluator.h"
 #include "plugin.h"
 
+#include "prune_heuristic.h"
 #include <algorithm>
 #include <limits>
 
@@ -23,6 +24,11 @@ LazySearch::LazySearch(const Options &opts)
       current_operator(NULL),
       current_g(0),
       current_real_g(0) {
+    if(opts.contains("prune")){
+	prune_heuristic = opts.get<PruneHeuristic *>("prune");
+    }else{
+	prune_heuristic = nullptr;
+    }
 }
 
 LazySearch::~LazySearch() {
@@ -55,6 +61,10 @@ void LazySearch::initialize() {
         heuristics.push_back(*it);
     }
     assert(!heuristics.empty());
+
+    if(prune_heuristic){
+      prune_heuristic->initialize();
+    }
 }
 
 void LazySearch::get_successor_operators(vector<const Operator *> &ops) {
@@ -149,6 +159,18 @@ int LazySearch::step() {
 
     SearchNode node = search_space.get_node(current_state);
     bool reopen = reopen_closed_nodes && (current_g < node.get_g()) && !node.is_dead_end() && !node.is_new();
+
+    if(prune_heuristic && 
+       prune_heuristic->is_dead_end(current_state)) {	
+        node.mark_as_dead_end();
+	search_progress.inc_dead_ends();
+	return fetch_next_state();
+    }
+    if(prune_heuristic && 
+       prune_heuristic->prune_expansion(current_state, current_g)){
+      search_progress.inc_pruned();
+      return fetch_next_state();
+    }
 
     if (node.is_new() || reopen) {
         StateID dummy_id = current_predecessor_id;
@@ -245,6 +267,8 @@ static SearchEngine *_parse(OptionParser &parser) {
         engine->set_pref_operator_heuristics(preferred_list);
     }
 
+    parser.add_option<PruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
+
     return engine;
 }
 
@@ -298,6 +322,9 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
         OptionParser::to_str(DEFAULT_LAZY_BOOST));
     _add_succ_order_options(parser);
     SearchEngine::add_options_to_parser(parser);
+
+    parser.add_option<PruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
+    
     Options opts = parser.parse();
 
     LazySearch *engine = 0;

@@ -10,6 +10,7 @@
 #include "search_space.h"
 #include "search_progress.h"
 
+class PruneHeuristic;
 class Heuristic;
 class Operator;
 class Options;
@@ -34,6 +35,7 @@ protected:
     const Operator *current_operator;
     int current_g;
     int current_real_g;
+    PruneHeuristic * prune_heuristic;
 
     virtual void initialize();
     virtual int step();
