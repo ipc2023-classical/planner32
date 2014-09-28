@@ -14,6 +14,7 @@ class EquivalenceRelation;
 class Label;
 class Labels;
 class State;
+class SimulationRelation;
 
 typedef int AbstractStateRef;
 
@@ -108,7 +109,6 @@ class Abstraction {
     //Alvaro: Computes num_transitions_by_label and
     //num_goal_transitions_by_label
     void count_transitions_by_label();
-
 
     // are_transitions_sorted_unique() is used to determine whether the
     // transitions of an abstraction are sorted uniquely or not after
@@ -231,6 +231,21 @@ public:
 			   bool only_goal, std::vector<int> & result);
     
     bool is_own_label(int label_no);
+
+
+    // Methods to prune irrelevant transitions Prune all the
+    // transitions of a given label (it is completely dominated by
+    // some other label or by noop)
+    int prune_transitions_dominated_label_all(int label_no);
+
+    // Prune all the transitions of label_no such that exist a better
+    // transition for label_no_by
+    int prune_transitions_dominated_label(int label_no, int label_no_by,
+					  SimulationRelation & rel);
+    
+    //Prune all the transitions dominated by noop 
+    int prune_transitions_dominated_label_noop(int label_no,
+					       SimulationRelation & rel);
 };
 
 class AtomicAbstraction : public Abstraction {

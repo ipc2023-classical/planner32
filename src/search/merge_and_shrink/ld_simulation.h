@@ -51,6 +51,11 @@ class LDSimulation {
 				    std::vector<SimulationRelation *> & _simulations);
 
 
+  static int prune_irrelevant_transitions(std::vector<LabelledTransitionSystem *> & _ltss, 
+					   std::vector<SimulationRelation *> & _simulations, 
+					   LabelRelation & label_dominance);
+
+
  public:
     LDSimulation(const Options &options);
     LDSimulation(bool unit_cost, const Options &options, OperatorCost cost_type);
@@ -69,6 +74,16 @@ class LDSimulation {
     inline std::vector<SimulationRelation *> get_simulations(){
       return simulations;
     }
+    
+    //Computes the probability of selecting a random pair s, s' such
+    //that s simulates s'.
+    double get_percentage_simulations(bool ignore_equivalences) const;
+
+    //Computes the probability of selecting a random pair s, s' such that
+    //s is equivalent to s'.
+    double get_percentage_equivalences() const;
+
+    double get_percentage_equal() const;
 
 
     static void add_options_to_parser(OptionParser &parser);

@@ -210,6 +210,18 @@ class LabelRelation {
       (dominated_by_noop_in[l] == DOMINATES_IN_ALL || 
        dominated_by_noop_in[l] == lts);
   }
+
+  inline int get_dominated_by_noop_in (int l) const {
+      return dominated_by_noop_in[l];
+  }
+
+  inline int num_labels() const {
+      return labels->get_size();
+  }
+  void prune_operators();
+
+
+  void get_labels_dominated_in_all(std::vector<int> & labels_dominated_in_all);  
 };
 
 #endif

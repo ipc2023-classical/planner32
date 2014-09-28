@@ -20,18 +20,26 @@
 
 #include <cassert>
 #include <vector>
+#include <limits>
+
 using namespace std;
 
 SimulationHeuristic::SimulationHeuristic(const Options &opts)
     : PruneHeuristic(opts),
       mgrParams(opts), initialized(false),
-    remove_spurious_dominated_states(opts.get<bool>("remove_spurious")), 
-    insert_dominated(opts.get<bool>("insert_dominated")), 
-    pruning_type(PruningType(opts.get_enum("pruning_type"))),
-    vars(new SymVariables()), ldSimulation(new LDSimulation(opts)), states_inserted(0) {
+      remove_spurious_dominated_states(opts.get<bool>("remove_spurious")), 
+      insert_dominated(opts.get<bool>("insert_dominated")), 
+      pruning_type(PruningType(opts.get_enum("pruning_type"))),
+      min_pruning_ratio(opts.get<double>("min_pruning_ratio")), 
+      min_insert_ratio(opts.get<double>("min_insert_ratio")), 
+      min_deadend_ratio(opts.get<double>("min_deadends_ratio")), 
+      min_insertions(opts.get<int>("min_insertions")), 
+      min_deadends(opts.get<int>("min_deadends")), 
+      vars(new SymVariables()), ldSimulation(new LDSimulation(opts)),
+      states_inserted(0), states_pruned(0), deadends_pruned(0) {
     vector <int> var_order; 
     for(int i = 0; i < g_variable_name.size(); i++){
-      var_order.push_back(i);
+	var_order.push_back(i);
     }
     vars->init(var_order, mgrParams);
     if(remove_spurious_dominated_states){
@@ -58,8 +66,8 @@ void SimulationHeuristic::initialize() {
 	    ldSimulation->precompute_dominating_bdds(vars.get());
 	}
     }
+    exit(0);
 }
-
 
 /*SymTransition * SimulationHeuristic::getTR(SymManager * mgr){
   if (!tr){
@@ -72,8 +80,12 @@ void SimulationHeuristic::initialize() {
   return tr.get();
   }*/
 
-bool SimulationHeuristic::is_dead_end(const State &state) const{
-    return ldSimulation->pruned_state(state);
+bool SimulationHeuristic::is_dead_end(const State &state) {
+    if(deadend_is_activated() &&  ldSimulation->pruned_state(state)){
+	deadends_pruned ++;
+	return true;
+    }
+    return false;
 }
 
 int SimulationHeuristic::compute_heuristic(const State &state) {
@@ -83,30 +95,42 @@ int SimulationHeuristic::compute_heuristic(const State &state) {
     return cost;
 }
 
-bool SimulationHeuristic::prune_generation(const State &state, int g){
+bool SimulationHeuristic::prune_generation(const State &state, int g) {
+    if(!deadend_is_activated()){
+	return false;
+    }
   if(ldSimulation->pruned_state(state)){
     return true;
   }
   //a) Check if state is in a BDD with g.closed <= g
   if (check(state, g)){
+      states_pruned ++;
     return true;
   }
 
   //b) Insert state and other states dominated by it
-  if(pruning_type == PruningType::Generation) insert(state, g);
-  return false;
-
-
+  if(pruning_type == PruningType::Generation && insert_is_activated()){
+      insert(state, g);
+      states_inserted ++;
+  }
+      return false;
 }
 
 bool SimulationHeuristic::prune_expansion (const State &state, int g){
-  //a) Check if state is in a BDD with g.closed <= g
-  if(check(state, g)){
-    return true;
-  }
-  //b) Insert state and other states dominated by it
-  if(pruning_type == PruningType::Expansion) insert(state, g);
-  return false;
+    if(!prune_is_activated()){
+	return false;
+    }
+    //a) Check if state is in a BDD with g.closed <= g
+    if(check(state, g)){
+	states_pruned ++;
+	return true;
+    }
+    //b) Insert state and other states dominated by it
+    if(pruning_type == PruningType::Expansion && insert_is_activated()){
+	insert(state, g);
+	states_inserted ++;
+    }  
+    return false;
 }
 
 BDD SimulationHeuristic::getBDDToInsert(const State &state){
@@ -174,6 +198,25 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 			    "Whether we store the set of dominated states (default) or just the set of closed.",
                             "true");
 
+    parser.add_option<double>("min_pruning_ratio",
+			      "Ratio of pruned/inserted needed to continue pruning the search.",
+			      "0.0");
+
+    parser.add_option<double>("min_insert_ratio",
+			      "Ratio of pruned/inserted needed to continue inserting dominated states.",
+			      "0.0");
+
+    parser.add_option<double>("min_deadends_ratio",
+			      "Ratio of deadends_pruned/inserted needed to continue pruning deadend states.",
+			      "0.0");
+    
+    parser.add_option<int>("min_insertions",
+			   "States are inserted and pruning until this limit. Afterwards, depends on the ratios",
+			   "100000000");
+
+    parser.add_option<int>("min_deadends",
+			   "States are inserted and pruning until this limit. Afterwards, depends on the ratios",
+			   "100000000");
     
     Options opts = parser.parse();
 
@@ -236,7 +279,7 @@ void SimulationHeuristicBDDMap::insert (const State & state, int g){
   }else{
     closed[g] += res;
   }
-  /*if(states_inserted++ % 1000 == 0){
+  /*if(states_inserted % 1000 == 0){
     cout << "SimulationClosed: ";
     for (auto & entry : closed){
       cout << " " << entry.first << "("<<entry.second.nodeCount()<< "),";
@@ -284,7 +327,7 @@ bool SimulationHeuristicBDDMap::check (const State & state, int g){
 void SimulationHeuristicBDD::insert (const State & state, int /*g*/){
   closed += getBDDToInsert(state);
 
-  /*if(use_expensive_statistics && states_inserted++ % 1000 == 0){
+  /*if(use_expensive_statistics && states_inserted % 1000 == 0){
     cout << "SimulationClosed: " << vars->numStates(closed) << "   " << closed.nodeCount() 
 	 << " after " << states_inserted << " using " <<closed_inserted.nodeCount() << endl;
 	 }*/

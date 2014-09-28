@@ -32,4 +32,37 @@ void LabelRelation::dump(int label) const {
   cout  << endl;
 }
 
+void LabelRelation::prune_operators(){
+    //cout << "We have " << labels->get_size() << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
+    for (int l = 0; l < dominates_in.size(); ++l){
+	//labels->get_label_by_index(l)->dump();	
+	if (dominated_by_noop_in[l]== DOMINATES_IN_ALL){
+	    cout << g_operators[l].get_name() << " is dominated by noop " << endl;
+	}
 
+	for (int l2 = 0; l2 < dominates_in.size(); ++l2){
+	    if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL){
+		cout << g_operators[l].get_name() << " is dominated by " << g_operators[l2].get_name() << endl;
+	    }
+	}
+    }
+}
+
+void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_dominated_in_all){
+    //cout << "We have " << labels->get_size() << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
+    for (int l = 0; l < dominates_in.size(); ++l){
+	//labels->get_label_by_index(l)->dump();	
+	if (dominated_by_noop_in[l]== DOMINATES_IN_ALL){
+	    labels_dominated_in_all.push_back(l);
+	    continue;
+	}
+
+	for (int l2 = 0; l2 < dominates_in.size(); ++l2){
+	    if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL && 
+		!dominates_in[l][l2] == DOMINATES_IN_ALL){
+		labels_dominated_in_all.push_back(l);
+		break;
+	    }
+	}
+    }
+}

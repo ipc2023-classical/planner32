@@ -59,6 +59,9 @@ public:
     const std::set<Abstraction *> & get_relevant_for () const{
 	return relevant_for;
     }
+
+    bool is_irrelevant() const;
+    virtual void get_operators(std::set<int> & ops_id) const = 0;
 };
 
 class OperatorLabel : public Label {
@@ -69,6 +72,9 @@ public:
                   const std::vector<PrePost> &pre_post);
 
     const std::vector<Label *> &get_parents() const;
+    virtual void get_operators(std::set<int> & ops_id) const{
+	ops_id.insert(get_id());
+    }
 };
 
 class CompositeLabel : public Label {
@@ -80,6 +86,13 @@ public:
     const std::vector<Label *> &get_parents() const {
         return parents;
     }
+
+    virtual void get_operators(std::set<int> & ops_id) const{
+	for (auto p : parents){
+	    p->get_operators(ops_id);
+	}
+    }
+
 };
 
 #endif

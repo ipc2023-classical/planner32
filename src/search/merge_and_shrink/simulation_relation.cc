@@ -142,33 +142,38 @@ int SimulationRelation::num_equivalences() const{
   return num;
 }
 
-int SimulationRelation::num_simulations() const{
+int SimulationRelation::num_simulations(bool ignore_equivalences) const{
   int res = 0;
-  std::vector<bool> counted (relation.size(), false);
-
-  for(int i = 0; i < relation.size(); ++i){
-    if(!counted[i]){
-      for(int j = i+1; j < relation.size(); ++j){
-	if(similar(i, j)){
-	  counted[j] = true;
-	}
-      }
-    }
-  }
-  for(int i = 0; i < relation.size(); ++i){
-    if(!counted[i]){
-      for(int j = i+1; j < relation.size(); ++j){
-	if(!counted[j]){
-	  if(!similar(i, j) && (simulates(i, j) || simulates(j, i))){
-	    res ++;
+  if(ignore_equivalences){
+      std::vector<bool> counted (relation.size(), false);
+      for(int i = 0; i < relation.size(); ++i){
+	  if(!counted[i]){
+	      for(int j = i+1; j < relation.size(); ++j){
+		  if(similar(i, j)){
+		      counted[j] = true;
+		  }
+	      }
 	  }
-	}
       }
-    }
+      for(int i = 0; i < relation.size(); ++i){
+	  if(!counted[i]){
+	      for(int j = i+1; j < relation.size(); ++j){
+		  if(!counted[j]){
+		      if(!similar(i, j) && (simulates(i, j) || simulates(j, i))){
+			  res ++;
+		      }
+		  }
+	      }
+	  }
+      }
+  }else {
+      for(int i = 0; i < relation.size(); ++i)
+	  for(int j = 0; j < relation.size(); ++j)
+	      if(simulates(i, j))
+		  res++;
   }
   return res;
 }
-
 
 int SimulationRelation::num_different_states() const{
   int num = 0;
@@ -184,5 +189,25 @@ int SimulationRelation::num_different_states() const{
     }
   }
   return num;
+}
+
+//Computes the probability of selecting a random pair s, s' such
+//that s simulates s'.
+double SimulationRelation::get_percentage_simulations(bool ignore_equivalences) const {
+    double num_sims = num_simulations (ignore_equivalences);
+    double num_states = (ignore_equivalences ? num_different_states() : relation.size());
+    return num_sims/(num_states*num_states);
+}
+
+//Computes the probability of selecting a random pair s, s' such that
+ //s is equivalent to s'.
+double SimulationRelation::get_percentage_equivalences() const{
+    double num_eq = 0;
+    double num_states = relation.size();
+    for(int i = 0; i < relation.size(); ++i)
+	for(int j = 0; j < relation.size(); ++j)
+	    if(similar(i, j))
+		num_eq++;
+    return num_eq/(num_states*num_states);
 }
 

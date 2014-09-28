@@ -4,6 +4,7 @@
 #include "labels.h"
 #include "shrink_fh.h"
 
+#include "simulation_relation.h"
 #include "../equivalence_relation.h"
 #include "../globals.h"
 #include "../priority_queue.h"
@@ -468,7 +469,7 @@ void Abstraction::normalize() {
                 // marked as relevant in order to avoid confusions when
                 // considering all relevant labels).
                 relevant_labels[parent_id] = false;
-        labels->set_irrelevant_for(parent_id, this); 
+		labels->set_irrelevant_for(parent_id, this); 
             } else {
                 some_parent_is_irrelevant = true;
             }
@@ -478,11 +479,11 @@ void Abstraction::normalize() {
                 // new label is irrelevant (implicit self-loops)
                 // remove all transitions (later)
                 labels_made_irrelevant.insert(reduced_label_no);
-        labels->set_irrelevant_for(reduced_label_no, this);
+		labels->set_irrelevant_for(reduced_label_no, this);
             } else {
                 // new label is relevant
                 relevant_labels[reduced_label_no] = true;
-        labels->set_relevant_for(reduced_label_no, this);
+		labels->set_relevant_for(reduced_label_no, this);
                 // make self loops explicit
                 for (int i = 0; i < num_states; ++i) {
                     target_buckets[i].push_back(
@@ -1216,3 +1217,48 @@ void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars,
     abs_bdds[lookup_table[i]] += vars->preBDD(variable, i);
   }
 }
+
+
+// Methods to prune irrelevant transitions Prune all the
+// transitions of a given label (it is completely dominated by
+// some other label or by noop)
+int Abstraction::prune_transitions_dominated_label_all(int label_no) {
+    int num = transitions_by_label.size();
+    vector<AbstractTransition> ().swap(transitions_by_label[label_no]);
+    return num;
+}
+
+// Prune all the transitions of label_no such that exist a better
+// transition for label_no_by
+int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by,
+						    SimulationRelation & rel) {
+    int num = transitions_by_label[label_no].size();
+    transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
+							end(transitions_by_label[label_no]),
+							[this, &rel, label_no_by](AbstractTransition & t){
+							    return std::find_if(begin(transitions_by_label[label_no_by]), 
+										end(transitions_by_label[label_no_by]), 
+										[&rel, &t](AbstractTransition & t2){
+										    return t2.src == t.src && 
+											rel.simulates(t2.target, t.target);
+										}) != end(transitions_by_label[label_no_by]);
+							}),
+					 transitions_by_label[label_no].end());    
+    return num - transitions_by_label[label_no].size();
+
+}
+
+    //Prune all the transitions dominated by noop 
+int Abstraction::prune_transitions_dominated_label_noop(int label_no,
+							 SimulationRelation & rel){
+    int num = transitions_by_label[label_no].size();
+
+    transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
+							end(transitions_by_label[label_no]),
+							[this, &rel](AbstractTransition & t){
+							    return rel.simulates(t.src, t.target);
+							}),
+					 transitions_by_label[label_no].end());    
+    return num - transitions_by_label[label_no].size();
+}
+					 

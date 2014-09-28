@@ -177,6 +177,7 @@ void LDSimulation::compute_ld_simulation(Labels * _labels, vector<Abstraction *>
     }
 
     compute_ld_simulation(_labels, ltss, _simulations);
+    
 }
 
 
@@ -185,18 +186,66 @@ void LDSimulation::compute_ld_simulation(Labels * _labels, vector<LabelledTransi
     Timer t;
     LabelRelation label_dominance (_labels);
     label_dominance.init(_ltss, _simulations);
-  do{
-    cout << "Label dominance initialized: " << t() << endl;
-    cout << "LDsimulation loop: ";
-    //label_dominance.dump();
-    for (int i = 0; i < _simulations.size(); i++){
-	_simulations[i]->update(i, _ltss[i], label_dominance);
-	//cout << "loooooooping" <<  t() << endl;
+    do{
+	cout << "Label dominance initialized: " << t() << endl;
+	cout << "LDsimulation loop: ";
+	//label_dominance.dump();
+	for (int i = 0; i < _simulations.size(); i++){
+	    _simulations[i]->update(i, _ltss[i], label_dominance);
+	    //cout << "loooooooping" <<  t() << endl;
+	    
+	    //_simulations[i]->dump(_ltss[i]->get_names());
+	}
+	cout << " took " << t() << "s" << endl;
+    }while(label_dominance.update(_ltss, _simulations));
 
-      //_simulations[i]->dump(_ltss[i]->get_names());
+     // int num_pruned_trs = prune_irrelevant_transitions(_ltss, _simulations, label_dominance);
+     
+     // if(num_pruned_trs){
+     // 	 cout <<  num_pruned_trs << " transitions in the LTSs were pruned." << endl;
+     // 	 _labels->prune_irrelevant_labels();
+     // }
+}
+
+int LDSimulation::prune_irrelevant_transitions(vector<LabelledTransitionSystem *> & _ltss, 
+					       vector<SimulationRelation *> & _simulations, 
+				  LabelRelation & label_dominance){
+    int num_pruned_transitions = 0;
+    vector <int> labels_id;
+    label_dominance.get_labels_dominated_in_all(labels_id);
+    //a) prune transitions of labels that are completely dominated by
+    //other in all LTS
+    for (auto lts : _ltss){
+	Abstraction * abs = lts->get_abstraction();
+	for (int l : labels_id)
+	    num_pruned_transitions += abs->prune_transitions_dominated_label_all(l);
     }
-    cout << " took " << t() << "s" << endl;
-  }while(label_dominance.update(_ltss, _simulations));
+    //b) prune transitions dominated by noop in a transition system
+    for (int l = 0; l < label_dominance.num_labels(); l++){
+    	int lts = label_dominance.get_dominated_by_noop_in(l);
+    	if(lts >= 0){
+    	    num_pruned_transitions += _ltss[lts]->get_abstraction()->prune_transitions_dominated_label_noop(l, *(_simulations[lts]));
+    	}
+    }
+
+    //c) prune transitions dominated by other transitions
+    // for (int lts = 0; lts < _ltss.size(); lts++){
+    // 	Abstraction * abs = _ltss[lts]->get_abstraction();
+    // 	const auto & is_relvar = abs->get_relevant_labels(); 
+    // 	//l : Iterate over relevant labels
+    // 	for (int l = 0; l < is_relvar.size(); ++l){
+    // 	    if(!is_relvar[l]) continue;
+    // 	    for (int l2 = 0; l2 < is_relvar.size(); ++l2){
+    // 		if(!is_relvar[l2]) continue;	    
+    // 		//l2 : Iterate over relevant labels
+    // 		if (label_dominance.dominates(l2, l, lts)){
+    // 		    num_pruned_transitions += abs->prune_transitions_dominated_label(l, l2, *(_simulations[lts]));
+    // 		}
+    // 	    }
+    // 	}
+    // }
+
+    return num_pruned_transitions;
 }
 
 // void LDSimulation::compute_ld_simulation_after_merge(vector<Abstraction *> & all_abstractions, 
@@ -276,10 +325,10 @@ void LDSimulation::initialize() {
   cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
   cout << "Similarity equivalences: " << num_equi  << endl;
   cout << "Only Simulations: " << num_sims << endl;
-  for(int i = 0; i < simulations.size(); i++){ 
+  /*for(int i = 0; i < simulations.size(); i++){ 
     cout << "States after simulation: " << simulations[i]->num_states() << " " 
 	 << simulations[i]->num_different_states() << endl;
-  }
+	 }*/
   //exit(0);
 }
 
@@ -295,7 +344,7 @@ int LDSimulation::num_equivalences() const {
 int LDSimulation::num_simulations() const {
   int res = 0;
   for(int i = 0; i < simulations.size(); i++){ 
-    res += simulations[i]->num_simulations(); 
+    res += simulations[i]->num_simulations(true); 
   } 
   return res;  
 }
@@ -350,6 +399,39 @@ BDD LDSimulation::getSimulatingBDD(SymVariables * vars, const State &state ) con
   }
   return res;
 }
+
+
+double LDSimulation::get_percentage_simulations(bool ignore_equivalences) const {
+    double percentage = 1;
+    for (auto sim : simulations){
+	percentage *= sim->get_percentage_simulations(false);
+    }
+    if(ignore_equivalences){
+	percentage -= get_percentage_equivalences();
+    } else {
+	percentage -= get_percentage_equal();
+    }
+    return percentage;
+}
+
+
+double LDSimulation::get_percentage_equal() const {
+    double percentage = 1;
+    for (auto sim : simulations){
+	percentage *= 1/(sim->num_states()*sim->num_states());
+    }
+    return percentage;
+}
+
+
+double LDSimulation::get_percentage_equivalences() const {
+    double percentage = 1;
+    for (auto sim : simulations){
+	percentage *= sim->get_percentage_equivalences();
+    }
+    return percentage;
+}
+
 
 void LDSimulation::add_options_to_parser(OptionParser &parser){
   vector<string> label_reduction_method;

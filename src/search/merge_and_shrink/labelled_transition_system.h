@@ -98,7 +98,7 @@ class LabelledTransitionSystem {
     return relevant_labels;
   }
 
-  inline const Abstraction * get_abstraction() const {
+  inline Abstraction * get_abstraction()  {
     return abs;
   }
 };

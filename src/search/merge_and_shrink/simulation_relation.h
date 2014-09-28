@@ -52,7 +52,7 @@ class SimulationRelation{
   }
 
   int num_equivalences() const;
-  int num_simulations() const;
+  int num_simulations(bool ignore_equivalences) const;
   int num_states() const{
     return abs_bdds.size();
   }
@@ -147,6 +147,15 @@ class SimulationRelation{
  inline int get_cost(const State & state) const {
    return abs->get_cost(state);
  }
+ 
+ //Computes the probability of selecting a random pair s, s' such
+ //that s simulates s'.
+ double get_percentage_simulations(bool ignore_equivalences) const;
+ 
+ //Computes the probability of selecting a random pair s, s' such that
+ //s is equivalent to s'.
+ double get_percentage_equivalences() const;
+
 };
 
 

@@ -27,11 +27,24 @@ class SimulationHeuristic : public PruneHeuristic {
   const bool insert_dominated;
   const PruningType pruning_type;
 
+  /*
+   * Three parameters help to decide whether to apply dominance
+   * pruning or not. Dominance pruning is used until min_expansions
+   * are performed. Afterwards, pruning is only used if the ratio
+   * pruned/inserted is greater than min_pruning_ratio. If the ratio
+   * pruned/inserted is lower than min_insert_ratio, we use the states
+   * already inserted to prune but avoid inserting more states.
+   */
+  const double min_pruning_ratio, min_insert_ratio, min_deadend_ratio;
+  const int min_insertions, min_deadends;
+
   std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
   std::unique_ptr<SymManager> mgr;    //The symbolic manager to handle mutex BDDs
 
   std::unique_ptr<LDSimulation> ldSimulation;
-  int states_inserted; //Count the number of states inserted.
+  int states_inserted; //Count the number of states inserted
+  int states_pruned; //Count the number of states pruned
+  int deadends_pruned; //Count the number of dead ends detected
 
   void dump_options() const;
 
@@ -48,18 +61,33 @@ class SimulationHeuristic : public PruneHeuristic {
   /* virtual void insert (const BDD & bdd, int g) = 0; */
 
   //void build_abstraction();
+
+  inline bool insert_is_activated() const {
+      return states_inserted < min_insertions || 
+	  states_pruned >= states_inserted*min_insert_ratio;
+  }
+  inline bool prune_is_activated() const {
+      return states_inserted < min_insertions || 
+	  states_pruned >= states_inserted*min_pruning_ratio;
+  }
+
+  inline bool deadend_is_activated() const {
+      return states_inserted < min_deadends || 
+	  deadends_pruned >= states_inserted*min_deadend_ratio;
+  }
+
  public:
   virtual void initialize();
 
-    //Methods for pruning explicit search
-    virtual bool prune_generation(const State &state, int g);
-    virtual bool prune_expansion (const State &state, int g);
+  //Methods for pruning explicit search
+  virtual bool prune_generation(const State &state, int g);
+  virtual bool prune_expansion (const State &state, int g);
 
-    virtual bool is_dead_end(const State &state) const;
+  virtual bool is_dead_end(const State &state);
 
-    virtual int compute_heuristic(const State &state);
-    SimulationHeuristic(const Options &opts);
-    virtual ~SimulationHeuristic();
+  virtual int compute_heuristic(const State &state);
+  SimulationHeuristic(const Options &opts);
+  virtual ~SimulationHeuristic();
 };
 
 class SimulationHeuristicBDDMap : public SimulationHeuristic {

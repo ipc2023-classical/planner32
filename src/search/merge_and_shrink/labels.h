@@ -45,6 +45,7 @@ public:
 
     const std::set<Abstraction *> & get_relevant_for (int label_no) const;
 
+    void prune_irrelevant_labels();
 };
 
 #endif
