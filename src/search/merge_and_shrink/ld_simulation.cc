@@ -11,6 +11,7 @@ using namespace std;
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
   use_expensive_statistics(opts.get<bool>("expensive_statistics")),
   limit_absstates_merge(opts.get<int>("limit_merge")),
+  limit_seconds_mas(opts.get<int>("limit_seconds")),
   merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
   use_bisimulation(opts.get<bool>("use_bisimulation")), 
   intermediate_simulations(opts.get<bool>("intermediate_simulations")), 
@@ -21,6 +22,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 LDSimulation::LDSimulation(const Options &opts) : 
   use_expensive_statistics(opts.get<bool>("expensive_statistics")),
   limit_absstates_merge(opts.get<int>("limit_merge")),
+  limit_seconds_mas(opts.get<int>("limit_seconds")),
   merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
   use_bisimulation(opts.get<bool>("use_bisimulation")), 
   intermediate_simulations(opts.get<bool>("intermediate_simulations")){
@@ -51,7 +53,7 @@ void LDSimulation::build_abstraction() {
   // TODO: We're leaking memory here in various ways. Fix this.
   //       Don't forget that build_atomic_abstractions also
   //       allocates memory.
-
+    Timer t;
   // vector of all abstractions. entries with 0 have been merged.
   vector<Abstraction *> all_abstractions;
   all_abstractions.reserve(g_variable_domain.size() * 2 - 1);
@@ -78,7 +80,7 @@ void LDSimulation::build_abstraction() {
     
   cout << "Merging abstractions..." << endl;
 
-  while (!merge_strategy->done()) {
+  while (!merge_strategy->done() && t() <= limit_seconds_mas) {
     pair<int, int> next_systems = merge_strategy->get_next(all_abstractions, 
 							   limit_absstates_merge);
     int system_one = next_systems.first;
@@ -95,14 +97,17 @@ void LDSimulation::build_abstraction() {
     // Note: we do not reduce labels several times for the same abstraction
     bool reduced_labels = false;
     if (shrink_strategy && shrink_strategy->reduce_labels_before_shrinking()) {
+	cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
       labels->reduce(make_pair(system_one, system_two), all_abstractions);
       reduced_labels = true;
+      cout << "Normalize: " << t() << endl;
       abstraction->normalize();
       other_abstraction->normalize();
       abstraction->statistics(use_expensive_statistics);
       other_abstraction->statistics(use_expensive_statistics);
     }
 
+    cout << "Compute distances: " << t() << endl;
     // distances need to be computed before shrinking
     abstraction->compute_distances();
     other_abstraction->compute_distances();
@@ -112,6 +117,7 @@ void LDSimulation::build_abstraction() {
     //     return other_abstraction;
 
     if(shrink_strategy){
+      cout << "Shrink: " << t() << endl;
       shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
       abstraction->statistics(use_expensive_statistics);
       other_abstraction->statistics(use_expensive_statistics);
@@ -121,7 +127,7 @@ void LDSimulation::build_abstraction() {
       labels->reduce(make_pair(system_one, system_two), all_abstractions);
     }
 
-
+    cout << "Normalize: " << t() << endl;
     abstraction->normalize();
     other_abstraction->normalize();
 
@@ -130,7 +136,7 @@ void LDSimulation::build_abstraction() {
       other_abstraction->statistics(use_expensive_statistics);
       abstraction->statistics(use_expensive_statistics);
     }
-
+    cout << "Merge: " << t() << endl;
     //TODO: UPDATE SIMULATION WHEN DOING INCREMENTAL COMPUTATION 
     Abstraction *new_abstraction = new CompositeAbstraction(labels.get(),
 							    abstraction,
@@ -145,6 +151,7 @@ void LDSimulation::build_abstraction() {
     all_abstractions[system_two] = 0;
     all_abstractions.push_back(new_abstraction);
 
+    cout << "Next it: " << t() << endl;
     // if(intermediate_simulations){
     // 	compute_ld_simulation(labels, all_abstractions, all_simulations);
     // }
@@ -175,9 +182,8 @@ void LDSimulation::compute_ld_simulation(Labels * _labels, vector<Abstraction *>
 	//Create initial goal-respecting relation
 	_simulations.push_back(new SimulationRelation(a));
     }
-
-    compute_ld_simulation(_labels, ltss, _simulations);
-    
+ 
+   compute_ld_simulation(_labels, ltss, _simulations);
 }
 
 
@@ -186,8 +192,8 @@ void LDSimulation::compute_ld_simulation(Labels * _labels, vector<LabelledTransi
     Timer t;
     LabelRelation label_dominance (_labels);
     label_dominance.init(_ltss, _simulations);
+    cout << "Label dominance initialized: " << t() << endl;
     do{
-	cout << "Label dominance initialized: " << t() << endl;
 	cout << "LDsimulation loop: ";
 	//label_dominance.dump();
 	for (int i = 0; i < _simulations.size(); i++){
@@ -207,9 +213,22 @@ void LDSimulation::compute_ld_simulation(Labels * _labels, vector<LabelledTransi
      // }
 }
 
+// void LDSimulation::incremental_ld_simulation (int system_one, int system_two, 
+// 					      Abstraction * new_abs, 
+// 					      LabelledTransitionSystem * new_lts, 
+// 					      LabelDominance & label_dominance, 
+// 					      vector<SimulationRelation *> & _simulations) {
+//     label_dominance->merged(system_one, system_two);
+//     SimulationRelation * new_sim = new SimulationRelation(new_abs);
+//     new_sim->update();
+//     _simulations.push_back(new_sim);
+//     label_dominance.update(_ltss, _simulations);
+// }
+
+
 int LDSimulation::prune_irrelevant_transitions(vector<LabelledTransitionSystem *> & _ltss, 
 					       vector<SimulationRelation *> & _simulations, 
-				  LabelRelation & label_dominance){
+					       LabelRelation & label_dominance){
     int num_pruned_transitions = 0;
     vector <int> labels_id;
     label_dominance.get_labels_dominated_in_all(labels_id);
@@ -477,6 +496,11 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 			 "limit on the number of abstract states after the merge"
 			 "By default: 1, does not perform any merge",
 			 "1");
+
+  parser.add_option<int>("limit_seconds",
+			 "limit the number of seconds for building the merge and shrink abstractions"
+			 "By default: 600 ",
+			 "600");
 
 
   parser.add_option<bool>("use_bisimulation",

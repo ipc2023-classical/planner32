@@ -22,16 +22,19 @@ class LDSimulation {
  protected:
   const bool use_expensive_statistics;
   const int limit_absstates_merge;
+  const int limit_seconds_mas; //Limit of seconds for building the abstraction
+
   std::unique_ptr<MergeStrategy> merge_strategy;
   const bool use_bisimulation;
   const bool intermediate_simulations;
-
 
   //TODO: Use unique_ptr here
   std::unique_ptr<Labels> labels;
   std::vector<Abstraction *> abstractions;
   std::vector<SimulationRelation *> simulations;
-  //std::unique_ptr<LabelRelation>  label_dominance;
+
+  // std::unique_ptr<LabelRelation>  label_dominance;
+  //  std::vector<LabelledTransitionSystem *> ltss;
 
   void dump_options() const;
   int num_equivalences() const;
@@ -54,8 +57,6 @@ class LDSimulation {
   static int prune_irrelevant_transitions(std::vector<LabelledTransitionSystem *> & _ltss, 
 					   std::vector<SimulationRelation *> & _simulations, 
 					   LabelRelation & label_dominance);
-
-
  public:
     LDSimulation(const Options &options);
     LDSimulation(bool unit_cost, const Options &options, OperatorCost cost_type);

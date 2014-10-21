@@ -66,7 +66,7 @@ void SimulationHeuristic::initialize() {
 	    ldSimulation->precompute_dominating_bdds(vars.get());
 	}
     }
-    exit(0);
+    //exit(0);
 }
 
 /*SymTransition * SimulationHeuristic::getTR(SymManager * mgr){
