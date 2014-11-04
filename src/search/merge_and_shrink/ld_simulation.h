@@ -22,8 +22,9 @@ class LDSimulation {
  protected:
   const bool use_expensive_statistics;
   const int limit_absstates_merge;
-  const int limit_seconds_mas; //Limit of seconds for building the abstraction
 
+  const bool use_mas;
+  const int limit_seconds_mas; //Limit of seconds for building the abstraction
   std::unique_ptr<MergeStrategy> merge_strategy;
   const bool use_bisimulation;
   const bool intermediate_simulations;
@@ -42,6 +43,9 @@ class LDSimulation {
 
   void build_abstraction();
   void compute_ld_simulation();
+  void build_factored_systems ();
+
+  std::vector<std::vector<int> > get_variable_partition_greedy();
 
   void compute_ld_simulation_after_merge(std::vector<Abstraction *> & _abstractions, 
 					 std::vector<SimulationRelation *> & _simulations, 
@@ -85,7 +89,6 @@ class LDSimulation {
     double get_percentage_equivalences() const;
 
     double get_percentage_equal() const;
-
 
     static void add_options_to_parser(OptionParser &parser);
 };

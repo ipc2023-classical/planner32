@@ -107,6 +107,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/label_relation.h \
            merge_and_shrink/labelled_transition_system.h \
            merge_and_shrink/ld_simulation.h \
+           merge_and_shrink/variable_partition_finder.h \
 
 
 HEADERS += landmarks/exploration.h \

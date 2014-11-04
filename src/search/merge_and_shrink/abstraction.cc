@@ -1214,7 +1214,9 @@ void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars,
     abs_bdds.push_back(vars->zeroBDD());
   }
   for (int i = 0; i < lookup_table.size(); i++){  
-    abs_bdds[lookup_table[i]] += vars->preBDD(variable, i);
+      if (lookup_table[i] != -1){
+	  abs_bdds[lookup_table[i]] += vars->preBDD(variable, i);
+      }
   }
 }
 
@@ -1262,3 +1264,178 @@ int Abstraction::prune_transitions_dominated_label_noop(int label_no,
     return num - transitions_by_label[label_no].size();
 }
 					 
+
+void PDBAbstraction::apply_abstraction_to_lookup_table(
+        const vector<AbstractStateRef> &abstraction_mapping) {
+    cout << tag() << "applying abstraction to lookup table" << endl;
+    for (int i = 0; i < lookup_table.size(); i++) {
+        AbstractStateRef old_state = lookup_table[i];
+        if (old_state != PRUNED_STATE)
+            lookup_table[i] = abstraction_mapping[old_state];
+    }
+}
+
+PDBAbstraction::PDBAbstraction(Labels *labels, const vector<int> & pattern_)
+    : Abstraction(labels), pattern(pattern_) {
+    varset.insert(varset.end(), pattern.begin(), pattern.end());
+    
+    goal_relevant_vars = 0;
+    for (int goal_no = 0; goal_no < g_goal.size(); goal_no++) {
+	int goal_v = g_goal[goal_no].first; 
+        if (find(begin(pattern), end(pattern), goal_v) != end(pattern)) {
+            goal_relevant_vars++;
+        }
+    }
+    all_goals_relevant = goal_relevant_vars == g_goal.size();
+
+    num_states = 1;
+    for (int v : pattern)
+	num_states *= g_variable_domain[v];
+
+    lookup_table.reserve(num_states);
+    for(int i = 0; i < num_states; i++){
+	lookup_table.push_back(i);
+    }
+    init_state = rank(g_initial_state());
+    goal_states.resize(num_states, false);
+    // Set goals
+    vector <int> goal_vals(g_variable_domain.size(), -1);
+    for (const auto & goal : g_goal){
+	goal_vals[goal.first] = goal.second;
+    } 
+    insert_goals(goal_vals, 0);	
+
+    // Set transitions
+    for (int label_no = 0; label_no < labels->get_size(); label_no++) {
+        const Label *label = labels->get_label_by_index(label_no);
+	vector <int> pre_vals(g_variable_domain.size(), -1);
+	vector <int> eff_vals(g_variable_domain.size(), -1);
+        const vector<Prevail> &prev = label->get_prevail();
+        for (int i = 0; i < prev.size(); i++) {
+	    pre_vals[prev[i].var] = prev[i].prev;
+	    eff_vals[prev[i].var] = prev[i].prev;
+        }
+        const vector<PrePost> &pre_post = label->get_pre_post();
+        for (int i = 0; i < pre_post.size(); i++) {
+	    pre_vals[pre_post[i].var] = pre_post[i].pre;
+	    eff_vals[pre_post[i].var] = pre_post[i].post;
+        }
+	//Check whether is relevant for patter
+	bool is_relevant = false;
+	for(int v : pattern){
+	    if (pre_vals[v] != -1 || eff_vals[v] != -1){
+		is_relevant = true;
+	    }
+	}
+	if(!is_relevant) continue;
+
+	relevant_labels[label_no] = true;
+	labels->set_relevant_for(label_no, this);
+
+	insert_transitions(pre_vals, eff_vals, label_no, 0);
+
+	if (!are_transitions_sorted_unique())
+	    normalize();
+    }
+}
+
+
+void PDBAbstraction::insert_transitions(vector <int> & pre_vals, vector <int> & eff_vals,
+					int label_no, int pos){
+    if(pos == pattern.size()){
+	//cout << rank(pre_vals) << " ----" << label_no << "---> " << rank(eff_vals) << endl;
+	AbstractTransition trans(rank(pre_vals), rank(eff_vals));
+	transitions_by_label[label_no].push_back(trans);
+	return;
+    }
+    int v = pattern[pos];
+    if(pre_vals[v] == -1){
+	bool change_eff = (eff_vals[v] == -1);
+	for(int val = 0; val < g_variable_domain[v]; val++){
+	    pre_vals[v] = val;
+	    if(change_eff) eff_vals[v] = val;	    
+	    insert_transitions(pre_vals, eff_vals, label_no, pos+1);
+	}
+	pre_vals[v] = -1;
+	if(change_eff) eff_vals[v] = -1;
+    }else{
+	insert_transitions(pre_vals, eff_vals, label_no, pos+1);
+    }
+}
+
+void PDBAbstraction::insert_goals(vector <int> & goal_vals, int pos){
+    if(pos == pattern.size()){ 
+	goal_states[rank(goal_vals)] = true;
+	return;
+    }
+    int v = pattern[pos];
+    if(goal_vals[v] == -1){
+	for(int val = 0; val < g_variable_domain[v]; val++){
+	    goal_vals[v] = val;
+	    insert_goals(goal_vals, pos+1);
+	}
+	goal_vals[v] = -1;
+    }else{
+	insert_goals(goal_vals, pos+1);
+    }
+}
+
+
+PDBAbstraction::~PDBAbstraction() {
+}
+
+string PDBAbstraction::description() const {
+    ostringstream s;
+    s << "PDB abstraction (" << pattern.size() << ")";
+    return s.str();
+}
+
+string PDBAbstraction::description(int s) const{
+    stringstream ss;
+
+    for(int i = pattern.size() - 1; i >=0; --i){
+	int v = pattern[i];
+	int val = s % g_variable_domain[v];
+	s = s / g_variable_domain[v];
+	ss << g_fact_names[v][val] << " ";
+    }
+
+    //ss << "s" << s;
+    return ss.str();
+}
+
+int PDBAbstraction::memory_estimate() const {
+    int result = Abstraction::memory_estimate();
+    result += sizeof(PDBAbstraction) - sizeof(Abstraction);
+    result += sizeof(AbstractStateRef) * lookup_table.capacity();
+    return result;
+}
+
+AbstractStateRef PDBAbstraction::get_abstract_state(const State &state) const {
+    return lookup_table[rank(state)];
+}
+
+
+void PDBAbstraction::getAbsStateBDDs(SymVariables * vars, 
+				     std::vector<BDD> & abs_bdds) const{
+    for (int i = 0; i < num_states; i++){
+	abs_bdds.push_back(vars->zeroBDD());
+    }
+    for (int i = 0; i < num_states; i++){  
+	if (lookup_table[i] != -1){
+	    abs_bdds[lookup_table[i]] += unrankBDD(vars, i);
+	}
+    }
+}
+
+BDD PDBAbstraction::unrankBDD(SymVariables * vars, int id) const {
+    BDD res = vars->oneBDD();
+    for(int i = pattern.size() - 1; i >=0; --i){
+	int v = pattern[i];
+	int val = id % g_variable_domain[v];
+	id = id / g_variable_domain[v];
+	res *= vars->preBDD(v, val);
+    }
+    return res;
+}
+

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <set>
 
 #include "globals.h"
 #include "state.h"
@@ -74,6 +75,19 @@ public:
 
     const std::vector<Prevail> &get_prevail() const {return prevail; }
     const std::vector<PrePost> &get_pre_post() const {return pre_post; }
+
+
+    void get_vars(std::set<int> & pre_vars, std::set<int> & eff_vars) const {
+	for (auto & p : prevail){
+	    pre_vars.insert(p.var);
+	} 
+	for (auto & p : pre_post){
+	    eff_vars.insert(p.var);
+	    if(p.pre != -1){
+		pre_vars.insert(p.var);		
+	    }
+	} 
+    }
 
     bool is_applicable(const State &state) const {
         for (int i = 0; i < prevail.size(); i++)

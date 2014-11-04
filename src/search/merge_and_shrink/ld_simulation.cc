@@ -6,22 +6,25 @@
 #include "merge_strategy.h"
 #include "labelled_transition_system.h"
 
+#include "variable_partition_finder.h"
+
 using namespace std;
 
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
   use_expensive_statistics(opts.get<bool>("expensive_statistics")),
   limit_absstates_merge(opts.get<int>("limit_merge")),
+  use_mas(opts.get<bool>("use_mas")),
   limit_seconds_mas(opts.get<int>("limit_seconds")),
   merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
   use_bisimulation(opts.get<bool>("use_bisimulation")), 
   intermediate_simulations(opts.get<bool>("intermediate_simulations")), 
   labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique 
-{ 
-}
+{}
 
 LDSimulation::LDSimulation(const Options &opts) : 
   use_expensive_statistics(opts.get<bool>("expensive_statistics")),
   limit_absstates_merge(opts.get<int>("limit_merge")),
+  use_mas(opts.get<bool>("use_mas")),
   limit_seconds_mas(opts.get<int>("limit_seconds")),
   merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
   use_bisimulation(opts.get<bool>("use_bisimulation")), 
@@ -46,6 +49,21 @@ LDSimulation::~LDSimulation(){
   for(auto sim : simulations){
     delete sim;
   }
+}
+
+void LDSimulation::build_factored_systems() {
+    VariablePartitionGreedy v(limit_absstates_merge); 
+    v.get_partition();
+    v.dump();
+        
+    for (auto factor : v.get_partition()) {
+	PDBAbstraction * abs_factor = new PDBAbstraction(labels.get(),
+							 factor);
+	abstractions.push_back(abs_factor);
+	abs_factor->normalize();
+	abs_factor->compute_distances();
+	abs_factor->statistics(use_expensive_statistics);
+    }
 }
 
 
@@ -199,12 +217,11 @@ void LDSimulation::compute_ld_simulation(Labels * _labels, vector<LabelledTransi
 	for (int i = 0; i < _simulations.size(); i++){
 	    _simulations[i]->update(i, _ltss[i], label_dominance);
 	    //cout << "loooooooping" <<  t() << endl;
-	    
 	    //_simulations[i]->dump(_ltss[i]->get_names());
 	}
 	cout << " took " << t() << "s" << endl;
     }while(label_dominance.update(_ltss, _simulations));
-
+    label_dominance.dump_equivalent();
      // int num_pruned_trs = prune_irrelevant_transitions(_ltss, _simulations, label_dominance);
      
      // if(num_pruned_trs){
@@ -318,7 +335,11 @@ void LDSimulation::initialize() {
   verify_no_axioms();
  
   if(limit_absstates_merge > 1){
-    build_abstraction();
+      if(use_mas){
+	  build_abstraction();
+      }else{
+	  build_factored_systems();
+      }
   }else{
     Abstraction::build_atomic_abstractions(abstractions, labels.get());
   }
@@ -369,10 +390,10 @@ int LDSimulation::num_simulations() const {
 }
 
 void LDSimulation::precompute_dominated_bdds(SymVariables * vars){
-  for(auto & sim : simulations){
-    sim->precompute_absstate_bdds(vars);
-    sim->precompute_dominated_bdds();
-  }
+    for(auto & sim : simulations){
+	sim->precompute_absstate_bdds(vars);
+	sim->precompute_dominated_bdds();
+    }
 }
 
 void LDSimulation::precompute_dominating_bdds(SymVariables * vars){
@@ -510,6 +531,10 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
   parser.add_option<bool>("intermediate_simulations",
 			  "Compute intermediate simulations and use them for shrinking",
 			  "false");
+
+  parser.add_option<bool>("use_mas",
+			  "Use MaS to derive the factoring (or the factored strategy)",
+			  "true");
 
   parser.add_option<MergeStrategy *>(
 				     "merge_strategy",

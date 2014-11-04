@@ -83,6 +83,7 @@ class LabelRelation {
 
   void dump() const;
   void dump(int label) const;
+  void dump_equivalent() const;
 
 
   inline int num_labels() const {

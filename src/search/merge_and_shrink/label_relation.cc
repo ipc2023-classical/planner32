@@ -8,8 +8,23 @@ using namespace std;
 
 LabelRelation::LabelRelation(Labels * _labels) : labels (_labels){}
 
-void LabelRelation::dump() const {
+void LabelRelation::dump_equivalent() const {
+  vector<bool> redundant(dominates_in.size(), false);
+  int num_redundant = 0;
+  for (int l1 = 0; l1 < dominates_in.size(); ++l1){
+      for (int l2 = l1+1; l2 < dominates_in.size(); ++l2){
+	  if(!redundant[l2] && dominates_in[l1][l2] != DOMINATES_IN_NONE && 
+	     dominates_in[l2][l1] == dominates_in[l1][l2]){
+	      redundant[l2] =true;
+	      num_redundant ++;
+	  }
+      }      
+  }
+  cout << "Redundant labels: " << num_redundant << endl;
+}
 
+
+void LabelRelation::dump() const {
   for (int l = 0; l < dominates_in.size(); ++l){
     if (labels->is_label_reduced(l)) cout << "reduced";
     if (l < 10){

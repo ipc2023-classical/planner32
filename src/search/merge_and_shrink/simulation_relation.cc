@@ -90,6 +90,7 @@ void SimulationRelation::precompute_absstate_bdds(SymVariables * vars){
 }
 
 void SimulationRelation::precompute_dominated_bdds(){
+
   for (int i = 0; i < abs->size(); i++){
     dominated_bdds.push_back(zeroBDD);
   }

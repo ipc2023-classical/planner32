@@ -46,6 +46,7 @@ struct AbstractTransition {
 class Abstraction {
     friend class AtomicAbstraction;
     friend class CompositeAbstraction;
+    friend class PDBAbstraction;
 
     friend class ShrinkStrategy; // for apply() -- TODO: refactor!
 
@@ -277,6 +278,45 @@ protected:
 public:
     CompositeAbstraction(Labels *labels, Abstraction *abs1, Abstraction *abs2);
     virtual ~CompositeAbstraction();
+
+    virtual AbstractStateRef get_abstract_state(const State &state) const;
+    virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
+};
+
+class PDBAbstraction : public Abstraction {
+    // List of variables of the abstraction (ordered to perform ranking)
+    std::vector<int> pattern; 
+    std::vector<AbstractStateRef> lookup_table;
+ private: 
+
+    template <typename T>
+	int rank(const T &state) const {
+	int res = 0;
+	for(int i = 0; i < pattern.size(); ++i){
+	    int v = pattern[i];
+	    if (res) res *= g_variable_domain[pattern[i]];
+	    res += state[v];
+	}
+	return res;
+    }
+
+    BDD unrankBDD (SymVariables * vars, int id) const ;
+
+    void insert_transitions(std::vector <int> & pre_vals, std::vector <int> & eff_vals,
+			    int label_no, int pos);
+
+    void insert_goals(std::vector <int> & goal_vals, int pos);
+
+
+protected:
+    virtual std::string description() const;
+    virtual std::string description(int s) const;
+    virtual void apply_abstraction_to_lookup_table(
+        const std::vector<AbstractStateRef> &abstraction_mapping);
+    virtual int memory_estimate() const;
+public:
+    PDBAbstraction(Labels *labels, const std::vector<int> & pattern_);
+    virtual ~PDBAbstraction();
 
     virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
