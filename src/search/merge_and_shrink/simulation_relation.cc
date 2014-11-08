@@ -24,18 +24,6 @@ SimulationRelation::SimulationRelation(const Abstraction * _abs) : abs(_abs){
   }
 }
 
-SimulationRelation::SimulationRelation(const Abstraction * _abs, 
-				       SimulationRelation * /*s1*/, 
-				       SimulationRelation * /*s2*/) : SimulationRelation(_abs){
-  //Set fixed relations from s1 and s2
-  // for(int i1 = 0; i1 < s1->num_states(); i1++){
-  //   for(int i2 = 0; i2 < s1->num_states(); i2++){
-  //     if(s1->simulates(i1, i2)){
-  //     }
-  //   }
-  // }
-}
-
 void SimulationRelation::reset() {
   int num_states = abs->size();
   const std::vector <bool> & goal_states = abs->get_goal_states();

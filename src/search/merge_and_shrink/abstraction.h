@@ -4,7 +4,6 @@
 #include "shrink_strategy.h"
 #include "../utilities.h"
 #include "../sym/sym_variables.h"
-#include "labelled_transition_system.h"
 
 #include <ext/slist>
 #include <string>
@@ -15,6 +14,8 @@ class Label;
 class Labels;
 class State;
 class SimulationRelation;
+class LabelledTransitionSystem;
+class LTSEfficient;
 
 typedef int AbstractStateRef;
 
@@ -50,8 +51,8 @@ class Abstraction {
 
     friend class ShrinkStrategy; // for apply() -- TODO: refactor!
 
-    static const int PRUNED_STATE = -1;
-    static const int DISTANCE_UNKNOWN = -2;
+    static const int PRUNED_STATE;
+    static const int DISTANCE_UNKNOWN;
 
     // There should only be one instance of Labels at runtime. It is created
     // and managed by MergeAndShrinkHeuristic. All abstraction instances have
@@ -74,6 +75,7 @@ class Abstraction {
 
     //TODO: Unify with transitions by label??
     std::unique_ptr<LabelledTransitionSystem> lts;
+    std::unique_ptr<LTSEfficient> lts_efficient;
 
     // Alvaro: Information regarding the number of transitions by label
     // (needed by some merge_criterions, only computed on demand)
@@ -148,6 +150,7 @@ public:
     int get_cost(const State &state) const;
     int size() const;
     void statistics(bool include_expensive_statistics) const;
+    const std::string & label_name (int l) const;
 
     int get_peak_memory_estimate() const;
     // NOTE: This will only return something useful if the memory estimates
@@ -207,13 +210,8 @@ public:
     virtual AbstractStateRef get_abstract_state(const State &state) const = 0;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
 
-    LabelledTransitionSystem * get_lts(){
-	if(!lts){
-	    lts = std::unique_ptr<LabelledTransitionSystem> 
-		(new LabelledTransitionSystem(this));
-	}
-	return lts.get();
-    }
+    LabelledTransitionSystem * get_lts();
+    LTSEfficient * get_lts_efficient();
 
     //Alvaro: used by shrink_empty_labels
     const std::vector<bool> & get_goal_states() const {

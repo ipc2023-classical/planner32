@@ -3,6 +3,8 @@
 #include "labels.h"
 #include "simulation_relation.h"
 #include "labelled_transition_system.h"
+#include "lts_efficient.h"
+#include "../globals.h"
 
 using namespace std;
 
@@ -24,6 +26,18 @@ void LabelRelation::dump_equivalent() const {
 }
 
 
+void LabelRelation::dump_dominance() const {
+  for (int l1 = 0; l1 < dominates_in.size(); ++l1){
+      for (int l2 = 0; l2 < dominates_in.size(); ++l2){
+	  if(dominates_in[l1][l2] != DOMINATES_IN_NONE && 
+	     dominates_in[l2][l1] != dominates_in[l1][l2]){
+	      cout << l1 << " dominates " << l2 << " in " << dominates_in[l1][l2] << endl;	      
+	      cout << g_operators[l1].get_name() << " dominates " << g_operators[l2].get_name() << endl;
+	  }
+      }      
+  }
+}
+
 void LabelRelation::dump() const {
   for (int l = 0; l < dominates_in.size(); ++l){
     if (labels->is_label_reduced(l)) cout << "reduced";
@@ -37,6 +51,7 @@ void LabelRelation::dump() const {
 }
 
 void LabelRelation::dump(int label) const {
+    cout << "Dump l: " << label << "; ";
   if(dominated_by_noop_in[label] >= 0 && dominated_by_noop_in[label] <= 9){
     cout << " Dominated by noop: " << dominated_by_noop_in[label] << ", labels: ";
   }else{
@@ -126,12 +141,54 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
     }
     cout << "Update label dominance: " << labels->get_size()  
 	 << " labels " << lts.size() << " systems." << endl;
+
+    
+    for (int i = 0; i < lts.size(); ++i){
+	update(i, lts[i], sim[i]);
+    }
+
+}
+
+void LabelRelation::init(const std::vector<LTSEfficient *> & lts,
+	  const std::vector<SimulationRelation*> & sim){
+    simulates_irrelevant.resize(labels->get_size());
+    simulated_by_irrelevant.resize(labels->get_size());
+    for(int i = 0; i < labels->get_size(); i++){
+	simulates_irrelevant[i].resize(lts.size(), true);
+	simulated_by_irrelevant[i].resize(lts.size(), true);
+    }
+    
+    dominates_in.resize(labels->get_size());
+    for (int l1 = 0; l1 < dominates_in.size(); ++l1){
+	dominated_by_noop_in.resize(labels->get_size(), DOMINATES_IN_ALL);
+	dominates_in[l1].resize(labels->get_size(), DOMINATES_IN_ALL);
+	for (int l2 = 0; l2 < dominates_in[l1].size(); ++l2){
+	    if(labels->get_label_by_index(l1)->get_cost() > 
+	       labels->get_label_by_index(l2)->get_cost()){
+		dominates_in[l1][l2] = DOMINATES_IN_NONE;
+	    }
+	}
+    }
+
+    
+    cout << "Update label dominance: " << labels->get_size()  
+	 << " labels " << lts.size() << " systems." << endl;
     for (int i = 0; i < lts.size(); ++i){
 	update(i, lts[i], sim[i]);
     }
 }
 
+
 bool LabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
+	    const std::vector<SimulationRelation*> & sim){
+    bool changes = false;
+    for (int i = 0; i < lts.size(); ++i){
+	changes |= update(i, lts[i], sim[i]);
+    }
+    return changes;
+}
+
+bool LabelRelation::update(const std::vector<LTSEfficient*> & lts,
 	    const std::vector<SimulationRelation*> & sim){
     bool changes = false;
     for (int i = 0; i < lts.size(); ++i){
@@ -202,6 +259,72 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
 		    for (int l : lts->get_irrelevant_labels()){
 			if(simulates(l2, l, i)){
 			    set_not_simulates(l2, l, i);
+			    changes = true;
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+    return changes;
+}
+
+bool LabelRelation::update(int i, const LTSEfficient * lts, 
+			   const SimulationRelation * sim){
+    bool changes = false;
+    for(int l2 : lts->get_relevant_labels()) {
+	for(int l1 : lts->get_relevant_labels()){ 
+	    if(l1 != l2 && simulates(l1, l2, i)){
+		//std::cout << "Check " << l1 << " " << l2 << std::endl;
+		//std::cout << "Num transitions: " << lts->get_transitions_label(l1).size() 
+		//		    << " " << lts->get_transitions_label(l2).size() << std::endl;
+		//Check if it really simulates
+		//For each transition s--l2-->t, and every label l1 that simulates
+		//l2, exist s--l1-->t', t <= t'?
+		lts->applyPost(l2,  
+	            [&](const LTSTransitionEfficient & tr){
+ 		       if(!lts->applyPost(l1, tr.src, 
+                         [&](const LTSTransitionEfficient & tr2){
+			      return sim->simulates(tr2.target, tr.target);
+			  })){
+			    //std::cout << "Not sim " << l1 << " " << l2 << " " << i << std::endl;
+ 			    set_not_simulates(l1, l2, i);
+			    changes = true;
+			    return true;
+			}
+			return false;
+		    });
+	    }
+	}
+
+	//Is l2 simulated by irrelevant_labels in lts?
+	if (simulated_by_irrelevant[l2][i] && 
+	    lts->applyPost(l2,
+            //Exists s-l2-> y s.t. s is not simulated by t
+	       [&](const LTSTransitionEfficient & tr){
+          	   return !sim->simulates(tr.src, tr.target);     
+	        })){
+	    changes |= set_not_simulated_by_irrelevant(l2, i);
+	    for (int l : lts->get_irrelevant_labels()){
+		if(simulates(l, l2, i)){
+		    changes = true;
+		    set_not_simulates(l, l2, i);
+		}
+	    }
+	}
+
+	//Does l2 simulates irrelevant_labels in lts?
+	if(simulates_irrelevant[l2][i]){
+	    for(int s = 0; s < lts->size(); s++){
+		if(!lts->applyPost(l2,
+ 	           [&](const LTSTransitionEfficient & tr){
+		       return tr.src == s && sim->simulates(tr.target, tr.src);
+		    })){
+		    simulates_irrelevant[l2][i] = false;
+		    for (int l : lts->get_irrelevant_labels()){
+			if(simulates(l2, l, i)){
+  			    set_not_simulates(l2, l, i);
 			    changes = true;
 			}
 		    }

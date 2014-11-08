@@ -1,5 +1,8 @@
 #include "abstraction.h"
 
+#include "labelled_transition_system.h"
+#include "lts_efficient.h"
+
 #include "label.h"
 #include "labels.h"
 #include "shrink_fh.h"
@@ -24,6 +27,9 @@
 #include <sstream>
 using namespace std;
 using namespace __gnu_cxx;
+
+const int Abstraction::PRUNED_STATE = -1;
+const int Abstraction::DISTANCE_UNKNOWN = -2;
 
 /* Implementation note: Transitions are grouped by their labels,
  not by source state or any such thing. Such a grouping is beneficial
@@ -1439,3 +1445,18 @@ BDD PDBAbstraction::unrankBDD(SymVariables * vars, int id) const {
     return res;
 }
 
+LabelledTransitionSystem * Abstraction::get_lts(){
+    if(!lts){
+	lts = std::unique_ptr<LabelledTransitionSystem> 
+	    (new LabelledTransitionSystem(this));
+    }
+    return lts.get();
+}
+
+LTSEfficient * Abstraction::get_lts_efficient(){
+    if(!lts_efficient){
+	lts_efficient = std::unique_ptr<LTSEfficient> 
+	    (new LTSEfficient(this));
+    }
+    return lts_efficient.get();
+}

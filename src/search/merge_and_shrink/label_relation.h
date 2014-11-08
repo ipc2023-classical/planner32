@@ -6,6 +6,7 @@
 #include "labels.h"
 #include "label.h"
 
+class LTSEfficient;
 class LabelledTransitionSystem;
 class SimulationRelation;
 
@@ -34,6 +35,7 @@ class LabelRelation {
   std::vector<int> dominated_by_noop_in;
 
   bool update(int i, const LabelledTransitionSystem * lts, const SimulationRelation * sim);
+  bool update(int i, const LTSEfficient  * lts, const SimulationRelation * sim);
 
   void merge_systems(int system_one, int system_two);
   void merge_labels();
@@ -77,13 +79,21 @@ class LabelRelation {
 
   void init(const std::vector<LabelledTransitionSystem *> & lts,
 	    const std::vector<SimulationRelation*> & sim);
+
+  void init(const std::vector<LTSEfficient *> & lts,
+	    const std::vector<SimulationRelation*> & sim);
+
   void reset();
   bool update(const std::vector<LabelledTransitionSystem*> & lts,
 	      const std::vector<SimulationRelation*> & sim);
+  bool update(const std::vector<LTSEfficient*> & lts,
+	      const std::vector<SimulationRelation*> & sim);
+
 
   void dump() const;
   void dump(int label) const;
   void dump_equivalent() const;
+  void dump_dominance() const;
 
 
   inline int num_labels() const {

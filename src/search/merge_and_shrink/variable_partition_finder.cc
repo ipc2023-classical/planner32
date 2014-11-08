@@ -89,13 +89,15 @@ void VariablePartitionGreedy::find(){
 
 pair<int, int> VariablePartitionGreedy::pick_parts() const{
     auto best = pair<int, int> {-1, -1};
-    int best_weight = 0;
+    int best_weight = -1;
     for(int i = 0; i < partitions.size(); ++i){
 	if(!part_size[i]) continue;
 	for(int j = i+1; j < partitions.size(); ++j){
 	    if(!part_size[j]) continue;
-	    if (!weights.count(i) || !weights.at(i).count(j)) continue;
-	    int w = weights.at(i).at(j).size();
+	    int w = 0;
+	    if (weights.count(i) && weights.at(i).count(j)){ 
+		weights.at(i).at(j).size();
+	    }
 	    //cout << w << " " << i << " " << j << endl;
 	    if(part_size[i]*part_size[j] < limit_size && 
 	       w > best_weight){

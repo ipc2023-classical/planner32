@@ -69,7 +69,6 @@ class LabelledTransitionSystem {
       return transitions.size();
   }
 
-
   const std::vector<LTSTransition> & get_transitions() const{
     return transitions;
   }
