@@ -12,6 +12,7 @@
 class EquivalenceRelation;
 class Label;
 class Labels;
+class LabelMap;
 class State;
 class SimulationRelation;
 class LabelledTransitionSystem;
@@ -210,8 +211,8 @@ public:
     virtual AbstractStateRef get_abstract_state(const State &state) const = 0;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
 
-    LabelledTransitionSystem * get_lts();
-    LTSEfficient * get_lts_efficient();
+    LabelledTransitionSystem * get_lts(const LabelMap & labelMap);
+    LTSEfficient * get_lts_efficient(const LabelMap & labelMap);
 
     //Alvaro: used by shrink_empty_labels
     const std::vector<bool> & get_goal_states() const {

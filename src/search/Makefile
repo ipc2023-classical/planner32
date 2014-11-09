@@ -111,6 +111,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/simulation_efficient.h \
            merge_and_shrink/ld_simulation.h \
            merge_and_shrink/variable_partition_finder.h \
+           merge_and_shrink/opt_order.h \
 
 
 HEADERS += landmarks/exploration.h \

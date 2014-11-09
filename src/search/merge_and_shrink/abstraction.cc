@@ -1445,18 +1445,18 @@ BDD PDBAbstraction::unrankBDD(SymVariables * vars, int id) const {
     return res;
 }
 
-LabelledTransitionSystem * Abstraction::get_lts(){
+LabelledTransitionSystem * Abstraction::get_lts(const LabelMap & labelMap){
     if(!lts){
 	lts = std::unique_ptr<LabelledTransitionSystem> 
-	    (new LabelledTransitionSystem(this));
+	    (new LabelledTransitionSystem(this, labelMap));
     }
     return lts.get();
 }
 
-LTSEfficient * Abstraction::get_lts_efficient(){
+LTSEfficient * Abstraction::get_lts_efficient(const LabelMap & labelMap){
     if(!lts_efficient){
 	lts_efficient = std::unique_ptr<LTSEfficient> 
-	    (new LTSEfficient(this));
+	    (new LTSEfficient(this, labelMap));
     }
     return lts_efficient.get();
 }

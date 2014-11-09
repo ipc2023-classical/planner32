@@ -6,6 +6,9 @@
 #include "simulation_efficient.h"
 #include "merge_strategy.h"
 #include "labelled_transition_system.h"
+#include "opt_order.h"
+#include "../globals.h"
+#include "../causal_graph.h"
 
 #include "variable_partition_finder.h"
 
@@ -208,20 +211,21 @@ void LDSimulation::compute_ld_simulation() {
 //Compute a simulation from 0
 void LDSimulation::compute_ld_simulation(Labels * _labels, vector<Abstraction *> & _abstractions, 
 					 vector<SimulationRelation *> & _simulations) {
-    
+    LabelMap labelMap (_labels);
+
     cout << "Building LTSs and Simulation Relations" << endl;
     vector<LabelledTransitionSystem *> ltss;
     for (auto a : _abstractions){
-    	ltss.push_back(a->get_lts());
+    	ltss.push_back(a->get_lts(_labels));
     	cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
     	//Create initial goal-respecting relation
     	_simulations.push_back(new SimulationRelationSimple(a));
     }
 
-   compute_ld_simulation(_labels, ltss, _simulations);
+    compute_ld_simulation(_labels, ltss, _simulations, labelMap);
 
-   for(int i = 0; i < _simulations.size(); i++)
-       _simulations[i]->dump(ltss[i]->get_names()); 
+   // for(int i = 0; i < _simulations.size(); i++)
+   //     _simulations[i]->dump(ltss[i]->get_names()); 
 
 }
 
@@ -230,17 +234,18 @@ void LDSimulation::compute_ld_simulation_efficient(Labels * _labels,
 						   vector<SimulationRelation *> & _simulations) {
     cout << "Building LTSs and Simulation Relations" << endl;
     vector<LTSEfficient *> ltss;
+    LabelMap labelMap(_labels);
     for (auto a : _abstractions){
-	ltss.push_back(a->get_lts_efficient());
+	ltss.push_back(a->get_lts_efficient(labelMap));
 	cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
 	//Create initial goal-respecting relation
 	_simulations.push_back(new SimulationRelationEfficient(a));
     }
 
     LabelRelation TMPlabel (_labels);
-    TMPlabel.init(ltss, _simulations);
+    TMPlabel.init(ltss, _simulations, labelMap);
     Timer t;
-   compute_ld_simulation(_labels, ltss, _simulations);
+    compute_ld_simulation(_labels, ltss, _simulations, labelMap);
    cout << "Time new: " << t() << endl;
  
    cout << "S1;" << endl;
@@ -254,17 +259,17 @@ void LDSimulation::compute_ld_simulation_efficient(Labels * _labels,
     cout << "Building LTSs and Simulation Relations" << endl;
     vector<LabelledTransitionSystem *> ltss2;
     for (auto a : _abstractions){
-    	ltss2.push_back(a->get_lts());
+    	ltss2.push_back(a->get_lts(labelMap));
     	cout << "LTS built: " << ltss2.back()->size() << " states " << ltss2.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
     	//Create initial goal-respecting relation
     	sim2.push_back(new SimulationRelationSimple(a));
     }
 
     LabelRelation TMPlabel2 (_labels);
-    TMPlabel2.init(ltss2, sim2);
+    TMPlabel2.init(ltss2, sim2, labelMap);
     
     Timer t2;
-    compute_ld_simulation(_labels, ltss2, sim2);
+    compute_ld_simulation(_labels, ltss2, sim2, labelMap);
 cout << "Time old: " << t2() << endl;
 
    cout << "S2;" << endl;   
@@ -314,9 +319,7 @@ cout << "Time old: " << t2() << endl;
    // 	 }
    //  }
 
-   exit(0);
-		   
-   
+   //exit(0);
 }
 
 
@@ -441,7 +444,7 @@ void LDSimulation::initialize() {
 	 << simulations[i]->num_different_states() << endl;
 	 }*/
   
-  exit(0);
+  //exit(0);
 }
 
 int LDSimulation::num_equivalences() const {
@@ -599,7 +602,7 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
   parser.add_option<bool>("use_bisimulation",
 			  "If activated, use bisimulation to shrink abstractions before computing the simulation",
 			  "true");
-
+  
   parser.add_option<bool>("intermediate_simulations",
 			  "Compute intermediate simulations and use them for shrinking",
 			  "false");
@@ -618,3 +621,70 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 			  "Use the efficient method for simulation",
 			  "false");
 }
+
+
+
+
+
+
+//Returns a optimized variable ordering that reorders the variables
+//according to the standard causal graph criterion
+void LDSimulation::getVariableOrdering(vector <int> & var_order){
+    vector<vector<int> > partitions;
+    vector<int> partition_var (g_variable_domain.size(), 0);
+    cout << "Init partitions"<< endl;
+    vector<int> partition_order;
+ 
+    for(auto a : abstractions){
+	const vector<int> & vs = a->get_varset();
+	for(int v : vs){
+	    partition_var[v] = partitions.size();
+	}
+
+	partition_order.push_back(partitions.size());
+	partitions.push_back(vs);
+    }
+
+    cout << "Create IG partitions"<< endl;
+
+    //First optimize the ordering of the abstractions 
+    InfluenceGraph ig_partitions (partitions.size());
+    for(int v = 0; v < g_variable_domain.size(); v++){
+	for (int v2 : g_causal_graph->get_successors(v)){
+	    if(partition_var[v] != partition_var[v2]){
+		ig_partitions.set_influence(partition_var[v], partition_var[v2]);
+	    }
+	}
+    }
+    cout << "Optimize partitions ordering " << endl;
+    ig_partitions.get_ordering(partition_order);
+
+    cout << "Partition ordering: ";
+    for(int v : partition_order) cout << v << " ";
+    cout  << endl;
+
+    vector<int> partition_begin;
+    vector<int> partition_size;
+    
+    for(int i : partition_order){
+	partition_begin.push_back(var_order.size());
+	partition_size.push_back(partitions[i].size());
+	for(int v : partitions[i]) var_order.push_back(v);
+    }
+    
+    InfluenceGraph ig_vars (g_variable_domain.size());
+    for(int v = 0; v < g_variable_domain.size(); v++){
+	for (int v2 : g_causal_graph->get_successors(v)){
+	    ig_vars.set_influence(v, v2);
+	}
+    }
+    
+    ig_vars.optimize_variable_ordering_gamer(var_order, partition_begin, partition_size);
+    cout << "Var ordering: ";
+    for(int v : var_order) cout << v << " ";
+    cout  << endl;
+}
+
+
+
+

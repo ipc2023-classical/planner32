@@ -1,22 +1,26 @@
 #include "lts_efficient.h"
 
 #include "abstraction.h"
+#include "labels.h"
 
 using namespace std;
 
-LTSEfficient::LTSEfficient (Abstraction * _abs) : 
+LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) : 
     abs(_abs),  num_states(_abs->size()),goal_states(_abs->get_goal_states()){
 
-    const vector<bool> & is_rel_label = abs->get_relevant_labels();
+    int num_labels = labelMap.get_num_labels();
+    const vector<bool> is_rel_label(num_labels, false);    
+    const vector<bool> &was_rel_label = abs->get_relevant_labels();
 
     for(int i = 0; i < num_states; i++){
 	name_states.push_back(abs->description(i));
     }
 
-    for (int label_no = 0; label_no < abs->get_num_labels(); label_no++) {
-	if(is_rel_label[label_no]){
+    for (int label_no = 0; label_no < labelMap.get_num_labels(); label_no++) {
+	int old_label = labelMap.get_old_id(label_no);
+	if(was_rel_label[old_label]){
 	    relevant_labels.push_back(label_no);
-	    const vector<AbstractTransition> &abs_tr = abs->get_transitions_for_label(label_no);
+	    const vector<AbstractTransition> &abs_tr = abs->get_transitions_for_label(old_label);
 	    for (int j = 0; j < abs_tr.size(); j++) {
 		LTSTransitionEfficient t (abs_tr[j].src, abs_tr[j].target, label_no);
 		transitionsPre.push_back(t);
@@ -88,16 +92,12 @@ void LTSEfficient::set_sl(vector <LTSTransitionEfficient> & transitions,
     }
 }
 
-
 void LTSEfficient::dump_names() const {
     cout << "LTS Names: "; 
     for (const auto & n : name_states) cout << " " << n; 
     cout << endl;
 }
 
-
 std::ostream & operator << (std::ostream& o , const LTSTransitionEfficient & t){
     return o  << t.src << " -- " << t.label << " --> " << " " << t.target; //<< " (" << t.sl << ")";
 }
-
-

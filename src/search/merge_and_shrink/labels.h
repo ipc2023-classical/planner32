@@ -11,6 +11,7 @@ class Label;
 class LabelReducer;
 class Options;
 
+
 /*
  The Labels class is basically a container class for the set of all
  labels used by merge-and-shrink abstractions.
@@ -46,6 +47,39 @@ public:
     const std::set<Abstraction *> & get_relevant_for (int label_no) const;
 
     void prune_irrelevant_labels();
+};
+
+
+class LabelMap{
+    //mapping from labels to labels for LTSs (hack to get rid of not useful labels) 
+    int num_valid_labels;
+    std::vector<int> label_id; 
+    std::vector<int> old_label_id;
+ public:
+    LabelMap(Labels * labels){
+	num_valid_labels = 0;
+	label_id.reserve(labels->get_size());
+	old_label_id.reserve(labels->get_size());
+	for(int i = 0; i < labels->get_size(); i++){
+	    if(labels->is_label_reduced(i)){
+		label_id.push_back (-1);
+	    }else{
+		old_label_id.push_back(i);
+		label_id.push_back(num_valid_labels++);
+	    }
+	}
+    }
+
+    int get_id(int i) const{
+	return label_id[i];
+    }
+    int get_old_id(int i) const{
+	return old_label_id[i];
+    }
+
+    int get_num_labels() const{
+	return num_valid_labels;
+    }
 };
 
 #endif

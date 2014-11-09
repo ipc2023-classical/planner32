@@ -8,7 +8,9 @@
 
 using namespace std;
 
-LabelRelation::LabelRelation(Labels * _labels) : labels (_labels){}
+LabelRelation::LabelRelation(Labels * _labels) : labels (_labels){
+    
+}
 
 void LabelRelation::dump_equivalent() const {
   vector<bool> redundant(dominates_in.size(), false);
@@ -40,7 +42,7 @@ void LabelRelation::dump_dominance() const {
 
 void LabelRelation::dump() const {
   for (int l = 0; l < dominates_in.size(); ++l){
-    if (labels->is_label_reduced(l)) cout << "reduced";
+      //if (labels->is_label_reduced(l)) cout << "reduced";
     if (l < 10){
       cout << "l" << l << ": ";  dump(l);
     }else{
@@ -66,7 +68,7 @@ void LabelRelation::dump(int label) const {
 }
 
 void LabelRelation::prune_operators(){
-    //cout << "We have " << labels->get_size() << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
+    //cout << "We have " << num_labels << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
     for (int l = 0; l < dominates_in.size(); ++l){
 	//labels->get_label_by_index(l)->dump();	
 	if (dominated_by_noop_in[l]== DOMINATES_IN_ALL){
@@ -82,7 +84,7 @@ void LabelRelation::prune_operators(){
 }
 
 void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_dominated_in_all){
-    //cout << "We have " << labels->get_size() << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
+    //cout << "We have " << num_labels << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
     for (int l = 0; l < dominates_in.size(); ++l){
 	//labels->get_label_by_index(l)->dump();	
 	if (dominated_by_noop_in[l] == DOMINATES_IN_ALL){
@@ -100,46 +102,52 @@ void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_domina
     }
 }
 
-
 void LabelRelation::reset(){
-    for (int i = 0; i < labels->get_size(); i++){
-	for(int j = 0; j < simulates_irrelevant[i].size(); j++){
-	    simulates_irrelevant[i][j] = true;
-	    simulated_by_irrelevant[i][j] = true;
-	}
-    }
-    for (int l1 = 0; l1 < dominates_in.size(); ++l1){
-	dominated_by_noop_in[l1] = DOMINATES_IN_ALL;
-	for (int l2 = 0; l2 < dominates_in[l1].size(); ++l2){
-	    if(labels->get_label_by_index(l1)->get_cost() <=
-	       labels->get_label_by_index(l2)->get_cost()){
-		dominates_in[l1][l2] = DOMINATES_IN_ALL;
-	    }
-	}
-    }
+    cout << "Error: reser of label relation has been disabled" << endl;
+    exit(0);
+    // for (int i = 0; i < num_labels; i++){
+    // 	for(int j = 0; j < simulates_irrelevant[i].size(); j++){
+    // 	    simulates_irrelevant[i][j] = true;
+    // 	    simulated_by_irrelevant[i][j] = true;
+    // 	}
+    // }
+    // for (int l1 = 0; l1 < dominates_in.size(); ++l1){
+    // 	dominated_by_noop_in[l1] = DOMINATES_IN_ALL;
+    // 	for (int l2 = 0; l2 < dominates_in[l1].size(); ++l2){
+    // 	    if(labels->get_label_by_index(l1)->get_cost() <=
+    // 	       labels->get_label_by_index(l2)->get_cost()){
+    // 		dominates_in[l1][l2] = DOMINATES_IN_ALL;
+    // 	    }
+    // 	}
+    // }
 }
 
 void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
-	  const std::vector<SimulationRelation*> & sim){
-    simulates_irrelevant.resize(labels->get_size());
-    simulated_by_irrelevant.resize(labels->get_size());
-    for(int i = 0; i < labels->get_size(); i++){
+			 const std::vector<SimulationRelation*> & sim, 
+			 const LabelMap & labelMap){
+    int num_labels = labelMap.get_num_labels();
+    simulates_irrelevant.resize(num_labels);
+    simulated_by_irrelevant.resize(num_labels);
+    for(int i = 0; i < num_labels; i++){
 	simulates_irrelevant[i].resize(lts.size(), true);
 	simulated_by_irrelevant[i].resize(lts.size(), true);
     }
     
-    dominates_in.resize(labels->get_size());
+    dominates_in.resize(num_labels);
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
-	dominated_by_noop_in.resize(labels->get_size(), DOMINATES_IN_ALL);
-	dominates_in[l1].resize(labels->get_size(), DOMINATES_IN_ALL);
+	int old_l1 = labelMap.get_old_id(l1);
+	dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
+	dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
 	for (int l2 = 0; l2 < dominates_in[l1].size(); ++l2){
-	    if(labels->get_label_by_index(l1)->get_cost() > 
-	       labels->get_label_by_index(l2)->get_cost()){
+	    int old_l2 = labelMap.get_old_id(l2);
+
+	    if(labels->get_label_by_index(old_l1)->get_cost() > 
+	       labels->get_label_by_index(old_l2)->get_cost()){
 		dominates_in[l1][l2] = DOMINATES_IN_NONE;
 	    }
 	}
     }
-    cout << "Update label dominance: " << labels->get_size()  
+    cout << "Update label dominance: " << num_labels  
 	 << " labels " << lts.size() << " systems." << endl;
 
     
@@ -150,28 +158,34 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
 }
 
 void LabelRelation::init(const std::vector<LTSEfficient *> & lts,
-	  const std::vector<SimulationRelation*> & sim){
-    simulates_irrelevant.resize(labels->get_size());
-    simulated_by_irrelevant.resize(labels->get_size());
-    for(int i = 0; i < labels->get_size(); i++){
+			 const std::vector<SimulationRelation*> & sim, 
+			 const LabelMap & labelMap){
+    int num_labels = labelMap.get_num_labels();
+    
+    simulates_irrelevant.resize(num_labels);
+    simulated_by_irrelevant.resize(num_labels);
+    for(int i = 0; i < num_labels; i++){
 	simulates_irrelevant[i].resize(lts.size(), true);
 	simulated_by_irrelevant[i].resize(lts.size(), true);
     }
     
-    dominates_in.resize(labels->get_size());
+    dominates_in.resize(num_labels);
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
-	dominated_by_noop_in.resize(labels->get_size(), DOMINATES_IN_ALL);
-	dominates_in[l1].resize(labels->get_size(), DOMINATES_IN_ALL);
+	int old_l1 = labelMap.get_old_id(l1);
+
+	dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
+	dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
 	for (int l2 = 0; l2 < dominates_in[l1].size(); ++l2){
-	    if(labels->get_label_by_index(l1)->get_cost() > 
-	       labels->get_label_by_index(l2)->get_cost()){
+	    int old_l2 = labelMap.get_old_id(l2);
+
+	    if(labels->get_label_by_index(old_l1)->get_cost() > 
+	       labels->get_label_by_index(old_l2)->get_cost()){
 		dominates_in[l1][l2] = DOMINATES_IN_NONE;
 	    }
 	}
     }
-
     
-    cout << "Update label dominance: " << labels->get_size()  
+    cout << "Update label dominance: " << num_labels  
 	 << " labels " << lts.size() << " systems." << endl;
     for (int i = 0; i < lts.size(); ++i){
 	update(i, lts[i], sim[i]);

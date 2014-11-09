@@ -6,6 +6,7 @@
 
 typedef int AbstractStateRef;
 class Abstraction;
+class LabelMap;
 
 class LTSTransition {
  public:
@@ -54,7 +55,7 @@ class LabelledTransitionSystem {
   std::vector<std::vector <LTSTransition> > transitions_label;
 
  public:
-  LabelledTransitionSystem (Abstraction * abs);
+  LabelledTransitionSystem (Abstraction * abs, const LabelMap & labelMap);
   ~LabelledTransitionSystem(){}
 
   const std::vector<bool> & get_goal_states() const {

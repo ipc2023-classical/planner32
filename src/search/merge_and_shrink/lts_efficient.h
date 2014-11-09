@@ -10,6 +10,7 @@
 typedef int AbstractStateRef;
 class Abstraction;
 class SimulationRelation;
+class LabelMap;
 
 class Qa {
 public:
@@ -86,7 +87,7 @@ class LTSEfficient {
 	      std::function<int (const LTSTransitionEfficient &)> fget);
 
  public:
-  LTSEfficient (Abstraction * abs);
+  LTSEfficient (Abstraction * abs, const LabelMap & labelMap);
   ~LTSEfficient(){}
 
   const std::vector<bool> & get_goal_states() const {

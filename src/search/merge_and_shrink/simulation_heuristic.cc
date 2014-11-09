@@ -37,16 +37,6 @@ SimulationHeuristic::SimulationHeuristic(const Options &opts)
       min_deadends(opts.get<int>("min_deadends")), 
       vars(new SymVariables()), ldSimulation(new LDSimulation(opts)),
       states_inserted(0), states_pruned(0), deadends_pruned(0) {
-    vector <int> var_order; 
-    for(int i = 0; i < g_variable_name.size(); i++){
-	var_order.push_back(i);
-    }
-    vars->init(var_order, mgrParams);
-    if(remove_spurious_dominated_states){
-      mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams));
-      mgr->init();
-    }
-    mgrParams.print_options();
 }
 
 SimulationHeuristic::~SimulationHeuristic() {
@@ -60,6 +50,18 @@ void SimulationHeuristic::initialize() {
     if(!initialized){
 	initialized = true;
 	ldSimulation->initialize();
+
+	vector <int> var_order;
+	ldSimulation->getVariableOrdering(var_order);
+	
+	vars->init(var_order, mgrParams);
+	if(remove_spurious_dominated_states){
+	    mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams));
+	    mgr->init();
+	}
+	mgrParams.print_options();
+
+
 	if(insert_dominated){
 	    ldSimulation->precompute_dominated_bdds(vars.get());
 	}else{

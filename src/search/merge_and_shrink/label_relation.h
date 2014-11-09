@@ -75,13 +75,15 @@ class LabelRelation {
   }
 
  public:
-  LabelRelation(Labels * labels);
+  LabelRelation(Labels * labelsx);
 
   void init(const std::vector<LabelledTransitionSystem *> & lts,
-	    const std::vector<SimulationRelation*> & sim);
+	    const std::vector<SimulationRelation*> & sim,
+	    const LabelMap & labelMap);
 
   void init(const std::vector<LTSEfficient *> & lts,
-	    const std::vector<SimulationRelation*> & sim);
+	    const std::vector<SimulationRelation*> & sim, 
+	    const LabelMap & labelMap);
 
   void reset();
   bool update(const std::vector<LabelledTransitionSystem*> & lts,

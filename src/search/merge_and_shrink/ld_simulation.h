@@ -66,11 +66,12 @@ class LDSimulation {
 
 template <typename LTS> 
 static void compute_ld_simulation(Labels * _labels, 
-					 std::vector<LTS *> & _ltss, 
-					 std::vector<SimulationRelation *> & _simulations){
+				  std::vector<LTS *> & _ltss, 
+				  std::vector<SimulationRelation *> & _simulations, 
+				  const LabelMap & labelMap ){
     Timer t;
     LabelRelation label_dominance (_labels);
-    label_dominance.init(_ltss, _simulations);
+    label_dominance.init(_ltss, _simulations, labelMap);
     std::cout << "Label dominance initialized: " << t() << std::endl;
     do{
 	std::cout << "LDsimulation loop: ";
@@ -81,12 +82,11 @@ static void compute_ld_simulation(Labels * _labels,
 	    //_simulations[i]->dump(_ltss[i]->get_names());
 	}
 	std::cout << " took " << t() << "s" << std::endl;
-	return;
     }while(label_dominance.update(_ltss, _simulations));
-    for(int i = 0; i < _ltss.size(); i++){
+    //for(int i = 0; i < _ltss.size(); i++){
 	//_ltss[i]->dump();
-	_simulations[i]->dump(_ltss[i]->get_names());
-    }
+    //	_simulations[i]->dump(_ltss[i]->get_names());
+    //}
     //label_dominance.dump_equivalent();
     //label_dominance.dump_dominance();
     //exit(0);
@@ -130,6 +130,8 @@ static void compute_ld_simulation(Labels * _labels,
     double get_percentage_equivalences() const;
 
     double get_percentage_equal() const;
+
+    void getVariableOrdering(std::vector <int> & var_order);    
 
     static void add_options_to_parser(OptionParser &parser);
 };
