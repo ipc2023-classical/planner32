@@ -292,7 +292,6 @@ void SimulationHeuristicBDDMap::insert (const State & state, int g){
 }
 
 bool SimulationHeuristicBDDMap::check (const State & state, int g){
-
   // //CODE TO TEST Simulation TR
   // BDD dominatedBDD = vars->oneBDD();
   // for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
@@ -327,7 +326,13 @@ bool SimulationHeuristicBDDMap::check (const State & state, int g){
   return false;
 }
 void SimulationHeuristicBDD::insert (const State & state, int /*g*/){
-  closed += getBDDToInsert(state);
+      if(!initialized){
+	closed = vars->zeroBDD();
+	closed_inserted = vars->zeroBDD();
+	initialized=true;
+    }
+
+    closed += getBDDToInsert(state);
 
   /*if(use_expensive_statistics && states_inserted % 1000 == 0){
     cout << "SimulationClosed: " << vars->numStates(closed) << "   " << closed.nodeCount() 
@@ -336,6 +341,12 @@ void SimulationHeuristicBDD::insert (const State & state, int /*g*/){
 }
 
 bool SimulationHeuristicBDD::check (const State & state, int /*g*/){
+if(!initialized){
+	closed = vars->zeroBDD();
+	closed_inserted = vars->zeroBDD();
+	initialized=true;
+    }
+
   if(insert_dominated){
     auto sb = vars->getBinaryDescription(state);
     return !(closed.Eval(sb).IsZero());

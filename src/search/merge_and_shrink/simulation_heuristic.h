@@ -106,9 +106,10 @@ class SimulationHeuristicBDDMap : public SimulationHeuristic {
 
 class SimulationHeuristicBDD : public SimulationHeuristic {
   BDD closed, closed_inserted;
+  bool initialized;
  public:
   SimulationHeuristicBDD (const Options &opts) : 
-  SimulationHeuristic(opts), closed(vars->zeroBDD()), closed_inserted(vars->zeroBDD())
+  SimulationHeuristic(opts), initialized(false)
   {}
   virtual ~SimulationHeuristicBDD (){}
 
