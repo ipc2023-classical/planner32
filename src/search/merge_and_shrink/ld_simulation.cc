@@ -501,17 +501,26 @@ int LDSimulation::get_cost(const State &state) const {
 
 BDD LDSimulation::getSimulatedBDD(SymVariables * vars, const State &state ) const{
   BDD res = vars->oneBDD();
-  for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-    res *= (*it)->getSimulatedBDD(state); 
+  try{
+      for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+	  res *= (*it)->getSimulatedBDD(state); 
+      }
+  }catch(BDDError e){
+      return vars->zeroBDD();
   }
   return res;
 }
 
 BDD LDSimulation::getSimulatingBDD(SymVariables * vars, const State &state ) const{
   BDD res = vars->oneBDD();
-  for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-    res *= (*it)->getSimulatingBDD(state); 
+  try{
+      for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+	  res *= (*it)->getSimulatingBDD(state); 
+      }
+  }catch(BDDError e){
+      return vars->zeroBDD();
   }
+
   return res;
 }
 
