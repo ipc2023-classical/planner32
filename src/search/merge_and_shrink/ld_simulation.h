@@ -22,6 +22,8 @@ class LTSEfficient;
 class LDSimulation {  
  protected:
 
+  const bool skip_simulation;
+
   const bool efficient_simulation;
 
   const bool use_expensive_statistics;

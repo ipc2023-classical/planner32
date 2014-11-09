@@ -3,6 +3,8 @@
 #include "abstraction.h"
 #include "shrink_bisimulation.h"
 #include "simulation_simple.h"
+#include "simulation_identity.h"
+
 #include "simulation_efficient.h"
 #include "merge_strategy.h"
 #include "labelled_transition_system.h"
@@ -15,6 +17,7 @@
 using namespace std;
 
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
+  skip_simulation(opts.get<bool>("skip_simulation")),
   efficient_simulation(opts.get<bool>("efficient_simulation")),
   use_expensive_statistics(opts.get<bool>("expensive_statistics")),
   limit_absstates_merge(opts.get<int>("limit_merge")),
@@ -27,15 +30,16 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 {}
 
 LDSimulation::LDSimulation(const Options &opts) : 
-  efficient_simulation(opts.get<bool>("efficient_simulation")),
-  use_expensive_statistics(opts.get<bool>("expensive_statistics")),
-  limit_absstates_merge(opts.get<int>("limit_merge")),
-  use_mas(opts.get<bool>("use_mas")),
-  limit_seconds_mas(opts.get<int>("limit_seconds")),
-  merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
-  use_bisimulation(opts.get<bool>("use_bisimulation")), 
-  intermediate_simulations(opts.get<bool>("intermediate_simulations")){
-  //TODO: Copied from heuristic.cc. Move to the PlanningTask class
+    skip_simulation(opts.get<bool>("skip_simulation")),
+    efficient_simulation(opts.get<bool>("efficient_simulation")),
+    use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+    limit_absstates_merge(opts.get<int>("limit_merge")),
+    use_mas(opts.get<bool>("use_mas")),
+    limit_seconds_mas(opts.get<int>("limit_seconds")),
+    merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
+    use_bisimulation(opts.get<bool>("use_bisimulation")), 
+    intermediate_simulations(opts.get<bool>("intermediate_simulations")){
+    //TODO: Copied from heuristic.cc. Move to the PlanningTask class
   //that someday will be added to FD.
   OperatorCost cost_type = OperatorCost::NORMAL;
   bool is_unit_cost = true;
@@ -211,6 +215,7 @@ void LDSimulation::compute_ld_simulation() {
 //Compute a simulation from 0
 void LDSimulation::compute_ld_simulation(Labels * _labels, vector<Abstraction *> & _abstractions, 
 					 vector<SimulationRelation *> & _simulations) {
+    
     LabelMap labelMap (_labels);
 
     cout << "Building LTSs and Simulation Relations" << endl;
@@ -222,6 +227,7 @@ void LDSimulation::compute_ld_simulation(Labels * _labels, vector<Abstraction *>
     	_simulations.push_back(new SimulationRelationSimple(a));
     }
 
+    
     compute_ld_simulation(_labels, ltss, _simulations, labelMap);
 
    // for(int i = 0; i < _simulations.size(); i++)
@@ -424,14 +430,22 @@ void LDSimulation::initialize() {
   }else{
     Abstraction::build_atomic_abstractions(abstractions, labels.get());
   }
-   
+  
+  
   cout << "Computing simulation..." << endl;
-  if(efficient_simulation){
-      compute_ld_simulation_efficient(labels.get(), abstractions, simulations);
+  if(skip_simulation){
+      for (auto a : abstractions){
+	  simulations.push_back(new SimulationRelationIdentity(a));
+      }
   }else{
-      compute_ld_simulation(labels.get(), abstractions, simulations);
-  }
 
+      if(efficient_simulation){
+	  compute_ld_simulation_efficient(labels.get(), abstractions, simulations);
+      }else{
+	  compute_ld_simulation(labels.get(), abstractions, simulations);
+      }
+
+  }
   cout << "Done initializing simulation heuristic [" << timer << "]"
        << endl;
   int num_equi = num_equivalences();
@@ -628,6 +642,10 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 
   parser.add_option<bool>("efficient_simulation",
 			  "Use the efficient method for simulation",
+			  "false");
+
+  parser.add_option<bool>("skip_simulation",
+			  "Skip doing the simulation algorithm",
 			  "false");
 }
 
