@@ -229,6 +229,10 @@ void SymManager::init_mutex(const std::vector<MutexGroup> & mutex_groups,
 	if(genMutexBDD){
 	  num_mutex++;
 	  mBDDByVar[min(var1, var2)] *= mBDD;
+	  if(mBDDByVar[min(var1, var2)].nodeCount() > p.max_mutex_size){
+	      notMutexBDDs.push_back(mBDDByVar[min(var1, var2)]);
+	      mBDDByVar[min(var1, var2)] = vars->oneBDD();
+	  }
 	}
 	if(genMutexBDDByFluent){
 	  notMutexBDDsByFluent[var1][val1] *= mBDD;
