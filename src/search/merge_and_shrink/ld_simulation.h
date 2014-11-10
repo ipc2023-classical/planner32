@@ -21,8 +21,8 @@ class LTSEfficient;
 // Label dominance simulation
 class LDSimulation {  
  protected:
-
   const bool skip_simulation;
+  const bool nold_simulation;
 
   const bool efficient_simulation;
 
@@ -60,21 +60,25 @@ class LDSimulation {
 					 const std::pair<int, int> & next_systems);
 
   static void compute_ld_simulation(Labels * _labels, std::vector<Abstraction *> & _abstractions, 
-				    std::vector<SimulationRelation *> & _simulations);
+				    std::vector<SimulationRelation *> & _simulations, bool no_ld = false);
 
   static void compute_ld_simulation_efficient(Labels * _labels, 
-						  std::vector<Abstraction *> & _abstractions, 
-						  std::vector<SimulationRelation *> & _simulations);
+					      std::vector<Abstraction *> & _abstractions, 
+					      std::vector<SimulationRelation *> & _simulations, bool no_ld = false);
 
 
 template <typename LTS> 
 static void compute_ld_simulation(Labels * _labels, 
 				  std::vector<LTS *> & _ltss, 
 				  std::vector<SimulationRelation *> & _simulations, 
-				  const LabelMap & labelMap ){
+				  const LabelMap & labelMap, bool no_ld = false){
     Timer t;
     LabelRelation label_dominance (_labels);
-    label_dominance.init(_ltss, _simulations, labelMap);
+    if(!no_ld){
+	label_dominance.init(_ltss, _simulations, labelMap);
+    }else{
+	label_dominance.init_identity(_ltss.size(), labelMap);
+    }
     std::cout << "Label dominance initialized: " << t() << std::endl;
     do{
 	std::cout << "LDsimulation loop: ";

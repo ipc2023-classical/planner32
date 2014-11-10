@@ -127,7 +127,10 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
                 Abstraction *other_abstraction = sorted_abstractions[other_abs_index];
                 assert(other_abstraction);
 		//Alvaro: Added additional condition to check the size of the product
-		if(!limit_abstract_states_merge || abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge){
+		if((!limit_abstract_states_merge || 
+		    abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge) && 
+		   (!limit_transitions_merge || 
+		    abstraction->estimate_transitions(other_abstraction) <= limit_transitions_merge)) {
 		  if (abstraction->is_goal_relevant() || other_abstraction->is_goal_relevant()) {
                     first = indices_mapping[abs_index];
                     second = indices_mapping[other_abs_index];
@@ -138,8 +141,8 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
             }
         }
     }
-    assert(first != -1);
-    assert(second != -1);
+    //assert(first != -1);
+    //assert(second != -1);
     cout << "Next pair of indices: (" << first << ", " << second << ")" << endl;
 //    if (remaining_merges > 1 && minimum_weight != infinity) {
 //        // in the case we do not make a trivial choice of a next pair
@@ -148,6 +151,11 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
 //        cout << "No weight computed (pair has been chosen trivially by order)" << endl;
 //    }
     --remaining_merges;
+
+    if(first != -1 && second != -1)
+	cout << "Estimated transitions: " << 
+	    all_abstractions[first]->estimate_transitions(all_abstractions[second]) << " <= " << 
+	    limit_transitions_merge << endl;
     return make_pair(first, second);
 }
 

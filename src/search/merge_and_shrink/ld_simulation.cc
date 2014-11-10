@@ -18,6 +18,7 @@ using namespace std;
 
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
   skip_simulation(opts.get<bool>("skip_simulation")),
+  nold_simulation(opts.get<bool>("nold_simulation")),
   efficient_simulation(opts.get<bool>("efficient_simulation")),
   use_expensive_statistics(opts.get<bool>("expensive_statistics")),
   limit_absstates_merge(opts.get<int>("limit_merge")),
@@ -32,6 +33,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 
 LDSimulation::LDSimulation(const Options &opts) : 
     skip_simulation(opts.get<bool>("skip_simulation")),
+    nold_simulation(opts.get<bool>("nold_simulation")),
     efficient_simulation(opts.get<bool>("efficient_simulation")),
     use_expensive_statistics(opts.get<bool>("expensive_statistics")),
     limit_absstates_merge(opts.get<int>("limit_merge")),
@@ -211,13 +213,13 @@ void LDSimulation::build_abstraction() {
 }
 
 void LDSimulation::compute_ld_simulation() {
-    compute_ld_simulation(labels.get(), abstractions, simulations);
+    compute_ld_simulation(labels.get(), abstractions, simulations, nold_simulation);
 }
 
 
 //Compute a simulation from 0
 void LDSimulation::compute_ld_simulation(Labels * _labels, vector<Abstraction *> & _abstractions, 
-					 vector<SimulationRelation *> & _simulations) {
+					 vector<SimulationRelation *> & _simulations, bool no_ld) {
     
     LabelMap labelMap (_labels);
 
@@ -231,16 +233,15 @@ void LDSimulation::compute_ld_simulation(Labels * _labels, vector<Abstraction *>
     }
 
     
-    compute_ld_simulation(_labels, ltss, _simulations, labelMap);
+    compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
 
    // for(int i = 0; i < _simulations.size(); i++)
    //     _simulations[i]->dump(ltss[i]->get_names()); 
-
 }
 
 void LDSimulation::compute_ld_simulation_efficient(Labels * _labels, 
 						   vector<Abstraction *> & _abstractions, 
-						   vector<SimulationRelation *> & _simulations) {
+						   vector<SimulationRelation *> & _simulations, bool no_ld) {
     cout << "Building LTSs and Simulation Relations" << endl;
     vector<LTSEfficient *> ltss;
     LabelMap labelMap(_labels);
@@ -254,7 +255,7 @@ void LDSimulation::compute_ld_simulation_efficient(Labels * _labels,
     LabelRelation TMPlabel (_labels);
     TMPlabel.init(ltss, _simulations, labelMap);
     Timer t;
-    compute_ld_simulation(_labels, ltss, _simulations, labelMap);
+    compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
    cout << "Time new: " << t() << endl;
  
    cout << "S1;" << endl;
@@ -441,13 +442,11 @@ void LDSimulation::initialize() {
 	  simulations.push_back(new SimulationRelationIdentity(a));
       }
   }else{
-
       if(efficient_simulation){
-	  compute_ld_simulation_efficient(labels.get(), abstractions, simulations);
+	  compute_ld_simulation_efficient(labels.get(), abstractions, simulations, nold_simulation);
       }else{
-	  compute_ld_simulation(labels.get(), abstractions, simulations);
+	  compute_ld_simulation(labels.get(), abstractions, simulations, nold_simulation);
       }
-
   }
   cout << "Done initializing simulation heuristic [" << timer << "]"
        << endl;
@@ -655,6 +654,12 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
   parser.add_option<bool>("skip_simulation",
 			  "Skip doing the simulation algorithm",
 			  "false");
+
+  parser.add_option<bool>("nold_simulation",
+			  "Perform only simulation but without label dominance",
+			  "false");
+
+
 }
 
 
