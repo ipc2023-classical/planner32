@@ -101,25 +101,24 @@ bool SimulationHeuristic::prune_generation(const State &state, int g) {
     if(!deadend_is_activated()){
 	return false;
     }
-    if(states_inserted%1000 == 0){
-	cout << "Deadend is still activated. "
-	     << "  States inserted: " << states_inserted 
-	     << "  Min insertions: " << min_insertions << " " << min_deadends
-	     << "  States pruned: " << states_pruned 
-	     << "  Limit pruned: " << states_inserted*min_pruning_ratio
-	     << "  Deadends pruned: " << deadends_pruned
-	     << "  Limit deadends: " << states_inserted*min_deadend_ratio
-	     << "  Prune activated: " << prune_is_activated()
-	     << "  Deadend activated: " << deadend_is_activated()
-	     <<  endl;
-    }
+    // if(states_inserted%1000 == 0){
+    // 	cout << "Deadend is still activated. "
+    // 	     << "  States inserted: " << states_inserted 
+    // 	     << "  Min insertions: " << min_insertions << " " << min_deadends
+    // 	     << "  States pruned: " << states_pruned 
+    // 	     << "  Limit pruned: " << states_inserted*min_pruning_ratio
+    // 	     << "  Deadends pruned: " << deadends_pruned
+    // 	     << "  Limit deadends: " << states_inserted*min_deadend_ratio
+    // 	     << "  Prune activated: " << prune_is_activated()
+    // 	     << "  Deadend activated: " << deadend_is_activated()
+    // 	     <<  endl;
+    // }
     
     if(ldSimulation->pruned_state(state)){
 	return true;
     }
     //a) Check if state is in a BDD with g.closed <= g
     if (check(state, g)){
-	cout << "Pruned a state AAAA" << endl;
 	states_pruned ++;
 	return true;
     }
