@@ -47,7 +47,7 @@ size_t MergeDFP::get_corrected_index(int index) const {
 // merge.  If specified (> 0), the pair returned should fit the
 // constraint: a1.size()*a2.size()<=limit
 pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstractions, 
-				  int limit_abstract_states_merge) {
+				  int limit_abstract_states_merge, int limit_transitions_merge) {
     assert(!done());
 
     vector<Abstraction *> sorted_abstractions;
@@ -86,7 +86,9 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
             Abstraction *other_abstraction = sorted_abstractions[other_abs_index];
             assert(other_abstraction);
 	    //Alvaro: Added additional condition to check the size of the product
-	    if(!limit_abstract_states_merge || abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge){
+	    if((!limit_abstract_states_merge || 
+	       abstraction->size() * other_abstraction->size() <= limit_abstract_states_merge) && 
+	       (!limit_transitions_merge || abstraction->estimate_transitions(other_abstraction) <= limit_transitions_merge)) {
 	      if (abstraction->is_goal_relevant() || other_abstraction->is_goal_relevant()) {
                 vector<int> &other_label_ranks = abstraction_label_ranks[other_abs_index];
                 assert(!other_label_ranks.empty());

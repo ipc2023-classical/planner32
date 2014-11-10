@@ -1460,3 +1460,19 @@ LTSEfficient * Abstraction::get_lts_efficient(const LabelMap & labelMap){
     }
     return lts_efficient.get();
 }
+
+
+int Abstraction::estimate_transitions(const Abstraction * other) const{
+    int num_total = 0;
+    for (size_t label_no = 0; label_no < transitions_by_label.size(); ++label_no) {
+	if(relevant_labels[label_no] || other->relevant_labels[label_no]){
+	    int num_mine = (relevant_labels[label_no]? transitions_by_label[label_no].size() : 
+			num_states);
+	    int num_other = (other->relevant_labels[label_no]? 
+			 other->transitions_by_label[label_no].size() : 
+			 other->num_states);
+	    num_total += num_mine*num_other;
+	}
+    }
+    return num_total;
+}

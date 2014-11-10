@@ -43,7 +43,8 @@ MergeLinearCriteria::~MergeLinearCriteria() {
 
 
 pair<int, int> MergeLinearCriteria::get_next(const std::vector<Abstraction *> &all_abstractions,
-					     int limit_abstract_states_merge) {
+					     int limit_abstract_states_merge, 
+					     int limit_transitions_merge ) {
     assert(!done());
 
     int first;
@@ -60,7 +61,8 @@ pair<int, int> MergeLinearCriteria::get_next(const std::vector<Abstraction *> &a
     }
     int second;
     do{
-	second = next(all_abstractions, all_abstractions[first], limit_abstract_states_merge);
+	second = next(all_abstractions, all_abstractions[first], 
+		      limit_abstract_states_merge, limit_transitions_merge);
 	if(second < 0){
 	    if(remaining_vars.size() < 2){
 		return pair<int,int> (-1, -1);
@@ -126,7 +128,8 @@ void MergeLinearCriteria::select_next(int var_no) {
 }
 
 int MergeLinearCriteria::next(const std::vector<Abstraction *> &all_abstractions,
-			      Abstraction * abstraction, int limit_abstract_states_merge) {
+			      Abstraction * abstraction, int limit_abstract_states_merge, 
+			      int limit_transitions_merge) {
   assert(!done());
   vector<int> candidate_vars (remaining_vars);
 
@@ -135,9 +138,11 @@ int MergeLinearCriteria::next(const std::vector<Abstraction *> &all_abstractions
       int limit = limit_abstract_states_merge/abstraction->size();
       candidate_vars.erase(remove_if(begin(candidate_vars), 
 				     end(candidate_vars),
-				     [all_abstractions, limit](int var){
+				     [&](int var){
 					 return (!all_abstractions[var] ||
-						 all_abstractions[var]->size() > limit);
+						 all_abstractions[var]->size() > limit ||
+						 (limit_transitions_merge && 
+						  abstraction->estimate_transitions(all_abstractions[var]) > limit_transitions_merge));
 				     }), end(candidate_vars));
   }
 

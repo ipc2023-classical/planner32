@@ -28,6 +28,7 @@ class LDSimulation {
 
   const bool use_expensive_statistics;
   const int limit_absstates_merge;
+  const int limit_transitions_merge;
 
   const bool use_mas;
   const int limit_seconds_mas; //Limit of seconds for building the abstraction

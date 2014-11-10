@@ -21,6 +21,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
   efficient_simulation(opts.get<bool>("efficient_simulation")),
   use_expensive_statistics(opts.get<bool>("expensive_statistics")),
   limit_absstates_merge(opts.get<int>("limit_merge")),
+  limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
   use_mas(opts.get<bool>("use_mas")),
   limit_seconds_mas(opts.get<int>("limit_seconds")),
   merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
@@ -34,6 +35,7 @@ LDSimulation::LDSimulation(const Options &opts) :
     efficient_simulation(opts.get<bool>("efficient_simulation")),
     use_expensive_statistics(opts.get<bool>("expensive_statistics")),
     limit_absstates_merge(opts.get<int>("limit_merge")),
+    limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
     use_mas(opts.get<bool>("use_mas")),
     limit_seconds_mas(opts.get<int>("limit_seconds")),
     merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
@@ -110,7 +112,8 @@ void LDSimulation::build_abstraction() {
 
   while (!merge_strategy->done() && t() <= limit_seconds_mas) {
     pair<int, int> next_systems = merge_strategy->get_next(all_abstractions, 
-							   limit_absstates_merge);
+							   limit_absstates_merge, 
+							   limit_transitions_merge);
     int system_one = next_systems.first;
     if(system_one == -1){
       break; //No pairs to be merged under the limit
@@ -615,6 +618,11 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 			 "limit on the number of abstract states after the merge"
 			 "By default: 1, does not perform any merge",
 			 "1");
+
+  parser.add_option<int>("limit_transitions_merge",
+			 "limit on the number of transitions after the merge"
+			 "By default: 0: no limit at all",
+			 "0");
 
   parser.add_option<int>("limit_seconds",
 			 "limit the number of seconds for building the merge and shrink abstractions"

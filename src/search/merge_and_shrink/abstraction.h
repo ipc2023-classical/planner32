@@ -246,6 +246,8 @@ public:
     //Prune all the transitions dominated by noop 
     int prune_transitions_dominated_label_noop(int label_no,
 					       SimulationRelation & rel);
+
+    int estimate_transitions(const Abstraction * other) const;
 };
 
 class AtomicAbstraction : public Abstraction {
