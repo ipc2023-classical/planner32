@@ -163,21 +163,26 @@ int EagerSearch::step() {
         if (succ_node.is_dead_end())
             continue;
 
-	if(prune_heuristic && 
-	   prune_heuristic->is_dead_end(succ_state)) {	
-	    succ_node.mark_as_dead_end();
-	    search_progress.inc_dead_ends();
-	    continue;
-	}
-
-	if(prune_heuristic && 
-	   prune_heuristic->prune_generation(succ_state, node.get_g() + get_adjusted_cost(*op))){    
-	    if(succ_node.is_new()){
-		search_progress.inc_pruned();
+        if (succ_node.is_new()) {
+	    if(prune_heuristic && 
+	       prune_heuristic->is_dead_end(succ_state)) {	
+		succ_node.mark_as_dead_end();
+		search_progress.inc_dead_ends();
+		continue;
 	    }
-	    continue;
 	}
 
+        if (succ_node.is_new() ||
+	    succ_node.get_g() > node.get_g() + get_adjusted_cost(*op)) {
+	    if(prune_heuristic && 
+	       prune_heuristic->prune_generation(succ_state, node.get_g() + get_adjusted_cost(*op))){
+		cout << "QUE SIIII: " <<  succ_node.is_new()  << endl;
+		if(succ_node.is_new()){
+		    search_progress.inc_pruned();
+		}
+		continue;
+	    }
+	}
 
         // update new path
         if (use_multi_path_dependence || succ_node.is_new()) {

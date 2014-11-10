@@ -152,10 +152,10 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
 //    }
     --remaining_merges;
 
-    if(first != -1 && second != -1)
-	cout << "Estimated transitions: " << 
-	    all_abstractions[first]->estimate_transitions(all_abstractions[second]) << " <= " << 
-	    limit_transitions_merge << endl;
+    // if(first != -1 && second != -1)
+    // 	cout << "Estimated transitions: " << 
+    // 	    all_abstractions[first]->estimate_transitions(all_abstractions[second]) << " <= " << 
+    // 	    limit_transitions_merge << endl;
     return make_pair(first, second);
 }
 
