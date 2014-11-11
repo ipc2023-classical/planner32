@@ -8,7 +8,8 @@
 
 using namespace std;
 
-LabelRelation::LabelRelation(Labels * _labels) : labels (_labels){
+LabelRelation::LabelRelation(Labels * _labels) : labels (_labels), 
+						 num_labels(_labels->get_size()){
     
 }
 
@@ -125,7 +126,7 @@ void LabelRelation::reset(){
 void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
 			 const std::vector<SimulationRelation*> & sim, 
 			 const LabelMap & labelMap){
-    int num_labels = labelMap.get_num_labels();
+    num_labels = labelMap.get_num_labels();
     simulates_irrelevant.resize(num_labels);
     simulated_by_irrelevant.resize(num_labels);
     for(int i = 0; i < num_labels; i++){
@@ -160,7 +161,7 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
 void LabelRelation::init(const std::vector<LTSEfficient *> & lts,
 			 const std::vector<SimulationRelation*> & sim, 
 			 const LabelMap & labelMap){
-    int num_labels = labelMap.get_num_labels();
+    num_labels = labelMap.get_num_labels();
     
     simulates_irrelevant.resize(num_labels);
     simulated_by_irrelevant.resize(num_labels);
@@ -355,7 +356,7 @@ bool LabelRelation::update(int i, const LTSEfficient * lts,
 
 
 void LabelRelation::init_identity(int num_lts, const LabelMap & labelMap){
-    int num_labels = labelMap.get_num_labels();
+    num_labels = labelMap.get_num_labels();
     simulates_irrelevant.resize(num_labels);
     simulated_by_irrelevant.resize(num_labels);
     for(int i = 0; i < num_labels; i++){

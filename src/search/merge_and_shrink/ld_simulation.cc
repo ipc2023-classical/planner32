@@ -170,6 +170,7 @@ void LDSimulation::build_abstraction() {
       abstraction->statistics(use_expensive_statistics);
     }
     cout << "Merge: " << t() << endl;
+
     //TODO: UPDATE SIMULATION WHEN DOING INCREMENTAL COMPUTATION 
     Abstraction *new_abstraction = new CompositeAbstraction(labels.get(),
 							    abstraction,
@@ -261,7 +262,7 @@ void LDSimulation::compute_ld_simulation_efficient(Labels * _labels,
    cout << "S1;" << endl;
    std::vector<std::vector<std::vector<bool> > > copy;
    for(int i = 0; i < _simulations.size(); i++){ 
-       _simulations[i]->dump(ltss[i]->get_names());
+       //_simulations[i]->dump(ltss[i]->get_names());
        copy.push_back(_simulations[i]->get_relation());
    }  
    
@@ -279,13 +280,13 @@ void LDSimulation::compute_ld_simulation_efficient(Labels * _labels,
     TMPlabel2.init(ltss2, sim2, labelMap);
     
     Timer t2;
-    compute_ld_simulation(_labels, ltss2, sim2, labelMap);
+    compute_ld_simulation(_labels, ltss2, sim2, labelMap, no_ld);
 cout << "Time old: " << t2() << endl;
 
-   cout << "S2;" << endl;   
+/*cout << "S2;" << endl;   
    for(int i = 0; i < sim2.size(); i++){ 
        sim2[i]->dump(ltss[i]->get_names()); 
-   }
+       }*/
    cout << sim2.size() << endl;   
    for(int i = 0; i < sim2.size(); i++){ 
        for(int s = 0; s < ltss[i]->size(); s++){ 
@@ -302,8 +303,8 @@ cout << "Time old: " << t2() << endl;
 
 
    for(int i = 0; i < sim2.size(); i++){ 
-       for(int l = 0; l < TMPlabel.num_labels(); ++l){
-	   for(int l2 = 0; l2 < TMPlabel.num_labels(); ++l2){
+       for(int l = 0; l < TMPlabel.get_num_labels(); ++l){
+	   for(int l2 = 0; l2 < TMPlabel.get_num_labels(); ++l2){
 	       if(TMPlabel.dominates(l, l2, i) != TMPlabel2.dominates(l, l2, i)){
 		   cout << "Different label relation for " << l << " and " << l2 << " in "<< i << ": " << TMPlabel.dominates(l, l2, i)  << "    " << TMPlabel2.dominates(l, l2, i)  << endl;
 		  
@@ -329,11 +330,11 @@ cout << "Time old: " << t2() << endl;
    // 	 }
    //  }
 
-   //exit(0);
+   exit(0);
 }
 
 
-
+// THIS DOES NOT WORK YET
 int LDSimulation::prune_irrelevant_transitions(vector<LabelledTransitionSystem *> & _ltss, 
 					       vector<SimulationRelation *> & _simulations, 
 					       LabelRelation & label_dominance){
@@ -348,7 +349,7 @@ int LDSimulation::prune_irrelevant_transitions(vector<LabelledTransitionSystem *
 	    num_pruned_transitions += abs->prune_transitions_dominated_label_all(l);
     }
     //b) prune transitions dominated by noop in a transition system
-    for (int l = 0; l < label_dominance.num_labels(); l++){
+    for (int l = 0; l < label_dominance.get_num_labels(); l++){
     	int lts = label_dominance.get_dominated_by_noop_in(l);
     	if(lts >= 0){
     	    num_pruned_transitions += _ltss[lts]->get_abstraction()->prune_transitions_dominated_label_noop(l, *(_simulations[lts]));

@@ -19,7 +19,7 @@ const int DOMINATES_IN_NONE = -1;
  */ 
 class LabelRelation {
   Labels * labels;
-  
+  int num_labels;
   //For each lts, matrix indicating whether l1 simulates l2
   //std::vector<std::vector<std::vector<bool > > > dominates;
   
@@ -101,8 +101,8 @@ class LabelRelation {
   void dump_dominance() const;
 
 
-  inline int num_labels() const {
-      return labels->get_size();
+  inline int get_num_labels() const {
+      return num_labels;
   }
   void prune_operators();
 

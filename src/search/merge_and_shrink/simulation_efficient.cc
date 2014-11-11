@@ -48,7 +48,7 @@ void LabelData::add_to_remove_init(const Qa & qa,
 				   const LabelRelation &label_dominance, 
 				   int lts_id){
     //cout << "Add to remove " << qa.label << " " << qa.state << endl;
-    for(int l = 0; l < label_dominance.num_labels(); ++l){
+    for(int l = 0; l < label_dominance.get_num_labels(); ++l){
 
 	// We dont care about labels dominated by noop (will be skipped later)
 	if(!label_dominance.dominated_by_noop(l, lts_id)){ 
@@ -65,6 +65,7 @@ void LabelData::add_to_remove_init(const Qa & qa,
 void SimulationRelationEfficient::init(int lts_id, const LTSEfficient * lts,
 				       const LabelRelation &label_dominance, 
 				       queue <Block *> & blocksToUpdate) {
+    
     // cout << "Init efficient relation" << endl;
     // cout << "Qp: "; for (auto q : Qp) cout << " " << q; cout << endl;
     // cout << "Qp_block: "; for (auto q : Qp) cout << " " << Qp_block[q]; cout << endl;
@@ -73,7 +74,7 @@ void SimulationRelationEfficient::init(int lts_id, const LTSEfficient * lts,
     //Initialize relCounts. For every qa, set the number of transitions q-l>x with l >= a
     const vector<Qa> & qas = lts->get_qa_post();
 
-    int num_labels = label_dominance.num_labels();
+    int num_labels = label_dominance.get_num_labels();
     LabelData label_data (num_labels);
 
     //Initialize relCounts and l.Remove
@@ -146,9 +147,11 @@ void SimulationRelationEfficient::init(int lts_id, const LTSEfficient * lts,
 
 void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	    const LabelRelation & label_dominance){
-    //cout << "Update efficient relation" << endl;
+
+    Timer t;
+    cout << "Update efficient relation" << endl;
     //label_dominance.dump();
-    LabelData label_data (label_dominance.num_labels());
+    LabelData label_data (label_dominance.get_num_labels());
     set<int> alph; //TODO: Not using the data structure suggested in the paper
 
     queue <Block *> blocksToUpdate; 
@@ -158,7 +161,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
     //if(true) return;
 
     while (!blocksToUpdate.empty()){
-	queue <Block *> copy(blocksToUpdate); 
+	//queue <Block *> copy(blocksToUpdate); 
 	// cout << " To update: ";
 	// while(!copy.empty()){
 	//     Block * b = copy.front();
@@ -172,7 +175,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	blocksToUpdate.pop();
 	b->markS = false;
 
-	// cout << "Selected block: "; b->dump(Qp);
+	cout << "Selected block: "; b->dump(Qp); cout << endl;
 	// cout << " relCount: "; 
 	// for(int i : b->relCount) cout << i;
 	// cout << endl;
@@ -204,7 +207,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	/*for (auto & t : lts->get_transitions_pre()){ 
 	    }*/
 	for (auto & t : lts->get_transitions_pre()){ 
-	    // cout << "Check T: " << t.src << " -- " << t.label << " --> " << t.target << endl;
+	    cout << "    Check T: " << t.src << " -- " << t.label << " --> " << t.target << endl;
 	    // cout << " Remove: ";
 	    // for (int a : label_data.get_remove(t.label)) cout << a << " "; 
 	    // cout << endl;
@@ -215,17 +218,16 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 		//cout << t << " does not support " << b->index << " anymore" << endl;
 
 		// For every label l <= tl, s.t. exist a transition to block B
-		for(int l = 0; l < label_dominance.num_labels(); ++l){
+		for(int l = 0; l < label_dominance.get_num_labels(); ++l){
 		    if(label_dominance.dominates(t.label, l, lts_id) && exists_transition_to(lts, l, b)){
 			if(!get_in_pre_rel(b, t.src, l, lts_id, lts, label_dominance)){
 			    alph.insert(l);
 			    label_data.add_to_remove(l, t.src);
 		    
-			    // cout << "Add " << t.src << " to remove of " << l
-			    // 	 << " because of checkT "; 
-			    // for (int a : label_data.get_remove(l)) cout << a << " "; 
-			    // cout << endl;
-		
+			      cout << "Add " << t.src << " to remove of " << l
+			      	 << " because of checkT "; 
+			       for (int a : label_data.get_remove(l)) cout << a << " "; 
+			       cout << endl;
 			}
 		    }
 		}
@@ -234,7 +236,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	//cout << "Check all those states that are not better than the block" << endl;
 	//For every state in not rel and every label dominated by noop
 	//with a transition to B
-	for(int l = 0; l < label_dominance.num_labels(); ++l){
+	for(int l = 0; l < label_dominance.get_num_labels(); ++l){
 	    if(label_dominance.dominated_by_noop(l, lts_id)){ 
 		//cout << "Checking label " << l << " because is noop" << endl;
 
@@ -293,11 +295,11 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	    split_block(label_data.get_remove(l), splitCouples, blocksInRemove);
 
 	    for(const auto & p : splitCouples){
-		// cout <<"Blocks: " << p.first->index << " (";
-		// for(int i = p.first->node.b; i <= p.first->node.e; ++i) cout << " " << Qp[i]; 
-		// cout <<") and " << p.second->index << " (";
-		// for(int i = p.second->node.b; i <= p.second->node.e; ++i) cout << " " << Qp[i]; 
-		// cout << ") have been splitted" << endl;
+		cout <<"Blocks: " << p.first->index << " (";
+		for(int i = p.first->node.b; i <= p.first->node.e; ++i) cout << " " << Qp[i]; 
+		cout <<") and " << p.second->index << " (";
+		for(int i = p.second->node.b; i <= p.second->node.e; ++i) cout << " " << Qp[i]; 
+		cout << ") have been splitted" << endl;
 
 		p.first->remove_rel(p.second);
 		p.first->add_notRel(p.second);
@@ -317,7 +319,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 		for (int s : label_data.get_preB(l)){
 		    Block * c = partition[Qp_block[s]].get();
 		    if (c->in_rel(d)){
-			//d->dump(Qp);  cout << " does not simulate "; c->dump(Qp); cout << endl;
+			d->dump(Qp);  cout << " does not simulate "; c->dump(Qp); cout << endl;
 			c->remove_rel(d);
 			c->add_notRel(d);
 			if(unmarked(c->markS)) blocksToUpdate.push(c);
@@ -331,7 +333,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	alph.clear();
     }
 
-    cout << "Done update efficient relation." << endl;
+    cout << "Done update efficient relation: " << t() << endl;
     for(int s = 0; s < relation.size(); s++){
 	Block * bs = partition[Qp_block[s]].get();
 	for(int t = 0; t < relation.size(); t++){
@@ -340,6 +342,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	    }
 	}
     }
+    cout << "Updated relation" << endl;
 }
 
 void SimulationRelationEfficient::split_block(const set<int> & set_remove,
@@ -426,20 +429,20 @@ bool SimulationRelationEfficient::get_in_pre_rel(Block * b, int src, int label, 
     }
 
     // For every label l >= tl
-    for(int l = 0; l < label_dominance.num_labels(); ++l){
+    for(int l = 0; l < label_dominance.get_num_labels(); ++l){
 	if(label_dominance.dominates(l, label, lts_id)){
-	    // cout << "Checking transitions with label " << l
+	    //cout << "Checking transitions with label " << l
 	    // 	 << " state " << src << " hasQa? " <<  lts->hasQaPost(l, src) << endl;
 	    if(lts->hasQaPost(l, src)){//Get sl, (if exists)
 		int sl = lts->get_qa_post(l,src).index;
 		//cout << "sl index " << sl << endl;
 		//For every block C in rel(B)
 		for(int idC : b->rel){
-		    // cout << "Have a transition to " << idC << " >= " << b->index << "?" << endl;
-		    // cout << " relCount: "; 
-		    // for(int i : partition[idC]->relCount) cout << i;
-		    // cout << endl;
-			
+		    /*cout << "Have a transition to " << idC << " >= " << b->index << "?" << endl;
+		     cout << " relCount: "; 
+		     for(int i : partition[idC]->relCount) cout << i;
+		      cout << endl;
+			*/
 		    if(partition[idC]->relCount[sl]){
 			//cout << "YES" << endl;
 			return true; //Found!

@@ -52,15 +52,16 @@ void SimulationRelationSimple::update(int lts_id,
 			  if(!found){
 			      changes = true;
 			      remove(t, s);
-			      // std::cout << lts->name(t) << " does not simulate " <<  lts->name(s) 
-			      // 	<< " because of " <<
-			      // 	lts->name(trs.src)  << " => " << lts->name(trs.target) << " (" << trs.label << ")";// << std::endl;
-			      // 	std::cout << "  Simulates? "<<simulates (trs.src, trs.target);
-			      // 	std::cout << "  domnoop? "<<label_dominance.dominated_by_noop(trs.label, lts_id) << "   ";
-			      // 	label_dominance.dump(trs.label);
-			      // 	for (auto trt : lts->get_transitions(t)){
-			      // 	    std::cout << "Tried with: " << lts->name(trt.src)  << " => " << lts->name(trt.target) << " (" << trt.label << ")" << " label dom: "<< label_dominance.dominates(trt.label, trs.label, lts_id) << " target sim " << simulates(trt.target, trs.target) << std::endl;
-			      //}
+			      std::cout << lts->name(t) << " does not simulate " <<  lts->name(s) 
+			      	<< " because of " <<
+			      	lts->name(trs.src)  << " => " << lts->name(trs.target) << " (" << trs.label << ")";// << std::endl;
+			      	std::cout << "  Simulates? "<<simulates (trs.src, trs.target);
+			      	std::cout << "  domnoop? "<<label_dominance.dominated_by_noop(trs.label, lts_id) << "   ";
+			      	label_dominance.dump(trs.label);
+			      	for (auto trt : lts->get_transitions(t)){
+			      	    std::cout << "Tried with: " << lts->name(trt.src)  << " => " << lts->name(trt.target) << " (" << trt.label << ")" << " label dom: "<< label_dominance.dominates(trt.label, trs.label, lts_id) << " target sim " << simulates(trt.target, trs.target) << std::endl;
+			      }
+
 
 			      break;
 			  }

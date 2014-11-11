@@ -85,7 +85,6 @@ static void compute_ld_simulation(Labels * _labels,
 	//label_dominance.dump();
 	for (int i = 0; i < _simulations.size(); i++){
 	    _simulations[i]->update(i, _ltss[i], label_dominance);
-	    //cout << "loooooooping" <<  t() << endl;
 	    //_simulations[i]->dump(_ltss[i]->get_names());
 	}
 	std::cout << " took " << t() << "s" << std::endl;
