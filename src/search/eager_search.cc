@@ -176,7 +176,6 @@ int EagerSearch::step() {
 	    succ_node.get_g() > node.get_g() + get_adjusted_cost(*op)) {
 	    if(prune_heuristic && 
 	       prune_heuristic->prune_generation(succ_state, node.get_g() + get_adjusted_cost(*op))){
-		cout << "QUE SIIII: " <<  succ_node.is_new()  << endl;
 		if(succ_node.is_new()){
 		    search_progress.inc_pruned();
 		}
