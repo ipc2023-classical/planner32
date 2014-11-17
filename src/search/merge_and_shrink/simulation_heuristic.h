@@ -73,9 +73,9 @@ class SimulationHeuristic : public PruneHeuristic {
   }
 
   inline bool deadend_is_activated() const {
-      return states_inserted < min_deadends || 
-	  deadends_pruned >= states_inserted*min_deadend_ratio
-	  || prune_is_activated();
+      return prune_is_activated();
+      //|| states_inserted < min_deadends 
+      //  || deadends_pruned >= states_inserted*min_deadend_ratio;
   }
 
  public:

@@ -68,6 +68,7 @@ void SimulationHeuristic::initialize() {
 	}else{
 	    ldSimulation->precompute_dominating_bdds(vars.get());
 	}
+	cout << "Completed preprocessing: " << g_timer() << endl;
     }
     //exit(0);
 }
