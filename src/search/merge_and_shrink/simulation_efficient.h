@@ -75,7 +75,7 @@ class Block {
 	return node.b + splitCount++;
     }
 
-    void set_notin_pre_rel(int sl);
+    //void set_notin_pre_rel(int sl);
 
     bool in_notRel(int pos){
 	for(const auto & n : notRel){
@@ -92,12 +92,14 @@ class Block {
 	    }	  
 	}
     }   
+
+    //Block does not simulate me anymore, so I should decrement
+    //relCount of all the transitions to block!
+    void add_notRel(Block * block, const LTSEfficient * lts, 
+		    const std::vector<int> & Qp);
+
     void clear_notRel(){
 	notRel.clear();
-    }
-
-    void add_notRel(Block * block){
-	notRel.push_back(block->node);
     }
 
     bool in_rel(Block * block){
@@ -114,6 +116,10 @@ class Block {
 
     void remove_rel(Block * b){
 	rel.erase(b->index);
+    }
+
+    bool hasTransitionFrom (int sl) {
+	return relCount[sl] > 0;
     }
 
     void dump(const std::vector<int> & qp);

@@ -188,6 +188,20 @@ class LTSEfficient {
   }
 
 
+  //For each transition labelled with l, apply a function. If returns true, applies a break
+  bool applyPreTarget(int target, 
+		      std::function<bool(const LTSTransitionEfficient & tr)> && f) const {
+      for(auto & pm : qaPre_map){
+	  if(pm.second.count(target)){
+	      const Qa & qa = get_qa_pre(pm.first, target);
+	      for(int i = qa.b; i <= qa.e; ++i){
+		  if(f(transitionsPre[i])) return true;
+	      }
+	  }
+      }
+      return false;
+  }
+
   void dump_names() const; 
 
   const std::vector<std::string> & get_names () const {

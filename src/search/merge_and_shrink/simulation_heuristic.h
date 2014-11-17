@@ -9,7 +9,7 @@ class LDSimulation;
 class SymVariables;
 class SymManager;
 
-enum class PruningDD {BDD_MAP, ADD, BDD};
+enum class PruningDD {BDD_MAP, ADD, BDD, BDD_MAP_DISJ};
 std::ostream & operator<<(std::ostream &os, const PruningDD & m);
 extern const std::vector<std::string> PruningDDValues;
 
@@ -26,6 +26,7 @@ class SimulationHeuristic : public PruneHeuristic {
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
   const PruningType pruning_type;
+  bool print_desactivation;
 
   /*
    * Three parameters help to decide whether to apply dominance
@@ -103,6 +104,20 @@ class SimulationHeuristicBDDMap : public SimulationHeuristic {
   virtual bool check (const State & state, int g);
   virtual void insert (const State & state, int g);
 };
+
+class SimulationHeuristicBDDMapDisj : public SimulationHeuristic {
+    std::map<int, std::vector<BDD> > closed;
+ public:
+  SimulationHeuristicBDDMapDisj (const Options &opts) : 
+  SimulationHeuristic(opts)
+  {}
+  virtual ~SimulationHeuristicBDDMapDisj (){}
+
+  //Methods to keep dominated states in explicit search
+  virtual bool check (const State & state, int g);
+  virtual void insert (const State & state, int g);
+};
+
 
 class SimulationHeuristicBDD : public SimulationHeuristic {
   BDD closed, closed_inserted;

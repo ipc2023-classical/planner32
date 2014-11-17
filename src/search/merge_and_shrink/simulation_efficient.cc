@@ -4,6 +4,27 @@
 
 using namespace std;
 
+
+
+void Block::add_notRel(Block * block, const LTSEfficient * lts, const vector<int> &  Qp) {
+    notRel.push_back(block->node);
+
+    //Block does not simulate me anymore, so I should decrement
+    //relCount of all the transitions to block!
+    for(int i = block->node.b; i <= block->node.e; ++i){
+	//cout << "Decrease transitions going to: " << Qp[i] << endl;
+        lts->applyPreTarget(Qp[i], [&](const LTSTransitionEfficient & t){
+		int sl = lts->get_pos_qa_post(t.label, t.src);
+		//cout << "Decreasing " << sl << " because of s=" << t.src << " l=" << t.label << endl;
+		relCount[sl]--;
+		return false;
+	    });
+    }	  
+
+}
+
+
+
 //Splits this block between itself and a new block
 unique_ptr<Block> Block::split(int index) {  
     unique_ptr<Block> newb {new Block(index, node.b, node.b + splitCount-1, rel, notRel, relCount)};
@@ -121,27 +142,38 @@ void SimulationRelationEfficient::init(int lts_id, const LTSEfficient * lts,
     }
 
     for (auto & c : partition){
-	//cout << " Push c: " << c->index << endl;
+	/*cout << " Push c: " << c->index << endl;
+	c->dump(Qp); cout << " relCount: "; 
+	for(int i : c->relCount) cout << i;
+	cout << endl;*/
+
 	for (auto & aux : partition){
 	    if (!c->in_rel(aux.get())){
 		//cout << "Adding block "; aux->dump(Qp);
 		//cout << " as not rel of  "; c->dump(Qp); cout << endl;
-		c->add_notRel(aux.get());
+		c->add_notRel(aux.get(), lts, Qp);
 	    }
 	}
 	if(!c->notRel.empty() && unmarked(c->markS))
 	    blocksToUpdate.push(c.get());
+
+	/*c->dump(Qp); cout << " relCount: "; 
+	for(int i : c->relCount) cout << i;
+	cout << endl;*/
+
     }
 
-    // cout << "Init efficient relation, done." << endl;
-    // lts->dump_names();
-    // cout << "Qp: "; for (auto q : Qp) cout << " " << q; cout << endl;
-    // cout << "Qp_block: "; for (auto q : Qp) cout << " " << Qp_block[q]; cout << endl;
-    // cout << "Qp_pos: "; for (auto q : Qp_pos) cout << " " << q; cout << endl;
-    // for(auto & b : partition){
-    // 	b->dump(Qp); cout << " has as rel: " << endl;
-    // 	for(auto idC : b->rel){ partition[idC]->dump(Qp); cout << endl;}
-    // }
+
+
+    /*cout << "Init efficient relation, done." << endl;
+    lts->dump_names();
+    cout << "Qp: "; for (auto q : Qp) cout << " " << q; cout << endl;
+    cout << "Qp_block: "; for (auto q : Qp) cout << " " << Qp_block[q]; cout << endl;
+    cout << "Qp_pos: "; for (auto q : Qp_pos) cout << " " << q; cout << endl;
+    for(auto & b : partition){
+    	b->dump(Qp); cout << " has as rel: " << endl;
+    	for(auto idC : b->rel){ partition[idC]->dump(Qp); cout << endl;}
+	}*/
 }
 
 
@@ -149,7 +181,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	    const LabelRelation & label_dominance){
 
     Timer t;
-    cout << "Update efficient relation" << endl;
+    //cout << "Update efficient relation" << endl;
     //label_dominance.dump();
     LabelData label_data (label_dominance.get_num_labels());
     set<int> alph; //TODO: Not using the data structure suggested in the paper
@@ -176,9 +208,13 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	b->markS = false;
 
 	cout << "Selected block: "; b->dump(Qp); cout << endl;
-	// cout << " relCount: "; 
-	// for(int i : b->relCount) cout << i;
-	// cout << endl;
+	//Block b has notRel => c does not dominate b anymore. Check
+	//transitions to c because they do not simulate transitions to
+	//b anymore.
+	
+	/*cout << " relCount: "; 
+	for(int i : b->relCount) cout << i;
+	cout << endl;*/
 	// for(auto & x : partition){
 	//     x->dump(Qp); cout << " has as rel: " << endl;
 	//     for(auto idC : x->rel){ partition[idC]->dump(Qp); cout << endl;}
@@ -202,37 +238,33 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 	//     }
 	// }
 
+	//Set of pairs <src, label> to check we'll split states
+	//depending on whether they have -- l' --> B or not
+	set<pair<int, int> > slToCheck;
 
 	//Compute label.remove with a single pass through the transitions
-	/*for (auto & t : lts->get_transitions_pre()){ 
-	    }*/
 	for (auto & t : lts->get_transitions_pre()){ 
-	    cout << "    Check T: " << t.src << " -- " << t.label << " --> " << t.target << endl;
+	    //cout << "    Check T: " << t.src << " -- " << t.label << " --> " << t.target << endl;
 	    // cout << " Remove: ";
 	    // for (int a : label_data.get_remove(t.label)) cout << a << " "; 
 	    // cout << endl;
 
-	    //cout << "Is " << t.target << " in not rel of block " << b->index << "?" << endl;
+	    /*cout << "Is " << t.target << " in not rel of block " <<
+	      b->index << "?   " << b->in_notRel(Qp_pos[t.target]) << endl;*/
+	    
 	    if(b->in_notRel(Qp_pos[t.target])){
-		b->set_notin_pre_rel(lts->get_qa_post(t.label, t.src).index);
 		//cout << t << " does not support " << b->index << " anymore" << endl;
 
 		// For every label l <= tl, s.t. exist a transition to block B
 		for(int l = 0; l < label_dominance.get_num_labels(); ++l){
-		    if(label_dominance.dominates(t.label, l, lts_id) && exists_transition_to(lts, l, b)){
-			if(!get_in_pre_rel(b, t.src, l, lts_id, lts, label_dominance)){
-			    alph.insert(l);
-			    label_data.add_to_remove(l, t.src);
-		    
-			      cout << "Add " << t.src << " to remove of " << l
-			      	 << " because of checkT "; 
-			       for (int a : label_data.get_remove(l)) cout << a << " "; 
-			       cout << endl;
-			}
+		    if(label_dominance.dominates(t.label, l, lts_id) &&
+		       exists_transition_to(lts, l, b)){
+			slToCheck.insert(pair<int, int> (t.src, l));
 		    }
 		}
 	    }
 	}
+
 	//cout << "Check all those states that are not better than the block" << endl;
 	//For every state in not rel and every label dominated by noop
 	//with a transition to B
@@ -241,19 +273,21 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 		//cout << "Checking label " << l << " because is noop" << endl;
 
 		if(exists_transition_to(lts, l, b)){
-		    b->applyNotRel([&](int pos){
+		    b->applyNotRel([&](int pos){ //For every concrete state in notRel(b) (s does not simulate b anymore)
 			    int s = Qp[pos];
-			    if(!get_in_pre_rel(b, s, l, lts_id, lts, label_dominance)){
-				alph.insert(l);
-				label_data.add_to_remove(l, s);
-
-				// cout << "Add " << s << " to remove of " << l
-				//      << " because of noop ";
-				// for (int a : label_data.get_remove(l)) cout << a << " "; 
-				// cout << endl;
-			    }
+			    slToCheck.insert(pair<int, int> (s, l));
 			});
 		}
+	    }
+	}
+
+	for(auto & p : slToCheck){
+	    int s = p.first; int l = p.second;
+	    //cout << "Check sl: " << s << " " << l << endl; 
+	    if(!get_in_pre_rel(b, s, l, lts_id, lts, label_dominance)){
+		alph.insert(l);
+		label_data.add_to_remove(l, s);
+		//cout << "Add " << s << " to remove of " << l << endl;
 	    }
 	}
 		
@@ -302,12 +336,12 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 		cout << ") have been splitted" << endl;
 
 		p.first->remove_rel(p.second);
-		p.first->add_notRel(p.second);
+		p.first->add_notRel(p.second, lts, Qp);
 		
-		// for(auto & x : partition){
-		//     x->dump(Qp); cout << " has as rel: " << endl;
-		//     for(auto idC : x->rel){ partition[idC]->dump(Qp); cout << endl;}
-		// }
+		/*for(auto & x : partition){
+		     x->dump(Qp); cout << " has as rel: " << endl;
+		     for(auto idC : x->rel){ partition[idC]->dump(Qp); cout << endl;}
+		     }*/
 
 
 		if(unmarked(p.first->markS)) blocksToUpdate.push(p.first);
@@ -321,7 +355,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 		    if (c->in_rel(d)){
 			d->dump(Qp);  cout << " does not simulate "; c->dump(Qp); cout << endl;
 			c->remove_rel(d);
-			c->add_notRel(d);
+			c->add_notRel(d, lts, Qp);
 			if(unmarked(c->markS)) blocksToUpdate.push(c);
 		    }
 		}
@@ -408,9 +442,9 @@ void Block::dump  (const std::vector<int> & Qp){
 
 
 
-void Block::set_notin_pre_rel(int sl){
-    relCount[sl]--;
-}
+// void Block::set_notin_pre_rel(int sl){
+//     relCount[sl]--;
+// }
 
 
 //Given a transition, s->tl->x, check whether s still has a transition
@@ -433,18 +467,20 @@ bool SimulationRelationEfficient::get_in_pre_rel(Block * b, int src, int label, 
 	if(label_dominance.dominates(l, label, lts_id)){
 	    //cout << "Checking transitions with label " << l
 	    // 	 << " state " << src << " hasQa? " <<  lts->hasQaPost(l, src) << endl;
-	    if(lts->hasQaPost(l, src)){//Get sl, (if exists)
+	    if(lts->hasQaPost(l, src)){ //Get sl, (if exists)
 		int sl = lts->get_qa_post(l,src).index;
 		//cout << "sl index " << sl << endl;
 		//For every block C in rel(B)
 		for(int idC : b->rel){
-		    /*cout << "Have a transition to " << idC << " >= " << b->index << "?" << endl;
+		    //cout << "Have a transition labelled with " << l << " to "; 
+		    //partition[idC]->dump(Qp); 
+		    /*cout << " >= "; b->dump(Qp); cout << "?" << endl;
 		     cout << " relCount: "; 
 		     for(int i : partition[idC]->relCount) cout << i;
-		      cout << endl;
-			*/
-		    if(partition[idC]->relCount[sl]){
-			//cout << "YES" << endl;
+		     cout << endl;*/
+
+		     if(partition[idC]->hasTransitionFrom(sl)){
+			 //cout << "YES" << endl;
 			return true; //Found!
 		    }
 		}

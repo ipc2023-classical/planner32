@@ -289,6 +289,7 @@ cout << "Time old: " << t2() << endl;
        }*/
    cout << sim2.size() << endl;   
    for(int i = 0; i < sim2.size(); i++){ 
+       cout << "Check LTS " << i << endl;
        for(int s = 0; s < ltss[i]->size(); s++){ 
 	   for(int t = 0; t < ltss[i]->size(); t++){ 
 	       if(copy[i][s][t] != sim2[i]->simulates(s, t)){
