@@ -101,6 +101,11 @@ int SimulationHeuristic::compute_heuristic(const State &state) {
 
 bool SimulationHeuristic::prune_generation(const State &state, int g) {
     if(!deadend_is_activated()){
+	if(print_desactivation){
+	    print_desactivation = false;
+	    cout << "Desactivation of deadend: " << states_pruned << " pruned " << states_inserted << " inserted" << endl;	
+	}
+
 	return false;
     }
     // if(states_inserted%1000 == 0){
@@ -138,6 +143,10 @@ bool SimulationHeuristic::prune_generation(const State &state, int g) {
 
 bool SimulationHeuristic::prune_expansion (const State &state, int g){
     if(!prune_is_activated()){
+	if(print_desactivation){
+	    print_desactivation = false;
+	    cout << "Desactivation of pruning: " << states_pruned << " pruned " << states_inserted << " inserted" << endl;	
+	}
 	return false;
     }
     //a) Check if state is in a BDD with g.closed <= g
