@@ -77,14 +77,17 @@ class LabelRelation {
  public:
   LabelRelation(Labels * labels);
 
+  //Initializes label relation (only the first time, to reinitialize call reset instead)
   void init(const std::vector<LabelledTransitionSystem *> & lts,
 	    const std::vector<SimulationRelation*> & sim,
 	    const LabelMap & labelMap);
 
+  //Initializes label relation (only the first time, to reinitialize call reset instead)
   void init(const std::vector<LTSEfficient *> & lts,
 	    const std::vector<SimulationRelation*> & sim, 
 	    const LabelMap & labelMap);
 
+  //Initializes label relation (only the first time, to reinitialize call reset instead)
   void init_identity(int num_lts, const LabelMap & labelMap);
 
 

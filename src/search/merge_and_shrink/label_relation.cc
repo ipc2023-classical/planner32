@@ -135,13 +135,12 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
     }
     
     dominates_in.resize(num_labels);
+    dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
 	int old_l1 = labelMap.get_old_id(l1);
-	dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
 	dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
 	for (int l2 = 0; l2 < dominates_in[l1].size(); ++l2){
 	    int old_l2 = labelMap.get_old_id(l2);
-
 	    if(labels->get_label_by_index(old_l1)->get_cost() > 
 	       labels->get_label_by_index(old_l2)->get_cost()){
 		dominates_in[l1][l2] = DOMINATES_IN_NONE;
@@ -171,10 +170,9 @@ void LabelRelation::init(const std::vector<LTSEfficient *> & lts,
     }
     
     dominates_in.resize(num_labels);
+    dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
 	int old_l1 = labelMap.get_old_id(l1);
-
-	dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
 	dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
 	for (int l2 = 0; l2 < dominates_in[l1].size(); ++l2){
 	    int old_l2 = labelMap.get_old_id(l2);
@@ -365,8 +363,8 @@ void LabelRelation::init_identity(int num_lts, const LabelMap & labelMap){
     }
     
     dominates_in.resize(num_labels);
+    dominated_by_noop_in.resize(num_labels, DOMINATES_IN_NONE);
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
-	dominated_by_noop_in.resize(num_labels, DOMINATES_IN_NONE);
 	dominates_in[l1].resize(num_labels, DOMINATES_IN_NONE);
 	dominates_in[l1][l1] = DOMINATES_IN_ALL;
     }
