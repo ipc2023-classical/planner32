@@ -25,7 +25,7 @@ public:
     Labels(bool unit_cost, const Options &options, OperatorCost cost_type);
     ~Labels();
     void reduce(std::pair<int, int> next_merge,
-                const std::vector<Abstraction *> &all_abstractions);
+            const std::vector<Abstraction *> &all_abstractions);
     // TODO: consider removing get_label_by_index and forwarding all required
     // methods of Label and giving access to them by label number.
     const Label *get_label_by_index(int index) const;
@@ -51,34 +51,34 @@ public:
 
 
 class LabelMap{
-    //mapping from labels to labels for LTSs (hack to get rid of not useful labels) 
+    //mapping from labels to labels for LTSs (hack to get rid of not useful labels)
     int num_valid_labels;
-    std::vector<int> label_id; 
+    std::vector<int> label_id;
     std::vector<int> old_label_id;
- public:
+public:
     LabelMap(Labels * labels){
-	num_valid_labels = 0;
-	label_id.reserve(labels->get_size());
-	old_label_id.reserve(labels->get_size());
-	for(int i = 0; i < labels->get_size(); i++){
-	    if(labels->is_label_reduced(i)){
-		label_id.push_back (-1);
-	    }else{
-		old_label_id.push_back(i);
-		label_id.push_back(num_valid_labels++);
-	    }
-	}
+        num_valid_labels = 0;
+        label_id.reserve(labels->get_size());
+        old_label_id.reserve(labels->get_size());
+        for(int i = 0; i < labels->get_size(); i++){
+            if(labels->is_label_reduced(i)){
+                label_id.push_back (-1);
+            }else{
+                old_label_id.push_back(i);
+                label_id.push_back(num_valid_labels++);
+            }
+        }
     }
 
     int get_id(int i) const{
-	return label_id[i];
+        return label_id[i];
     }
     int get_old_id(int i) const{
-	return old_label_id[i];
+        return old_label_id[i];
     }
 
     int get_num_labels() const{
-	return num_valid_labels;
+        return num_valid_labels;
     }
 };
 
