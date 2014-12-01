@@ -33,7 +33,7 @@ void SimulationRelationSimple::update(int lts_id,
                     //for each transition s--l->s':
                     // a) with noop t >= s' and l dominated by noop?
                     // b) exist t--l'-->t', t' >= s' and l dominated by l'?
-                    for (auto trs : lts->get_transitions(s)){
+                    for (const auto & trs : lts->get_transitions(s)){
                         //cout << "Checking transition " << trs.label << " " << g_operators[trs.label].get_name() << " to " << trs.target << endl;
                         if(simulates (t, trs.target) &&
                                 label_dominance.dominated_by_noop(trs.label, lts_id)){
@@ -41,7 +41,7 @@ void SimulationRelationSimple::update(int lts_id,
                             continue;
                         }
                         bool found = false;
-                        for (auto trt : lts->get_transitions(t)){
+                        for (const auto & trt : lts->get_transitions(t)){
                             if(label_dominance.dominates(trt.label, trs.label, lts_id) &&
                                     simulates(trt.target, trs.target)){
                                 //cout << "Simulated by " << trt.label << " " << g_operators[trt.label].get_name() << endl;
