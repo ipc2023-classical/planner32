@@ -20,6 +20,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		          skip_simulation(opts.get<bool>("skip_simulation")),
 		          nold_simulation(opts.get<bool>("nold_simulation")),
 		          efficient_simulation(opts.get<bool>("efficient_simulation")),
+		          efficient_lts(opts.get<bool>("efficient_lts")),
 		          use_expensive_statistics(opts.get<bool>("expensive_statistics")),
 		          limit_absstates_merge(opts.get<int>("limit_merge")),
 		          limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
@@ -35,6 +36,7 @@ LDSimulation::LDSimulation(const Options &opts) :
     		        skip_simulation(opts.get<bool>("skip_simulation")),
     		        nold_simulation(opts.get<bool>("nold_simulation")),
     		        efficient_simulation(opts.get<bool>("efficient_simulation")),
+    		        efficient_lts(opts.get<bool>("efficient_lts")),
     		        use_expensive_statistics(opts.get<bool>("expensive_statistics")),
     		        limit_absstates_merge(opts.get<int>("limit_merge")),
     		        limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
@@ -214,131 +216,225 @@ void LDSimulation::build_abstraction() {
 }
 
 void LDSimulation::compute_ld_simulation() {
-    compute_ld_simulation(labels.get(), abstractions, simulations, nold_simulation);
+
+    LabelMap labelMap (labels.get());
+
+    cout << "Building LTSs and Simulation Relations" << endl;
+    vector<LabelledTransitionSystem *> ltss_simple;
+    vector<LTSEfficient *> ltss_efficient;
+    for (auto a : abstractions){
+	int lts_size, lts_trs;
+	if(efficient_lts){
+	    ltss_efficient.push_back(a->get_lts_efficient(labels.get()));
+	    lts_size= ltss_efficient.back()->size();
+	    lts_trs= ltss_efficient.back()->num_transitions();
+	}else{
+	    ltss_simple.push_back(a->get_lts(labels.get()));
+	    lts_size= ltss_simple.back()->size();
+	    lts_trs= ltss_simple.back()->num_transitions();
+	}
+        cout << "LTS built: " << lts_size << " states " 
+	     << lts_trs << " transitions " 
+	     << labels->get_size() << " num_labels"  << endl;
+	
+	if(efficient_simulation){
+	    if(nold_simulation){
+		simulations.push_back(new SimulationRelationEfficientNoLD(a));
+	    }else{
+		simulations.push_back(new SimulationRelationEfficient(a));
+	    }
+	}else{
+	    //Create initial goal-respecting relation
+	    simulations.push_back(new SimulationRelationSimple(a));
+	}
+    }
+    if(efficient_lts){
+	compute_ld_simulation(labels.get(), ltss_efficient, simulations, labelMap, nold_simulation);
+    }else{
+	compute_ld_simulation(labels.get(), ltss_simple, simulations, labelMap, nold_simulation);
+    }
+
+    // for(int i = 0; i < _simulations.size(); i++)
+    //     _simulations[i]->dump(ltss[i]->get_names());
 }
 
 
 //Compute a simulation from 0
-void LDSimulation::compute_ld_simulation(Labels * _labels, vector<Abstraction *> & _abstractions, 
-        vector<SimulationRelation *> & _simulations, bool no_ld) {
+// void LDSimulation::compute_ld_simulation(Labels * _labels, 
+// 					 vector<Abstraction *> & _abstractions, 
+// 					 vector<SimulationRelation *> & _simulations, bool no_ld) {
 
-    LabelMap labelMap (_labels);
+//     LabelMap labelMap (_labels);
 
-    cout << "Building LTSs and Simulation Relations" << endl;
-    vector<LabelledTransitionSystem *> ltss;
-    for (auto a : _abstractions){
-        ltss.push_back(a->get_lts(_labels));
-        cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
-        //Create initial goal-respecting relation
-        _simulations.push_back(new SimulationRelationSimple(a));
-    }
+//     cout << "Building LTSs and Simulation Relations" << endl;
+//     vector<LabelledTransitionSystem *> ltss;
+//     for (auto a : _abstractions){
+//         ltss.push_back(a->get_lts(_labels));
+//         cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
+//         //Create initial goal-respecting relation
+//         _simulations.push_back(new SimulationRelationSimple(a));
+//     }
 
 
-    compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
+//     compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
 
-    for(int i = 0; i < _simulations.size(); i++)
-        _simulations[i]->dump(ltss[i]->get_names());
-}
+//     for(int i = 0; i < _simulations.size(); i++)
+//         _simulations[i]->dump(ltss[i]->get_names());
+// }
 
-void LDSimulation::compute_ld_simulation_efficient(Labels * _labels, 
-        vector<Abstraction *> & _abstractions,
-        vector<SimulationRelation *> & _simulations, bool no_ld) {
-    cout << "Building LTSs and Simulation Relations" << endl;
-    vector<LTSEfficient *> ltss;
-    LabelMap labelMap(_labels);
-    for (auto a : _abstractions){
-        ltss.push_back(a->get_lts_efficient(labelMap));
-        cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
-        //Create initial goal-respecting relation
-	if(no_ld){
-	    _simulations.push_back(new SimulationRelationEfficientNoLD(a));
-	}else{
-	    _simulations.push_back(new SimulationRelationEfficient(a));
-	}
-    }
 
-    LabelRelation TMPlabel (_labels);
-    if(!no_ld)
-	TMPlabel.init(ltss, _simulations, labelMap);
+/* PIET-edit: wouldn't it be more natural to have this in the .cc file? Normally, only functions
+ * that take very few lines should be implemented in .h (in this case, I was actually searching
+ * quite a while to find the function calling update of the simulation relation */
+template void LDSimulation::compute_ld_simulation<LabelledTransitionSystem>
+   (Labels * _labels,
+    std::vector<LabelledTransitionSystem *> & _ltss,
+    std::vector<SimulationRelation *> & _simulations,
+    const LabelMap & labelMap, bool no_ld);
+
+template void LDSimulation::compute_ld_simulation <LTSEfficient>
+     (Labels * _labels,
+      std::vector<LTSEfficient *> & _ltss,
+      std::vector<SimulationRelation *> & _simulations,
+      const LabelMap & labelMap, bool no_ld);
+
+template <typename LTS>
+void LDSimulation::compute_ld_simulation(Labels * _labels,
+			   std::vector<LTS *> & _ltss,
+			   std::vector<SimulationRelation *> & _simulations,
+			   const LabelMap & labelMap, bool no_ld){
     Timer t;
-    compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
-    cout << "Time new: " << t() << endl;
-
-    cout << "S1;" << endl;
-    std::vector<std::vector<std::vector<bool> > > copy;
-    for(int i = 0; i < _simulations.size(); i++){
-        //_simulations[i]->dump(ltss[i]->get_names());
-        copy.push_back(_simulations[i]->get_relation());
+    LabelRelation label_dominance (_labels);
+    if(!no_ld){
+	label_dominance.init(_ltss, _simulations, labelMap);
+    }else{
+	label_dominance.init_identity(_ltss.size(), labelMap);
     }
+    std::cout << "Label dominance initialized: " << t() << std::endl;
+    do{
+	std::cout << "LDsimulation loop: ";
+	//label_dominance.dump();
+	for (int i = 0; i < _simulations.size(); i++){
+	    _simulations[i]->update(i, _ltss[i], label_dominance);
+	    //_simulations[i]->dump(_ltss[i]->get_names());
+	}
+	std::cout << " took " << t() << "s" << std::endl;
+	//return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
+    }while(label_dominance.update(_ltss, _simulations));
+    //for(int i = 0; i < _ltss.size(); i++){
+    //_ltss[i]->dump();
+    //	_simulations[i]->dump(_ltss[i]->get_names());
+    //}
+    //label_dominance.dump_equivalent();
+    //label_dominance.dump_dominance();
+    //exit(0);
+    // int num_pruned_trs = prune_irrelevant_transitions(_ltss, _simulations, label_dominance);
 
-    vector<SimulationRelation *> sim2;
-    cout << "Building LTSs and Simulation Relations" << endl;
-    vector<LabelledTransitionSystem *> ltss2;
-    for (auto a : _abstractions){
-        ltss2.push_back(a->get_lts(labelMap));
-        cout << "LTS built: " << ltss2.back()->size() << " states " << ltss2.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
-        //Create initial goal-respecting relation
-        sim2.push_back(new SimulationRelationSimple(a));
-    }
-
-    LabelRelation TMPlabel2 (_labels);
-    if(!no_ld)
-	TMPlabel2.init(ltss2, sim2, labelMap);
-
-    Timer t2;
-    compute_ld_simulation(_labels, ltss2, sim2, labelMap, no_ld);
-    cout << "Time old: " << t2() << endl;
-
-    /*cout << "S2;" << endl;
-   for(int i = 0; i < sim2.size(); i++){ 
-       sim2[i]->dump(ltss[i]->get_names()); 
-       }*/
-    cout << sim2.size() << endl;
-    for(int i = 0; i < sim2.size(); i++){
-        cout << "Check LTS " << i << endl;
-        for(int s = 0; s < ltss[i]->size(); s++){
-            for(int t = 0; t < ltss[i]->size(); t++){
-                if(copy[i][s][t] != sim2[i]->simulates(s, t)){
-                    cout << "Error: different simulations    ";
-                    cout <<ltss[i]->get_names() [t] << " <= " <<ltss[i]->get_names() [s];
-                    cout << "   Old: " << sim2[i]->simulates(s, t) << " new: " << copy[i][s][t]  << endl;
-                }
-            }
-        }
-    }
-    cout << "Checked!" << endl;
-
-
-    for(int i = 0; i < sim2.size(); i++){
-        for(int l = 0; l < TMPlabel.get_num_labels(); ++l){
-            for(int l2 = 0; l2 < TMPlabel.get_num_labels(); ++l2){
-                if(TMPlabel.dominates(l, l2, i) != TMPlabel2.dominates(l, l2, i)){
-                    cout << "Different label relation for " << l << " and " << l2 << " in "<< i << ": " << TMPlabel.dominates(l, l2, i)  << "    " << TMPlabel2.dominates(l, l2, i)  << endl;
-
-                }
-            }
-        }
-    }
-
-    cout << "Checked labels!" << endl;
-
-
-    // for (int i = 0; i < ltss.size(); i++){
-    // 	 SimulationRelationEfficient s1 (_abstractions[i]);
-    // 	 SimulationRelationSimple s2 (_abstractions[i]);
-    // 	 for(int s = 0; s < ltss[i]->size(); s++){
-    // 	     for(int t = 0; t < ltss[i]->size(); t++){
-    // 		 if(s1.simulates(s, t) != s2.simulates(s, t)){
-    // 		     cout << "Error: different simulations    ";
-    // 		     cout <<ltss[i]->get_names() [t] << " <= " <<ltss[i]->get_names() [s];
-    // 		     cout << "   Old: " << s1.simulates(s, t) << " new: " << s2.simulates(s, t) << endl;
-    // 		 }
-    // 	     }
-    // 	 }
-    //  }
-
-    exit(0);
+    // if(num_pruned_trs){
+    // 	 cout <<  num_pruned_trs << " transitions in the LTSs were pruned." << endl;
+    // 	 _labels->prune_irrelevant_labels();
+    // }
 }
+
+// void LDSimulation::compute_ld_simulation_efficient(Labels * _labels, 
+//         vector<Abstraction *> & _abstractions,
+//         vector<SimulationRelation *> & _simulations, bool no_ld) {
+//     cout << "Building LTSs and Simulation Relations" << endl;
+//     vector<LTSEfficient *> ltss;
+//     LabelMap labelMap(_labels);
+//     for (auto a : _abstractions){
+//         ltss.push_back(a->get_lts_efficient(labelMap));
+//         cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
+//         //Create initial goal-respecting relation
+// 	if(no_ld){
+// 	    _simulations.push_back(new SimulationRelationEfficientNoLD(a));
+// 	}else{
+// 	    _simulations.push_back(new SimulationRelationEfficient(a));
+// 	}
+//     }
+
+//     LabelRelation TMPlabel (_labels);
+//     if(!no_ld)
+// 	TMPlabel.init(ltss, _simulations, labelMap);
+//     Timer t;
+//     compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
+//     cout << "Time new: " << t() << endl;
+
+//     cout << "S1;" << endl;
+//     std::vector<std::vector<std::vector<bool> > > copy;
+//     for(int i = 0; i < _simulations.size(); i++){
+//         //_simulations[i]->dump(ltss[i]->get_names());
+//         copy.push_back(_simulations[i]->get_relation());
+//     }
+
+//     vector<SimulationRelation *> sim2;
+//     cout << "Building LTSs and Simulation Relations" << endl;
+//     vector<LabelledTransitionSystem *> ltss2;
+//     for (auto a : _abstractions){
+//         ltss2.push_back(a->get_lts(labelMap));
+//         cout << "LTS built: " << ltss2.back()->size() << " states " << ltss2.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
+//         //Create initial goal-respecting relation
+//         sim2.push_back(new SimulationRelationSimple(a));
+//     }
+
+//     LabelRelation TMPlabel2 (_labels);
+//     if(!no_ld)
+// 	TMPlabel2.init(ltss2, sim2, labelMap);
+
+//     Timer t2;
+//     compute_ld_simulation(_labels, ltss2, sim2, labelMap, no_ld);
+//     cout << "Time old: " << t2() << endl;
+
+//     /*cout << "S2;" << endl;
+//    for(int i = 0; i < sim2.size(); i++){ 
+//        sim2[i]->dump(ltss[i]->get_names()); 
+//        }*/
+//     cout << sim2.size() << endl;
+//     for(int i = 0; i < sim2.size(); i++){
+//         cout << "Check LTS " << i << endl;
+//         for(int s = 0; s < ltss[i]->size(); s++){
+//             for(int t = 0; t < ltss[i]->size(); t++){
+//                 if(copy[i][s][t] != sim2[i]->simulates(s, t)){
+//                     cout << "Error: different simulations    ";
+//                     cout <<ltss[i]->get_names() [t] << " <= " <<ltss[i]->get_names() [s];
+//                     cout << "   Old: " << sim2[i]->simulates(s, t) << " new: " << copy[i][s][t]  << endl;
+//                 }
+//             }
+//         }
+//     }
+//     cout << "Checked!" << endl;
+
+
+//     for(int i = 0; i < sim2.size(); i++){
+//         for(int l = 0; l < TMPlabel.get_num_labels(); ++l){
+//             for(int l2 = 0; l2 < TMPlabel.get_num_labels(); ++l2){
+//                 if(TMPlabel.dominates(l, l2, i) != TMPlabel2.dominates(l, l2, i)){
+//                     cout << "Different label relation for " << l << " and " << l2 << " in "<< i << ": " << TMPlabel.dominates(l, l2, i)  << "    " << TMPlabel2.dominates(l, l2, i)  << endl;
+
+//                 }
+//             }
+//         }
+//     }
+
+//     cout << "Checked labels!" << endl;
+
+
+//     // for (int i = 0; i < ltss.size(); i++){
+//     // 	 SimulationRelationEfficient s1 (_abstractions[i]);
+//     // 	 SimulationRelationSimple s2 (_abstractions[i]);
+//     // 	 for(int s = 0; s < ltss[i]->size(); s++){
+//     // 	     for(int t = 0; t < ltss[i]->size(); t++){
+//     // 		 if(s1.simulates(s, t) != s2.simulates(s, t)){
+//     // 		     cout << "Error: different simulations    ";
+//     // 		     cout <<ltss[i]->get_names() [t] << " <= " <<ltss[i]->get_names() [s];
+//     // 		     cout << "   Old: " << s1.simulates(s, t) << " new: " << s2.simulates(s, t) << endl;
+//     // 		 }
+//     // 	     }
+//     // 	 }
+//     //  }
+
+//     exit(0);
+// }
 
 
 // THIS DOES NOT WORK YET
@@ -450,11 +546,7 @@ void LDSimulation::initialize() {
             simulations.push_back(new SimulationRelationIdentity(a));
         }
     }else{
-        if(efficient_simulation){
-            compute_ld_simulation_efficient(labels.get(), abstractions, simulations, nold_simulation);
-        }else{
-            compute_ld_simulation(labels.get(), abstractions, simulations, nold_simulation);
-        }
+	compute_ld_simulation();
     }
     cout << "Done initializing simulation heuristic [" << timer << "]"
             << endl;
@@ -468,7 +560,7 @@ void LDSimulation::initialize() {
 	 << simulations[i]->num_different_states() << endl;
 	 }*/
 
-    //exit(0);
+    exit(0);
 }
 
 int LDSimulation::num_equivalences() const {
@@ -658,6 +750,11 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
     parser.add_option<bool>("efficient_simulation",
             "Use the efficient method for simulation",
             "false");
+
+    parser.add_option<bool>("efficient_lts",
+            "Use the efficient method for LTS representation",
+            "false");
+
 
     parser.add_option<bool>("skip_simulation",
             "Skip doing the simulation algorithm",

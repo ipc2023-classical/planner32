@@ -1,6 +1,8 @@
 #ifndef LTS_EFFICIENT_H
 #define LTS_EFFICIENT_H
 
+#include "labelled_transition_system.h"//For getting LTSTransition
+
 #include <functional>
 
 #include <vector>
@@ -32,38 +34,6 @@ public:
     }
 };
 
-class LTSTransitionEfficient {
-public:
-    AbstractStateRef src, target;
-    int label;
-    //int sl; //Summary of src, label pair
-
-    LTSTransitionEfficient(AbstractStateRef _src, AbstractStateRef _target, int _label) :
-        src(_src), target(_target), label(_label)/*, sl(0)*/ {
-    }
-
-    LTSTransitionEfficient(const LTSTransitionEfficient & t) = default;
-
-    bool operator==(const LTSTransitionEfficient &other) const {
-        return src == other.src && target == other.target && label == other.label;
-    }
-
-    bool operator!=(const LTSTransitionEfficient &other) const {
-        return !(*this == other);
-    }
-
-    bool operator<(const LTSTransitionEfficient &other) const {
-        return src < other.src || (src == other.src && target < other.target)
-                || (src == other.src && target == other.target && label < other.label);
-    }
-
-    bool operator>=(const LTSTransitionEfficient &other) const {
-        return !(*this < other);
-    }
-
-    friend std::ostream & operator << (std::ostream& o , const LTSTransitionEfficient & t);
-};
-
 //Alvaro: Class added to implement the simple simulation
 class LTSEfficient {
     Abstraction * abs;
@@ -77,14 +47,14 @@ class LTSEfficient {
     std::vector <std::string> name_states;
 
     //List of transitions sorted (src, label) and (target, label)
-    std::vector <LTSTransitionEfficient> transitionsPost, transitionsPre;
+    std::vector <LTSTransition> transitionsPost, transitionsPre;
     std::vector<Qa> qaPre, qaPost;
     std::vector<std::map <int, int> > qaPre_map, qaPost_map;
     //Map [label][state] -> qa
 
-    void set_sl(std::vector <LTSTransitionEfficient> & transitions,
+    void set_sl(std::vector <LTSTransition> & transitions,
             std::vector<Qa> & qa, std::vector<std::map<int, int> > & qaMap,
-            std::function<int (const LTSTransitionEfficient &)> fget);
+            std::function<int (const LTSTransition &)> fget);
 
 public:
     LTSEfficient (Abstraction * abs, const LabelMap & labelMap);
@@ -102,11 +72,11 @@ public:
         return transitionsPost.size();
     }
 
-    const std::vector <LTSTransitionEfficient> & get_transitions_post() const {
+    const std::vector <LTSTransition> & get_transitions_post() const {
         return transitionsPost;
     }
 
-    const std::vector <LTSTransitionEfficient> & get_transitions_pre() const {
+    const std::vector <LTSTransition> & get_transitions_pre() const {
         return transitionsPre;
     }
 
@@ -183,7 +153,7 @@ public:
     }
 
     /* //Given s-l> t and l' check whether exists s-l'> t', t' >= t */
-    /* bool check (int label, const LTSTransitionEfficient & tr,  */
+    /* bool check (int label, const LTSTransition & tr,  */
     /* 	      const SimulationRelation * sim) const { */
     /*     if(qaPost_map.count(label) && qaPost_map.at(label).count(tr.src)){ */
     /* 	  const Qa & qa = qaPost_map.at(label).at(tr.src); */
@@ -199,7 +169,7 @@ public:
 
     //For each transition labelled with l, apply a function. If returns true, applies a break
     bool applyPost(int label, int src,
-		   std::function<bool(const LTSTransitionEfficient & tr)> && f) const {
+		   std::function<bool(const LTSTransition & tr)> && f) const {
 	auto it = qaPost_map[label].find(src);
 	if (it != qaPost_map[label].end()) {
 	    const Qa & qa = qaPost[(*it).second];
@@ -209,20 +179,12 @@ public:
 	    }
 	}
         return false;
-        //if(hasQaPost(label, src)){
-        //    const Qa & qa = get_qa_post(label, src);
-        //    for(int i = qa.b; i <= qa.e; ++i){
-        //        if(f(transitionsPost[i])) return true;
-
-        //    }
-        //}
-        //return false;
     }
 
 
     //For each transition labelled with l, apply a function. If returns true, applies a break
     bool applyPost(int label,
-            std::function<bool(const LTSTransitionEfficient & tr)> && f) const {
+            std::function<bool(const LTSTransition & tr)> && f) const {
 	for (const auto & qai : qaPost_map[label]) {
 	    const Qa & qa = qaPost[qai.second];
 	    for(int i = qa.b; i <= qa.e; ++i){
@@ -230,21 +192,26 @@ public:
 	    }
 	}
         return false;
-        //if(qaPost_map.count(label)){ // PIET-edit: might be more efficient to use find instead of count and at (only 1 instead of 2 log-fn-calls)
-        //    for (auto & qai : qaPost_map.at(label)){
-        //        const Qa & qa = qaPost[qai.second];
-        //        for(int i = qa.b; i <= qa.e; ++i){
-        //            if(f(transitionsPost[i])) return true;
-        //        }
-        //    }
-        //}
-        //return false;
     }
 
+    //For each transition labelled with l, apply a function. If returns true, applies a break
+    bool applyPostSrc(int src,
+		      std::function<bool(const LTSTransition & tr)> && f) const {
+        for(auto & pm : qaPost_map){
+            auto it = pm.find(src);
+            if (it != pm.end()) {
+                const Qa & qa = qaPost[(*it).second];
+                for(int i = qa.b; i <= qa.e; ++i){
+                    if(f(transitionsPost[i])) return true;
+                }
+            }
+        }
+        return false;
+    }
 
     //For each transition labelled with l, apply a function. If returns true, applies a break
     bool applyPreTarget(int target,
-            std::function<bool(const LTSTransitionEfficient & tr)> && f) const {
+            std::function<bool(const LTSTransition & tr)> && f) const {
         for(auto & pm : qaPre_map){
             auto it = pm.find(target);
             if (it != pm.end()) {
@@ -255,15 +222,6 @@ public:
             }
         }
         return false;
-        //for(auto & pm : qaPre_map){
-        //    if(pm.second.count(target)){
-        //        const Qa & qa = get_qa_pre(pm.first, target);
-        //        for(int i = qa.b; i <= qa.e; ++i){
-        //            if(f(transitionsPre[i])) return true;
-        //        }
-        //    }
-        //}
-        //return false;
     }
 
     void dump_names() const;

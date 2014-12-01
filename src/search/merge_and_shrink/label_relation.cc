@@ -223,10 +223,10 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
                 //Check if it really simulates
                 //For each transition s--l2-->t, and every label l1 that dominates
                 //l2, exist s--l1-->t', t <= t'?
-                for(auto & tr : lts->get_transitions_label(l2)){
+                for(const auto & tr : lts->get_transitions_label(l2)){
                     bool found = false;
                     //TODO: for(auto tr2 : lts->get_transitions_for_label_src(l1, tr.src)){
-                    for(auto & tr2 : lts->get_transitions_label(l1)){
+                    for(const auto & tr2 : lts->get_transitions_label(l1)){
                         if(tr2.src == tr.src &&
                                 sim->simulates(tr2.target, tr.target)){
                             found = true;
@@ -261,7 +261,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
         if(simulates_irrelevant[l2][i]){
             for(int s = 0; s < lts->size(); s++){
                 bool found = false;
-                for(auto tr : lts->get_transitions_label(l2)){
+                for(const auto & tr : lts->get_transitions_label(l2)){
                     if(tr.src == s && sim->simulates(tr.target, tr.src)) {
                         found = true;
                         break;
@@ -296,9 +296,9 @@ bool LabelRelation::update(int i, const LTSEfficient * lts,
                 //For each transition s--l2-->t, and every label l1 that simulates
                 //l2, exist s--l1-->t', t <= t'?
                 lts->applyPost(l2,
-                        [&](const LTSTransitionEfficient & tr){
+                        [&](const LTSTransition & tr){
                     if(!lts->applyPost(l1, tr.src,
-                            [&](const LTSTransitionEfficient & tr2){
+                            [&](const LTSTransition & tr2){
                         return sim->simulates(tr2.target, tr.target);
                     })){
                         //std::cout << "Not sim " << l1 << " " << l2 << " " << i << std::endl;
@@ -315,7 +315,7 @@ bool LabelRelation::update(int i, const LTSEfficient * lts,
         if (simulated_by_irrelevant[l2][i] &&
                 lts->applyPost(l2,
                         //Exists s-l2-> y s.t. s is not simulated by t
-                        [&](const LTSTransitionEfficient & tr){
+                        [&](const LTSTransition & tr){
             return !sim->simulates(tr.src, tr.target);
         })){
             changes |= set_not_simulated_by_irrelevant(l2, i);
@@ -331,7 +331,7 @@ bool LabelRelation::update(int i, const LTSEfficient * lts,
         if(simulates_irrelevant[l2][i]){
             for(int s = 0; s < lts->size(); s++){
                 if(!lts->applyPost(l2,
-                        [&](const LTSTransitionEfficient & tr){
+                        [&](const LTSTransition & tr){
                     return tr.src == s && sim->simulates(tr.target, tr.src);
                 })){
                     simulates_irrelevant[l2][i] = false;

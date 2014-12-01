@@ -5,15 +5,27 @@
 #include "simulation_efficient.h"
 
 class SimulationRelationEfficientNoLD : public SimulationRelationEfficient{
+
+    template<typename LTS> void init (int lts_id, const LTS * lts,
+				      const LabelRelation & label_dominance, 
+		   std::queue <Block *> & blocksToUpdate);
+    
  public:
     SimulationRelationEfficientNoLD(const Abstraction * _abs);
 
-    virtual void init (int lts_id, const LTSEfficient * lts,
-		   const LabelRelation & label_dominance, 
-		   std::queue <Block *> & blocksToUpdate);
+    
 
+    virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
+			const LabelRelation & /*label_dominance*/){
+	//update_sim(lts_id, lts, label_dominance);
+    }
     virtual void update(int lts_id, const LTSEfficient * lts,
-			const LabelRelation & label_dominance);
+			const LabelRelation & label_dominance){
+	update_sim(lts_id, lts, label_dominance);
+    }
+
+    template<typename LTS> void update_sim (int lts_id, const LTS * lts,
+				   const LabelRelation & label_dominance);
 };
 
 #endif

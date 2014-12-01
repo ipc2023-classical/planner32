@@ -15,13 +15,17 @@ class SimulationRelationSimple : public SimulationRelation{
      * THIS IMPLEMENTATION IS VERY INNEFICIENT
      * ONLY TO BE USED AS A PROOF OF CONCEPT
      */
-    void update(int lts_id, 
-		const LabelledTransitionSystem * lts, 
-		const LabelRelation & label_dominance);
+    virtual void update(int lts_id, const LabelledTransitionSystem * lts,
+			const LabelRelation & label_dominance){
+	update_sim(lts_id, lts, label_dominance);
+    }
+    virtual void update(int lts_id, const LTSEfficient * lts,
+			const LabelRelation & label_dominance){
+	update_sim(lts_id, lts, label_dominance);
+    }
 
-    virtual void update(int , const LTSEfficient * ,
-			const LabelRelation & ){}
-
+    template<typename LTS> void update_sim (int lts_id, const LTS * lts,
+				   const LabelRelation & label_dominance);
 };
 
 #endif

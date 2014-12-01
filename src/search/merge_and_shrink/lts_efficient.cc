@@ -22,7 +22,7 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
 	    relevant_labels.push_back(label_no);
 	    const vector<AbstractTransition> &abs_tr = abs->get_transitions_for_label(old_label);
 	    for (int j = 0; j < abs_tr.size(); j++) {
-		LTSTransitionEfficient t (abs_tr[j].src, abs_tr[j].target, label_no);
+		LTSTransition t (abs_tr[j].src, abs_tr[j].target, label_no);
 		transitionsPre.push_back(t);
 		transitionsPost.push_back(t);
 	    }
@@ -33,13 +33,13 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
 
     std::sort(begin(transitionsPre), 
 	      end(transitionsPre), 
-	      [] (const LTSTransitionEfficient & t, const LTSTransitionEfficient & t2){
+	      [] (const LTSTransition & t, const LTSTransition & t2){
 		  return t.target < t2.target || (t.target == t2.target && t.label < t2.label)
 		      || (t.target == t2.target && t.label == t2.label && t.src < t2.src);
 	      });
     std::sort(begin(transitionsPost), 
 	      end(transitionsPost), 
-	      [] (const LTSTransitionEfficient & t, const LTSTransitionEfficient & t2){
+	      [] (const LTSTransition & t, const LTSTransition & t2){
 		  return t.src < t2.src || (t.src == t2.src && t.label < t2.label)
 		      || (t.src == t2.src && t.label == t2.label && t.target < t2.target);
 	      });
@@ -47,11 +47,11 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
     qaPre_map.resize(num_labels);
     qaPost_map.resize(num_labels);
     //cout << "Set Transitions pre: " << endl;
-    set_sl(transitionsPre, qaPre, qaPre_map, [](const LTSTransitionEfficient & t){    
+    set_sl(transitionsPre, qaPre, qaPre_map, [](const LTSTransition & t){    
 	    return t.target;
 	});
     //cout << "Set Transitions post: " << endl;
-    set_sl(transitionsPost, qaPost, qaPost_map, [](const LTSTransitionEfficient & t){    
+    set_sl(transitionsPost, qaPost, qaPost_map, [](const LTSTransition & t){    
 	    return t.src;
 	});
     
@@ -65,9 +65,9 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
     // }
 }
 
-void LTSEfficient::set_sl(vector <LTSTransitionEfficient> & transitions,
+void LTSEfficient::set_sl(vector <LTSTransition> & transitions,
 			  vector <Qa> & qa, std::vector<std::map<int, int> > & qaMap,
-			  function<int (const LTSTransitionEfficient &)> fget) {
+			  function<int (const LTSTransition &)> fget) {
     int s, l, index = 0, qaindex= 0;
     for(int i = 0; i < transitions.size(); i++){
 	//cout << "Introducing t: " << transitions[i] << endl;
@@ -100,6 +100,6 @@ void LTSEfficient::dump_names() const {
     cout << endl;
 }
 
-std::ostream & operator << (std::ostream& o , const LTSTransitionEfficient & t){
+std::ostream & operator << (std::ostream& o , const LTSTransition & t){
     return o  << t.src << " -- " << t.label << " --> " << " " << t.target; //<< " (" << t.sl << ")";
 }

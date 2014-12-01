@@ -3,28 +3,29 @@
 #include <queue> 
 #include "../debug.h" 
 
+#include "labelled_transition_system.h" 
+#include "lts_efficient.h" 
+
+
+
 using namespace std;
 
-
-
-void Block::add_notRel(Block * block, const LTSEfficient * lts, const vector<int> &  Qp) {
+template <typename LTS> 
+void Block::add_notRel(Block * block, const LTS * lts, const vector<int> &  Qp) {
     notRel.push_back(block->node);
 
     //Block does not simulate me anymore, so I should decrement
     //relCount of all the transitions to block!
     for(int i = block->node.b; i <= block->node.e; ++i){
         //cout << "Decrease transitions going to: " << Qp[i] << endl;
-        lts->applyPreTarget(Qp[i], [&](const LTSTransitionEfficient & t){
+        lts->applyPreTarget(Qp[i], [&](const LTSTransition & t){
             int sl = lts->get_pos_qa_post(t.label, t.src);
             //cout << "Decreasing " << sl << " because of s=" << t.src << " l=" << t.label << endl;
             relCount[sl]--;
             return false;
         });
-    }	  
-
+    }
 }
-
-
 
 //Splits this block between itself and a new block
 unique_ptr<Block> Block::split(int index) {  
@@ -83,8 +84,8 @@ void LabelData::add_to_remove_init(const Qa & qa,
 }
 
 
-
-void SimulationRelationEfficient::init(int lts_id, const LTSEfficient * lts,
+template <typename LTS>
+void SimulationRelationEfficient::init(int lts_id, const LTS * lts,
         const LabelRelation &label_dominance,
         queue <Block *> & blocksToUpdate) {
 
@@ -164,8 +165,6 @@ void SimulationRelationEfficient::init(int lts_id, const LTSEfficient * lts,
 
     }
 
-
-
     /*cout << "Init efficient relation, done." << endl;
     lts->dump_names();
     cout << "Qp: "; for (auto q : Qp) cout << " " << q; cout << endl;
@@ -178,9 +177,9 @@ void SimulationRelationEfficient::init(int lts_id, const LTSEfficient * lts,
 }
 
 
-void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
-        const LabelRelation & label_dominance){
-
+template <typename LTS> 
+void  SimulationRelationEfficient::update_sim(int lts_id, const LTS * lts,
+					  const LabelRelation & label_dominance){    
     Timer t;
     //cout << "Update efficient relation" << endl;
     //label_dominance.dump();
@@ -302,7 +301,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
                 if(!lts->hasQaPre(l, s)) continue;
                 const Qa & qa = lts->get_qa_pre(l, s);
                 for(int j = qa.b; j <= qa.e; ++j){
-                    const LTSTransitionEfficient & t = lts->get_transitions_pre()[j];
+                    const LTSTransition & t = lts->get_transitions_pre()[j];
                     label_data.add_to_preB(t);  //add predecessor to PreB
                 }
             }
@@ -370,7 +369,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
         alph.clear();
     }
 
-    cout << "Done update efficient relation: " << t() << endl;
+    //cout << "Done update efficient relation: " << t() << endl;
     for(int s = 0; s < relation.size(); s++){
         Block * bs = partition[Qp_block[s]].get();
         for(int t = 0; t < relation.size(); t++){
@@ -379,7 +378,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
             }
         }
     }
-    cout << "Updated relation" << endl;
+    //cout << "Updated relation" << endl;
 }
 
 void SimulationRelationEfficient::split_block(const set<int> & set_remove,
@@ -453,8 +452,9 @@ void Block::dump  (const std::vector<int> & Qp){
 //Given a transition, s->tl->x, check whether s still has a transition
 //s - l -> t' with l >= tl and t' in rel(B), i. e., if for any block C
 //in rel(B), and label l, C.relCount(sl) > 0
+template <typename LTS>
 bool SimulationRelationEfficient::get_in_pre_rel(Block * b, int src, int label, int lts_id,
-        const LTSEfficient * lts,
+        const LTS * lts,
         const LabelRelation & label_dominance) const {
     //cout << "Check whether " << src << " is in preRel" << b->index << " l" << label  << endl;
     //Check whether s noop is enough For each r --l-> B s. l is

@@ -1,6 +1,7 @@
 #ifndef MERGE_AND_SHRINK_LABELLED_TRANSITION_SYSTEM_H
 #define MERGE_AND_SHRINK_LABELLED_TRANSITION_SYSTEM_H
 
+#include <functional>
 #include <vector>
 #include <string>
 
@@ -101,6 +102,16 @@ class LabelledTransitionSystem {
   inline Abstraction * get_abstraction()  {
     return abs;
   }
+
+  //For each transition labelled with l, apply a function. If returns true, applies a break
+  bool applyPostSrc(int from,
+		    std::function<bool(const LTSTransition & tr)> && f) const {
+      for(const auto & tr : transitions_src[from]){
+	  if(f(tr)) return true;
+      }
+      return false;
+  }
+
 };
 
 #endif

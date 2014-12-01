@@ -10,8 +10,8 @@ SimulationRelationEfficientNoLD::SimulationRelationEfficientNoLD (const Abstract
 }
 
 
-
-void SimulationRelationEfficientNoLD::init(int /*lts_id*/, const LTSEfficient * lts,
+template <typename LTS> 
+void SimulationRelationEfficientNoLD::init(int /*lts_id*/, const LTS * lts,
         const LabelRelation &label_dominance,
         queue <Block *> & blocksToUpdate) {
 
@@ -86,7 +86,8 @@ void SimulationRelationEfficientNoLD::init(int /*lts_id*/, const LTSEfficient * 
 }
 
 
-void  SimulationRelationEfficientNoLD::update(int lts_id, const LTSEfficient * lts,
+template <typename LTS> 
+void  SimulationRelationEfficientNoLD::update_sim(int lts_id, const LTS * lts,
         const LabelRelation & label_dominance){
 
     Timer t;
@@ -165,7 +166,7 @@ void  SimulationRelationEfficientNoLD::update(int lts_id, const LTSEfficient * l
                 if(!lts->hasQaPre(l, s)) continue;
                 const Qa & qa = lts->get_qa_pre(l, s);
                 for(int j = qa.b; j <= qa.e; ++j){
-                    const LTSTransitionEfficient & t = lts->get_transitions_pre()[j];
+                    const LTSTransition & t = lts->get_transitions_pre()[j];
                     label_data.add_to_preB(t);  //add predecessor to PreB
                 }
             }
@@ -233,7 +234,7 @@ void  SimulationRelationEfficientNoLD::update(int lts_id, const LTSEfficient * l
         alph.clear();
     }
 
-    cout << "Done update efficient relation: " << t() << endl;
+    //cout << "Done update efficient relation: " << t() << endl;
     for(int s = 0; s < relation.size(); s++){
         Block * bs = partition[Qp_block[s]].get();
         for(int t = 0; t < relation.size(); t++){
@@ -242,5 +243,5 @@ void  SimulationRelationEfficientNoLD::update(int lts_id, const LTSEfficient * l
             }
         }
     }
-    cout << "Updated relation" << endl;
+    //cout << "Updated relation" << endl;
 }

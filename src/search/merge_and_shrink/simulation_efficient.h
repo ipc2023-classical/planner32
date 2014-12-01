@@ -95,8 +95,8 @@ class Block {
 
     //Block does not simulate me anymore, so I should decrement
     //relCount of all the transitions to block!
-    void add_notRel(Block * block, const LTSEfficient * lts, 
-		    const std::vector<int> & Qp);
+    template<typename LTS> void add_notRel(Block * block, const LTS * lts, 
+					   const std::vector<int> & Qp);
 
     void clear_notRel(){
 	notRel.clear();
@@ -167,7 +167,7 @@ class LabelData {
 	return remove_by_label[label];	
     }
 
-    void add_to_preB(const LTSTransitionEfficient & t){
+    void add_to_preB(const LTSTransition & t){
 	/* if (!hashsl.count(t.sl)){ */
 	/*     preB_by_label[t.label].push_back(t.src); */
 	/*     hashsl.insert(t.sl); */
@@ -196,23 +196,31 @@ class SimulationRelationEfficient : public SimulationRelation {
 		     std::vector<std::pair<Block *, Block *> > & splitCouples, 
 		     std::vector<Block *> & blocksInRemove);
 
-    bool get_in_pre_rel(Block * b, int src, int label, int lts_id,
-			const LTSEfficient * lts,
-			const LabelRelation & label_dominance) const;
+    template<typename LTS>
+	bool get_in_pre_rel(Block * b, int src, int label, int lts_id,
+			    const LTS * lts,
+			    const LabelRelation & label_dominance) const;
 
-
+    template<typename LTS> void init (int lts_id, const LTS * lts,
+			     const LabelRelation & label_dominance, 
+			     std::queue <Block *> & blocksToUpdate);
+    
  public:
     SimulationRelationEfficient(const Abstraction * _abs);
 
-    virtual void init (int lts_id, const LTSEfficient * lts,
-		   const LabelRelation & label_dominance, 
-		   std::queue <Block *> & blocksToUpdate);
 
-    virtual void update(int , const LabelledTransitionSystem * ,
-			const LabelRelation & ){}
-
+    virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
+			const LabelRelation & /*label_dominance*/){
+	//update_sim(lts_id, lts, label_dominance);
+    }
     virtual void update(int lts_id, const LTSEfficient * lts,
-			const LabelRelation & label_dominance);
+			const LabelRelation & label_dominance){
+	update_sim(lts_id, lts, label_dominance);
+    }
+
+    template<typename LTS> void update_sim (int lts_id, const LTS * lts,
+				   const LabelRelation & label_dominance);
+  
    
     bool unmarked(bool & mark) const {
 	if(!mark){
@@ -223,7 +231,8 @@ class SimulationRelationEfficient : public SimulationRelation {
 	}
     }
 
-    bool exists_transition_to (const LTSEfficient * lts,int label, Block * b){
+    template <typename LTS>
+    bool exists_transition_to (const LTS * lts,int label, Block * b){
 	for(int sb = b->node.b; sb <= b->node.e; sb++){
 	    if(lts->hasQaPre(label, Qp[sb])){
 		//std::cout << " found transition to block!" << std::endl;
