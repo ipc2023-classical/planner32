@@ -383,7 +383,7 @@ void SymClosed::extract_path(const BDD & c, int h, bool fw,
 	    while((cut*zeroCostClosed.at(h)[steps0]).IsZero()){
 	      //DEBUG_MSG(cout << "r Steps0 is not " << steps0<< " of " << zeroCostClosed.at(h).size() << endl;);
 	      steps0++;
-	      assert(steps0 < zeroCostClosed[newH].size());
+	      assert(steps0 < zeroCostClosed.at(newH).size());
 	    }
 
 	    //DEBUG_MSG(cout << "r Steps0 of h=" << h << " is " << steps0 << endl;);

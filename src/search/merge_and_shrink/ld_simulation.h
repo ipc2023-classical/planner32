@@ -91,7 +91,7 @@ protected:
                 //_simulations[i]->dump(_ltss[i]->get_names());
             }
             std::cout << " took " << t() << "s" << std::endl;
-            return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
+            //return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
         }while(label_dominance.update(_ltss, _simulations));
         //for(int i = 0; i < _ltss.size(); i++){
         //_ltss[i]->dump();

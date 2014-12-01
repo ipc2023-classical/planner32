@@ -865,7 +865,7 @@ void SymExploration::addHeuristic(const SymHeuristic & newHeuristic){
 
 BDD SymExploration::compute_heuristic(const BDD & from, int fVal, int hVal){
   assert(isAbstracted() || !perfectHeuristic ||
-	 hVal <= perfectHeuristic->getHNotClosed);
+	 hVal <= perfectHeuristic->getHNotClosed());
 
   //DEBUG_MSG(cout << "Compute heuristic: " << hVal << endl;);
   BDD pruned = mgr->zeroBDD();

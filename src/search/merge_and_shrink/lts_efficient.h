@@ -111,11 +111,21 @@ public:
     }
 
     bool hasQaPre(int label, int target) const {
-        return qaPre_map.count(label) && qaPre_map.at(label).count(target);
+        std::map<int, std::map<int, int> >::const_iterator it = qaPre_map.find(label);
+        if (it != qaPre_map.end()) {
+            return (*it).second.count(target);
+        }
+        return false;
+        //return qaPre_map.count(label) && qaPre_map.at(label).count(target);
     }
 
     bool hasQaPost(int label, int src) const {
-        return qaPost_map.count(label) && qaPost_map.at(label).count(src);
+        std::map<int, std::map<int, int> >::const_iterator it = qaPost_map.find(label);
+        if (it != qaPost_map.end()) {
+            return (*it).second.count(src);
+        }
+        return false;
+        //return qaPost_map.count(label) && qaPost_map.at(label).count(src);
     }
 
     const Qa & get_qa_pre(int label, int target) const {
@@ -135,13 +145,27 @@ public:
     }
 
     int get_pos_qa_pre(int label, int target) const {
-        if(!hasQaPre(label, target)) return -1;
-        return qaPre_map.at(label).at(target);
+        std::map<int, std::map<int, int> >::const_iterator it = qaPost_map.find(label);
+        if (it != qaPre_map.end()) {
+            std::map<int, int>::const_iterator it2 = (*it).second.find(target);
+            if (it2 != (*it).second.end())
+                return (*it2).second;
+        }
+        return -1;
+        //if(!hasQaPre(label, target)) return -1;
+        //return qaPre_map.at(label).at(target);
     }
 
     int get_pos_qa_post(int label, int src) const {
-        if(!hasQaPost(label, src)) return -1;
-        return qaPost_map.at(label).at(src);
+        std::map<int, std::map<int, int> >::const_iterator it = qaPost_map.find(label);
+        if (it != qaPost_map.end()) {
+            std::map<int, int>::const_iterator it2 = (*it).second.find(src);
+            if (it2 != (*it).second.end())
+                return (*it2).second;
+        }
+        return -1;
+        //if(!hasQaPost(label, src)) return -1;
+        //return qaPost_map.at(label).at(src);
     }
 
     /* //Given s-l> t and l' check whether exists s-l'> t', t' >= t */
@@ -162,22 +186,35 @@ public:
     //For each transition labelled with l, apply a function. If returns true, applies a break
     bool applyPost(int label, int src,
             std::function<bool(const LTSTransitionEfficient & tr)> && f) const {
-        if(hasQaPost(label, src)){
-            const Qa & qa = get_qa_post(label, src);
-            for(int i = qa.b; i <= qa.e; ++i){
-                if(f(transitionsPost[i])) return true;
+        std::map<int, std::map<int, int> >::const_iterator it = qaPost_map.find(label);
+        if (it != qaPost_map.end()) {
+            std::map<int, int>::const_iterator it2 = (*it).second.find(src);
+            if (it2 != (*it).second.end()) {
+                const Qa & qa = qaPost[(*it2).second];
+                for(int i = qa.b; i <= qa.e; ++i){
+                    if(f(transitionsPost[i])) return true;
 
+                }
             }
         }
         return false;
+        //if(hasQaPost(label, src)){
+        //    const Qa & qa = get_qa_post(label, src);
+        //    for(int i = qa.b; i <= qa.e; ++i){
+        //        if(f(transitionsPost[i])) return true;
+
+        //    }
+        //}
+        //return false;
     }
 
 
     //For each transition labelled with l, apply a function. If returns true, applies a break
     bool applyPost(int label,
             std::function<bool(const LTSTransitionEfficient & tr)> && f) const {
-        if(qaPost_map.count(label)){ // PIET-edit: might be more efficient to use find instead of count and at (only 1 instead of 2 log-fn-calls)
-            for (auto & qai : qaPost_map.at(label)){
+        std::map<int, std::map<int, int> >::const_iterator it = qaPost_map.find(label);
+        if (it != qaPost_map.end()) {
+            for (auto & qai : (*it).second) {
                 const Qa & qa = qaPost[qai.second];
                 for(int i = qa.b; i <= qa.e; ++i){
                     if(f(transitionsPost[i])) return true;
@@ -185,6 +222,15 @@ public:
             }
         }
         return false;
+        //if(qaPost_map.count(label)){ // PIET-edit: might be more efficient to use find instead of count and at (only 1 instead of 2 log-fn-calls)
+        //    for (auto & qai : qaPost_map.at(label)){
+        //        const Qa & qa = qaPost[qai.second];
+        //        for(int i = qa.b; i <= qa.e; ++i){
+        //            if(f(transitionsPost[i])) return true;
+        //        }
+        //    }
+        //}
+        //return false;
     }
 
 
@@ -192,14 +238,24 @@ public:
     bool applyPreTarget(int target,
             std::function<bool(const LTSTransitionEfficient & tr)> && f) const {
         for(auto & pm : qaPre_map){
-            if(pm.second.count(target)){
-                const Qa & qa = get_qa_pre(pm.first, target);
+            std::map<int, int>::const_iterator it2 = pm.second.find(target);
+            if (it2 != pm.second.end()) {
+                const Qa & qa = qaPre[(*it2).second];
                 for(int i = qa.b; i <= qa.e; ++i){
                     if(f(transitionsPre[i])) return true;
                 }
             }
         }
         return false;
+        //for(auto & pm : qaPre_map){
+        //    if(pm.second.count(target)){
+        //        const Qa & qa = get_qa_pre(pm.first, target);
+        //        for(int i = qa.b; i <= qa.e; ++i){
+        //            if(f(transitionsPre[i])) return true;
+        //        }
+        //    }
+        //}
+        //return false;
     }
 
     void dump_names() const;

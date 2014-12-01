@@ -116,16 +116,21 @@ public:
     }
 
     inline bool dominated_by_noop (int l, int lts) const {
-        return dominated_by_noop_in[l] != DOMINATES_IN_NONE &&
-                (dominated_by_noop_in[l] == DOMINATES_IN_ALL ||
-                        dominated_by_noop_in[l] == lts);
+        return dominated_by_noop_in[l] == DOMINATES_IN_ALL ||
+                dominated_by_noop_in[l] == lts;
+//        return dominated_by_noop_in[l] != DOMINATES_IN_NONE &&
+//                (dominated_by_noop_in[l] == DOMINATES_IN_ALL ||
+//                        dominated_by_noop_in[l] == lts);
     }
 
     //Returns true if l dominates l2 in lts (simulates l2 in all j \neq lts)
     inline bool dominates (int l1, int l2, int lts) const{
-        return dominates_in[l1][l2] != DOMINATES_IN_NONE &&
-                (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
+        return dominates_in[l1][l2] == DOMINATES_IN_ALL ||
+                (//dominates_in[l1][l2] != DOMINATES_IN_NONE &&
                         dominates_in[l1][l2] == lts);
+//        return dominates_in[l1][l2] != DOMINATES_IN_NONE &&
+//                (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
+//                        dominates_in[l1][l2] == lts);
     }
 
 };
