@@ -44,6 +44,8 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
 		      || (t.src == t2.src && t.label == t2.label && t.target < t2.target);
 	      });
 
+    qaPre_map.resize(num_labels);
+    qaPost_map.resize(num_labels);
     //cout << "Set Transitions pre: " << endl;
     set_sl(transitionsPre, qaPre, qaPre_map, [](const LTSTransitionEfficient & t){    
 	    return t.target;
@@ -64,7 +66,7 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
 }
 
 void LTSEfficient::set_sl(vector <LTSTransitionEfficient> & transitions,
-			  vector <Qa> & qa, std::map<int, std::map<int, int> > & qaMap,
+			  vector <Qa> & qa, std::vector<std::map<int, int> > & qaMap,
 			  function<int (const LTSTransitionEfficient &)> fget) {
     int s, l, index = 0, qaindex= 0;
     for(int i = 0; i < transitions.size(); i++){
