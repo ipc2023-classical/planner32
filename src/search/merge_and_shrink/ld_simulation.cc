@@ -4,8 +4,8 @@
 #include "shrink_bisimulation.h"
 #include "simulation_simple.h"
 #include "simulation_identity.h"
-
 #include "simulation_efficient.h"
+#include "simulation_efficient_nold.h"
 #include "merge_strategy.h"
 #include "labelled_transition_system.h"
 #include "opt_order.h"
@@ -250,11 +250,16 @@ void LDSimulation::compute_ld_simulation_efficient(Labels * _labels,
         ltss.push_back(a->get_lts_efficient(labelMap));
         cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
         //Create initial goal-respecting relation
-        _simulations.push_back(new SimulationRelationEfficient(a));
+	if(no_ld){
+	    _simulations.push_back(new SimulationRelationEfficientNoLD(a));
+	}else{
+	    _simulations.push_back(new SimulationRelationEfficient(a));
+	}
     }
 
     LabelRelation TMPlabel (_labels);
-    TMPlabel.init(ltss, _simulations, labelMap);
+    if(!no_ld)
+	TMPlabel.init(ltss, _simulations, labelMap);
     Timer t;
     compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
     cout << "Time new: " << t() << endl;
@@ -277,7 +282,8 @@ void LDSimulation::compute_ld_simulation_efficient(Labels * _labels,
     }
 
     LabelRelation TMPlabel2 (_labels);
-    TMPlabel2.init(ltss2, sim2, labelMap);
+    if(!no_ld)
+	TMPlabel2.init(ltss2, sim2, labelMap);
 
     Timer t2;
     compute_ld_simulation(_labels, ltss2, sim2, labelMap, no_ld);

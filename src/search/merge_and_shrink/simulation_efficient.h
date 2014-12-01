@@ -182,6 +182,7 @@ class LabelData {
 
 
 class SimulationRelationEfficient : public SimulationRelation {
+ protected:
     //By now we assume that the partition is unitary... we can improve
     //this later with EquivalenceRelation
     //Temporary structures to compute the simulation
@@ -203,7 +204,7 @@ class SimulationRelationEfficient : public SimulationRelation {
  public:
     SimulationRelationEfficient(const Abstraction * _abs);
 
-    void init (int lts_id, const LTSEfficient * lts,
+    virtual void init (int lts_id, const LTSEfficient * lts,
 		   const LabelRelation & label_dominance, 
 		   std::queue <Block *> & blocksToUpdate);
 
