@@ -1,6 +1,7 @@
 #include "simulation_efficient.h"
 
 #include <queue> 
+#include "../debug.h" 
 
 using namespace std;
 
@@ -207,7 +208,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
         blocksToUpdate.pop();
         b->markS = false;
 
-        cout << "Selected block: "; b->dump(Qp); cout << endl;
+        DEBUG_MSG(cout << "Selected block: "; b->dump(Qp); cout << endl;);
         //Block b has notRel => c does not dominate b anymore. Check
         //transitions to c because they do not simulate transitions to
         //b anymore.
@@ -329,11 +330,12 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
             split_block(label_data.get_remove(l), splitCouples, blocksInRemove);
 
             for(const auto & p : splitCouples){
-                cout <<"Blocks: " << p.first->index << " (";
-                for(int i = p.first->node.b; i <= p.first->node.e; ++i) cout << " " << Qp[i];
-                cout <<") and " << p.second->index << " (";
-                for(int i = p.second->node.b; i <= p.second->node.e; ++i) cout << " " << Qp[i];
-                cout << ") have been splitted" << endl;
+                DEBUG_MSG(cout <<"Blocks: " << p.first->index << " (";
+			  for(int i = p.first->node.b; i <= p.first->node.e; ++i) cout << " " << Qp[i];
+			  cout <<") and " << p.second->index << " (";
+			  for(int i = p.second->node.b; i <= p.second->node.e; ++i) cout << " " << Qp[i];
+			  cout << ") have been splitted" << endl;
+			  );
 
                 p.first->remove_rel(p.second);
                 p.first->add_notRel(p.second, lts, Qp);
@@ -345,7 +347,8 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
 
 
                 if(unmarked(p.first->markS)) blocksToUpdate.push(p.first);
-            }
+                else if (unmarked(p.second->markS)) blocksToUpdate.push(p.second);
+	    }
 
             //cout << "processed couples splitted." << endl;
             for(auto  d : blocksInRemove) {
@@ -353,7 +356,7 @@ void  SimulationRelationEfficient::update(int lts_id, const LTSEfficient * lts,
                 for (int s : label_data.get_preB(l)){
                     Block * c = partition[Qp_block[s]].get();
                     if (c->in_rel(d)){
-                        d->dump(Qp);  cout << " does not simulate "; c->dump(Qp); cout << endl;
+                        DEBUG_MSG(d->dump(Qp);  cout << " does not simulate "; c->dump(Qp); cout << endl;);
                         c->remove_rel(d);
                         c->add_notRel(d, lts, Qp);
                         if(unmarked(c->markS)) blocksToUpdate.push(c);
@@ -471,19 +474,27 @@ bool SimulationRelationEfficient::get_in_pre_rel(Block * b, int src, int label, 
                 int sl = lts->get_qa_post(l,src).index;
                 //cout << "sl index " << sl << endl;
                 //For every block C in rel(B)
-                for(int idC : b->rel){
-                    //cout << "Have a transition labelled with " << l << " to ";
-                    //partition[idC]->dump(Qp);
-                    /*cout << " >= "; b->dump(Qp); cout << "?" << endl;
-		     cout << " relCount: "; 
-		     for(int i : partition[idC]->relCount) cout << i;
-		     cout << endl;*/
+		if(b->hasTransitionFrom(sl)){
+		    //cout << "YES" << endl;
+		    return true; //Found!
+		}
 
-                    if(partition[idC]->hasTransitionFrom(sl)){
-                        //cout << "YES" << endl;
-                        return true; //Found!
-                    }
-                }
+		// Bug solved: Checking b->hasTransitionFrom(sl)
+		// already checks whether sl has a transition to any
+		// block better than B. The loop causes a severe bug.
+		// for(int idC : b->rel){
+                //     //cout << "Have a transition labelled with " << l << " to ";
+                //     //partition[idC]->dump(Qp);
+                //     /*cout << " >= "; b->dump(Qp); cout << "?" << endl;
+		//      cout << " relCount: "; 
+		//      for(int i : partition[idC]->relCount) cout << i;
+		//      cout << endl;*/
+
+                //     if(partition[idC]->hasTransitionFrom(sl)){
+                //         //cout << "YES" << endl;
+                //         return true; //Found!
+                //     }
+                // }
             }
         }
     }

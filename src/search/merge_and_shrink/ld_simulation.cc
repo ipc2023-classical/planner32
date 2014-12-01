@@ -665,10 +665,6 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 }
 
 
-
-
-
-
 //Returns a optimized variable ordering that reorders the variables
 //according to the standard causal graph criterion
 void LDSimulation::getVariableOrdering(vector <int> & var_order){
