@@ -201,9 +201,16 @@ void LDSimulation::build_abstraction() {
         all_abstractions.push_back(new_abstraction);
 
         cout << "Next it: " << t() << endl;
-        // if(intermediate_simulations){
-        // 	compute_ld_simulation(labels, all_abstractions, all_simulations);
-        // }
+        if(intermediate_simulations){
+	    abstractions.clear();
+	    for (size_t i = 0; i < all_abstractions.size(); ++i) {
+		if (all_abstractions[i]) {
+		    abstractions.push_back(all_abstractions[i]);
+		}
+	    }
+
+	    compute_ld_simulation();
+	}
     }
 
     for (size_t i = 0; i < all_abstractions.size(); ++i) {
