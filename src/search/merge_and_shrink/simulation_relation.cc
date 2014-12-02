@@ -223,8 +223,9 @@ void SimulationRelation::shrink() {
     if (abs->size() != equivRel.size()) {
         cout << "Size for applying simulation shrinking: " << equivRel.size() << "; was: " << abs->size() << endl;
         abs->apply_abstraction(equivRel);
+        abs->normalize();
 
-        vector<vector<int> > newRelation(equivRel.size());
+        vector<vector<bool> > newRelation(equivRel.size());
         for (int i = 0; i < newRelation.size(); i++) {
             newRelation[i].resize(equivRel.size());
             int old_i = equivRel[i].front();
@@ -233,6 +234,8 @@ void SimulationRelation::shrink() {
                 newRelation[i][j] = relation[old_i][old_j];
             }
         }
+        vector<vector<bool> >().swap(relation);
+        relation.swap(newRelation);
     } else {
         cout << "Simulation shrinking did not shrink anything" << endl;
     }
