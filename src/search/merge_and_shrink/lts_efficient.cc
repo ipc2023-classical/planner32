@@ -46,12 +46,14 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
 
     qaPre_map.resize(num_labels);
     qaPost_map.resize(num_labels);
+    rangePostSrc.resize(num_states);
+    rangePreTarget.resize(num_states);
     //cout << "Set Transitions pre: " << endl;
-    set_sl(transitionsPre, qaPre, qaPre_map, [](const LTSTransition & t){    
+    set_sl(transitionsPre, qaPre, qaPre_map, rangePreTarget, [](const LTSTransition & t){    
 	    return t.target;
 	});
     //cout << "Set Transitions post: " << endl;
-    set_sl(transitionsPost, qaPost, qaPost_map, [](const LTSTransition & t){    
+    set_sl(transitionsPost, qaPost, qaPost_map, rangePostSrc, [](const LTSTransition & t){    
 	    return t.src;
 	});
     
@@ -67,8 +69,10 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
 
 void LTSEfficient::set_sl(vector <LTSTransition> & transitions,
 			  vector <Qa> & qa, std::vector<std::map<int, int> > & qaMap,
+			  vector<pair<int, int> > & rangeStates,
 			  function<int (const LTSTransition &)> fget) {
     int s, l, index = 0, qaindex= 0;
+    int indexS = 0;
     for(int i = 0; i < transitions.size(); i++){
 	//cout << "Introducing t: " << transitions[i] << endl;
 	//transitions[i].sl = qaindex;
@@ -80,6 +84,10 @@ void LTSEfficient::set_sl(vector <LTSTransition> & transitions,
 		qa.push_back(q);
 		index = i;
 		//transitions[i].sl = qaindex;
+		if(s != fget(transitions[i])){
+		    rangeStates[s] = pair<int, int>(indexS, i-1);
+		    indexS = i;
+		}
 	    }
 	    s = fget(transitions[i]);
 	    l = transitions[i].label;

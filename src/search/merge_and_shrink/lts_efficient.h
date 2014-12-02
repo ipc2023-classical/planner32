@@ -50,11 +50,13 @@ class LTSEfficient {
     std::vector <LTSTransition> transitionsPost, transitionsPre;
     std::vector<Qa> qaPre, qaPost;
     std::vector<std::map <int, int> > qaPre_map, qaPost_map;
+    std::vector<std::pair<int, int> > rangePostSrc, rangePreTarget;
     //Map [label][state] -> qa
 
     void set_sl(std::vector <LTSTransition> & transitions,
             std::vector<Qa> & qa, std::vector<std::map<int, int> > & qaMap,
-            std::function<int (const LTSTransition &)> fget);
+		std::vector<std::pair<int, int> > & rangeStates,
+		std::function<int (const LTSTransition &)> fget);
 
 public:
     LTSEfficient (Abstraction * abs, const LabelMap & labelMap);
@@ -195,34 +197,54 @@ public:
     }
 
     //For each transition labelled with l, apply a function. If returns true, applies a break
+    /* bool applyPostSrc(int src, */
+    /* 		      std::function<bool(const LTSTransition & tr)> && f) const { */
+    /*     for(auto & pm : qaPost_map){ */
+    /*         auto it = pm.find(src); */
+    /*         if (it != pm.end()) { */
+    /*             const Qa & qa = qaPost[(*it).second]; */
+    /*             for(int i = qa.b; i <= qa.e; ++i){ */
+    /*                 if(f(transitionsPost[i])) return true; */
+    /*             } */
+    /*         } */
+    /*     } */
+    /*     return false; */
+    /* } */
+
+    /* //For each transition labelled with l, apply a function. If returns true, applies a break */
+    /* bool applyPreTarget(int target, */
+    /*         std::function<bool(const LTSTransition & tr)> && f) const { */
+    /*     for(auto & pm : qaPre_map){ */
+    /*         auto it = pm.find(target); */
+    /*         if (it != pm.end()) { */
+    /*             const Qa & qa = qaPre[(*it).second]; */
+    /*             for(int i = qa.b; i <= qa.e; ++i){ */
+    /*                 if(f(transitionsPre[i])) return true; */
+    /*             } */
+    /*         } */
+    /*     } */
+    /*     return false; */
+    /* } */
+
     bool applyPostSrc(int src,
-		      std::function<bool(const LTSTransition & tr)> && f) const {
-        for(auto & pm : qaPost_map){
-            auto it = pm.find(src);
-            if (it != pm.end()) {
-                const Qa & qa = qaPost[(*it).second];
-                for(int i = qa.b; i <= qa.e; ++i){
-                    if(f(transitionsPost[i])) return true;
-                }
-            }
-        }
+    		      std::function<bool(const LTSTransition & tr)> && f) const {
+	const std::pair<int, int> &p  = rangePostSrc[src];
+	for(int i = p.first; i <= p.second; ++i){
+	    if(f(transitionsPost[i])) return true;
+	}
         return false;
     }
 
-    //For each transition labelled with l, apply a function. If returns true, applies a break
     bool applyPreTarget(int target,
-            std::function<bool(const LTSTransition & tr)> && f) const {
-        for(auto & pm : qaPre_map){
-            auto it = pm.find(target);
-            if (it != pm.end()) {
-                const Qa & qa = qaPre[(*it).second];
-                for(int i = qa.b; i <= qa.e; ++i){
-                    if(f(transitionsPre[i])) return true;
-                }
-            }
-        }
+    		      std::function<bool(const LTSTransition & tr)> && f) const {
+	const std::pair<int, int> &p  = rangePreTarget[target];
+	for(int i = p.first; i <= p.second; ++i){
+	    if(f(transitionsPost[i])) return true;
+	}
         return false;
     }
+
+
 
     void dump_names() const;
 

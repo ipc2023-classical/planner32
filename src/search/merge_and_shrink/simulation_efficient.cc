@@ -6,8 +6,6 @@
 #include "labelled_transition_system.h" 
 #include "lts_efficient.h" 
 
-
-
 using namespace std;
 
 template <typename LTS> 

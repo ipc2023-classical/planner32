@@ -103,7 +103,7 @@ class LabelledTransitionSystem {
     return abs;
   }
 
-  //For each transition labelled with l, apply a function. If returns true, applies a break
+  //For each transition labelled with l, applya a function. If returns true, applies a break
   bool applyPostSrc(int from,
 		    std::function<bool(const LTSTransition & tr)> && f) const {
       for(const auto & tr : transitions_src[from]){
@@ -111,7 +111,6 @@ class LabelledTransitionSystem {
       }
       return false;
   }
-
 };
 
 #endif
