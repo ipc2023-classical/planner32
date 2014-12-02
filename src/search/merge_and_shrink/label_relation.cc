@@ -93,9 +93,18 @@ void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_domina
             continue;
         }
 
+        // PIET-edit: Here we do not remove either label if they dominate each other in all LTSs.
+//        for (int l2 = 0; l2 < dominates_in.size(); ++l2){
+//            if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL &&
+//                    !dominates_in[l][l2] == DOMINATES_IN_ALL){
+//                labels_dominated_in_all.push_back(l);
+//                break;
+//            }
+//        }
+        // PIET-edit: Here we remove one of the two labels dominating each other in all LTSs.
         for (int l2 = 0; l2 < dominates_in.size(); ++l2){
-            if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL &&
-                    !dominates_in[l][l2] == DOMINATES_IN_ALL){
+            if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && !dominates_in[l][l2] == DOMINATES_IN_ALL)
+                    || (l2 > l && dominates_in[l2][l] == DOMINATES_IN_ALL)) {
                 labels_dominated_in_all.push_back(l);
                 break;
             }

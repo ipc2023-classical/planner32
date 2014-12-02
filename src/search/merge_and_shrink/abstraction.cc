@@ -1231,7 +1231,9 @@ void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars,
 // transitions of a given label (it is completely dominated by
 // some other label or by noop)
 int Abstraction::prune_transitions_dominated_label_all(int label_no) {
-    int num = transitions_by_label.size();
+    // PIET-edit: num should only be the number of pruned transitions, i.e., those with the correct label, right?
+    //int num = transitions_by_label.size();
+    int num = transitions_by_label[label_no].size();
     vector<AbstractTransition> ().swap(transitions_by_label[label_no]);
     return num;
 }
@@ -1239,19 +1241,20 @@ int Abstraction::prune_transitions_dominated_label_all(int label_no) {
 // Prune all the transitions of label_no such that exist a better
 // transition for label_no_by
 int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by,
-						    SimulationRelation & rel) {
+        SimulationRelation & rel) {
     int num = transitions_by_label[label_no].size();
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
-							end(transitions_by_label[label_no]),
-							[this, &rel, label_no_by](AbstractTransition & t){
-							    return std::find_if(begin(transitions_by_label[label_no_by]), 
-										end(transitions_by_label[label_no_by]), 
-										[&rel, &t](AbstractTransition & t2){
-										    return t2.src == t.src && 
-											rel.simulates(t2.target, t.target);
-										}) != end(transitions_by_label[label_no_by]);
-							}),
-					 transitions_by_label[label_no].end());    
+            end(transitions_by_label[label_no]),
+            [&](AbstractTransition & t){
+        return std::find_if(begin(transitions_by_label[label_no_by]),
+                end(transitions_by_label[label_no_by]),
+                [&](AbstractTransition & t2){
+            /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
+            return t2.src == t.src && ((t2.target != t.target) || (label_no != label_no_by)) &&
+                    rel.simulates(t2.target, t.target);
+        }) != end(transitions_by_label[label_no_by]);
+    }),
+    transitions_by_label[label_no].end());
     return num - transitions_by_label[label_no].size();
 
 }

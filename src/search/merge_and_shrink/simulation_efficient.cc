@@ -32,7 +32,7 @@ unique_ptr<Block> Block::split(int index) {
     return newb;
 }
 
-SimulationRelationEfficient::SimulationRelationEfficient(const Abstraction * _abs) 
+SimulationRelationEfficient::SimulationRelationEfficient(Abstraction * _abs)
 : SimulationRelation (_abs){
     //cout << "Generate efficient relation" << endl;
     int num_states = abs->size();

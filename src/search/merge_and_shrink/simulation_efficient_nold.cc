@@ -5,7 +5,7 @@
 
 using namespace std;
 
-SimulationRelationEfficientNoLD::SimulationRelationEfficientNoLD (const Abstraction * _abs) 
+SimulationRelationEfficientNoLD::SimulationRelationEfficientNoLD (Abstraction * _abs)
     : SimulationRelationEfficient (_abs){
 }
 

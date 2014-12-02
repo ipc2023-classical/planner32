@@ -11,7 +11,7 @@ class SimulationRelationEfficientNoLD : public SimulationRelationEfficient{
 		   std::queue <Block *> & blocksToUpdate);
     
  public:
-    SimulationRelationEfficientNoLD(const Abstraction * _abs);
+    SimulationRelationEfficientNoLD(Abstraction * _abs);
 
     
 

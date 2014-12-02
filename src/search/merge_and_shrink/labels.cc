@@ -75,14 +75,14 @@ const std::set<Abstraction *> & Labels::get_relevant_for (int label_no) const{
 }
 
 void Labels::prune_irrelevant_labels(){
-    set<int> ops; 
-    for (auto label : labels){
-	if (label->is_irrelevant()){
-	    label->get_operators(ops);
-	}
+    set<int> ops;
+    for (auto label : labels) {
+        if (label->is_irrelevant()) {
+            label->get_operators(ops);
+        }
     }
     cout << ops.size() << " irrelevant operators." << endl;
-    for (int op : ops){
-	cout << "Irrelevant operator: " << g_operators[op].get_name() << endl;
+    for (int op : ops) {
+        cout << "Irrelevant operator: " << g_operators[op].get_name() << endl;
     }
 }

@@ -17,34 +17,47 @@
 using namespace std;
 
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
-		          skip_simulation(opts.get<bool>("skip_simulation")),
-		          nold_simulation(opts.get<bool>("nold_simulation")),
-		          efficient_simulation(opts.get<bool>("efficient_simulation")),
-		          efficient_lts(opts.get<bool>("efficient_lts")),
-		          use_expensive_statistics(opts.get<bool>("expensive_statistics")),
-		          limit_absstates_merge(opts.get<int>("limit_merge")),
-		          limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
-		          use_mas(opts.get<bool>("use_mas")),
-		          limit_seconds_mas(opts.get<int>("limit_seconds")),
-		          merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
-		          use_bisimulation(opts.get<bool>("use_bisimulation")),
-		          intermediate_simulations(opts.get<bool>("intermediate_simulations")),
-		          labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
-{}
+		                  skip_simulation(opts.get<bool>("skip_simulation")),
+		                  nold_simulation(opts.get<bool>("nold_simulation")),
+		                  apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
+		                  apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
+		                  efficient_simulation(opts.get<bool>("efficient_simulation")),
+		                  efficient_lts(opts.get<bool>("efficient_lts")),
+		                  use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+		                  limit_absstates_merge(opts.get<int>("limit_merge")),
+		                  limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
+		                  use_mas(opts.get<bool>("use_mas")),
+		                  limit_seconds_mas(opts.get<int>("limit_seconds")),
+		                  merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
+		                  use_bisimulation(opts.get<bool>("use_bisimulation")),
+		                  intermediate_simulations(opts.get<bool>("intermediate_simulations")),
+		                  labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
+{
+    if (apply_irrelevant_transitions_pruning && ! apply_simulation_shrinking) {
+        cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking is used!" << endl;
+        exit(1);
+    }
+}
 
 LDSimulation::LDSimulation(const Options &opts) : 
-    		        skip_simulation(opts.get<bool>("skip_simulation")),
-    		        nold_simulation(opts.get<bool>("nold_simulation")),
-    		        efficient_simulation(opts.get<bool>("efficient_simulation")),
-    		        efficient_lts(opts.get<bool>("efficient_lts")),
-    		        use_expensive_statistics(opts.get<bool>("expensive_statistics")),
-    		        limit_absstates_merge(opts.get<int>("limit_merge")),
-    		        limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
-    		        use_mas(opts.get<bool>("use_mas")),
-    		        limit_seconds_mas(opts.get<int>("limit_seconds")),
-    		        merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
-    		        use_bisimulation(opts.get<bool>("use_bisimulation")),
-    		        intermediate_simulations(opts.get<bool>("intermediate_simulations")){
+    		                skip_simulation(opts.get<bool>("skip_simulation")),
+    		                nold_simulation(opts.get<bool>("nold_simulation")),
+                            apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
+                            apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
+    		                efficient_simulation(opts.get<bool>("efficient_simulation")),
+    		                efficient_lts(opts.get<bool>("efficient_lts")),
+    		                use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+    		                limit_absstates_merge(opts.get<int>("limit_merge")),
+    		                limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
+    		                use_mas(opts.get<bool>("use_mas")),
+    		                limit_seconds_mas(opts.get<int>("limit_seconds")),
+    		                merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
+    		                use_bisimulation(opts.get<bool>("use_bisimulation")),
+    		                intermediate_simulations(opts.get<bool>("intermediate_simulations")){
+    if (apply_irrelevant_transitions_pruning && ! apply_simulation_shrinking) {
+        cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking is used!" << endl;
+        exit(1);
+    }
     //TODO: Copied from heuristic.cc. Move to the PlanningTask class
     //that someday will be added to FD.
     OperatorCost cost_type = OperatorCost::NORMAL;
@@ -223,35 +236,53 @@ void LDSimulation::compute_ld_simulation() {
     vector<LabelledTransitionSystem *> ltss_simple;
     vector<LTSEfficient *> ltss_efficient;
     for (auto a : abstractions){
-	int lts_size, lts_trs;
-	if(efficient_lts){
-	    ltss_efficient.push_back(a->get_lts_efficient(labels.get()));
-	    lts_size= ltss_efficient.back()->size();
-	    lts_trs= ltss_efficient.back()->num_transitions();
-	}else{
-	    ltss_simple.push_back(a->get_lts(labels.get()));
-	    lts_size= ltss_simple.back()->size();
-	    lts_trs= ltss_simple.back()->num_transitions();
-	}
+        int lts_size, lts_trs;
+        if(efficient_lts){
+            ltss_efficient.push_back(a->get_lts_efficient(labels.get()));
+            lts_size= ltss_efficient.back()->size();
+            lts_trs= ltss_efficient.back()->num_transitions();
+        }else{
+            ltss_simple.push_back(a->get_lts(labels.get()));
+            lts_size= ltss_simple.back()->size();
+            lts_trs= ltss_simple.back()->num_transitions();
+        }
         cout << "LTS built: " << lts_size << " states " 
-	     << lts_trs << " transitions " 
-	     << labels->get_size() << " num_labels"  << endl;
-	
-	if(efficient_simulation){
-	    if(nold_simulation){
-		simulations.push_back(new SimulationRelationEfficientNoLD(a));
-	    }else{
-		simulations.push_back(new SimulationRelationEfficient(a));
-	    }
-	}else{
-	    //Create initial goal-respecting relation
-	    simulations.push_back(new SimulationRelationSimple(a));
-	}
+                << lts_trs << " transitions "
+                << labelMap.get_num_labels() << " num_labels"  << endl;
+
+        if(efficient_simulation){
+            if(nold_simulation){
+                simulations.push_back(new SimulationRelationEfficientNoLD(a));
+            }else{
+                simulations.push_back(new SimulationRelationEfficient(a));
+            }
+        }else{
+            //Create initial goal-respecting relation
+            simulations.push_back(new SimulationRelationSimple(a));
+        }
     }
+    LabelRelation label_dominance (labels.get());
     if(efficient_lts){
-	compute_ld_simulation(labels.get(), ltss_efficient, simulations, labelMap, nold_simulation);
+        compute_ld_simulation(ltss_efficient, labelMap, label_dominance);
     }else{
-	compute_ld_simulation(labels.get(), ltss_simple, simulations, labelMap, nold_simulation);
+        compute_ld_simulation(ltss_simple, labelMap, label_dominance);
+    }
+
+    if (apply_simulation_shrinking) {
+        for (auto sim : simulations) {
+            sim->shrink();
+        }
+    }
+
+    if (apply_irrelevant_transitions_pruning) {
+        int num_pruned_trs = prune_irrelevant_transitions(labelMap, label_dominance);
+        //if(num_pruned_trs){
+        std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
+        //_labels->prune_irrelevant_labels();
+        // PIET-edit: Seems that the changes in the abstraction are not reflected in the corresponding LTS!
+        for (auto abs : abstractions) {
+            std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << labelMap.get_num_labels() << " num_labels" << std::endl;
+        }
     }
 
     // for(int i = 0; i < _simulations.size(); i++)
@@ -282,45 +313,38 @@ void LDSimulation::compute_ld_simulation() {
 //         _simulations[i]->dump(ltss[i]->get_names());
 // }
 
-
-/* PIET-edit: wouldn't it be more natural to have this in the .cc file? Normally, only functions
- * that take very few lines should be implemented in .h (in this case, I was actually searching
- * quite a while to find the function calling update of the simulation relation */
-template void LDSimulation::compute_ld_simulation<LabelledTransitionSystem>
-   (Labels * _labels,
-    std::vector<LabelledTransitionSystem *> & _ltss,
-    std::vector<SimulationRelation *> & _simulations,
-    const LabelMap & labelMap, bool no_ld);
-
-template void LDSimulation::compute_ld_simulation <LTSEfficient>
-     (Labels * _labels,
-      std::vector<LTSEfficient *> & _ltss,
-      std::vector<SimulationRelation *> & _simulations,
-      const LabelMap & labelMap, bool no_ld);
+//template void LDSimulation::compute_ld_simulation<LabelledTransitionSystem>
+//(Labels * _labels,
+//        std::vector<LabelledTransitionSystem *> & _ltss,
+//        std::vector<SimulationRelation *> & _simulations,
+//        const LabelMap & labelMap, bool no_ld);
+//
+//template void LDSimulation::compute_ld_simulation <LTSEfficient>
+//(Labels * _labels,
+//        std::vector<LTSEfficient *> & _ltss,
+//        std::vector<SimulationRelation *> & _simulations,
+//        const LabelMap & labelMap, bool no_ld);
 
 template <typename LTS>
-void LDSimulation::compute_ld_simulation(Labels * _labels,
-			   std::vector<LTS *> & _ltss,
-			   std::vector<SimulationRelation *> & _simulations,
-			   const LabelMap & labelMap, bool no_ld){
+void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
+        const LabelMap & labelMap, LabelRelation & label_dominance){
     Timer t;
-    LabelRelation label_dominance (_labels);
-    if(!no_ld){
-	label_dominance.init(_ltss, _simulations, labelMap);
+    if(!nold_simulation){
+        label_dominance.init(_ltss, simulations, labelMap);
     }else{
-	label_dominance.init_identity(_ltss.size(), labelMap);
+        label_dominance.init_identity(_ltss.size(), labelMap);
     }
     std::cout << "Label dominance initialized: " << t() << std::endl;
     do{
-	std::cout << "LDsimulation loop: ";
-	//label_dominance.dump();
-	for (int i = 0; i < _simulations.size(); i++){
-	    _simulations[i]->update(i, _ltss[i], label_dominance);
-	    //_simulations[i]->dump(_ltss[i]->get_names());
-	}
-	std::cout << " took " << t() << "s" << std::endl;
-	//return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
-    }while(label_dominance.update(_ltss, _simulations));
+        std::cout << "LDsimulation loop: ";
+        //label_dominance.dump();
+        for (int i = 0; i < simulations.size(); i++){
+            simulations[i]->update(i, _ltss[i], label_dominance);
+            //_simulations[i]->dump(_ltss[i]->get_names());
+        }
+        std::cout << " took " << t() << "s" << std::endl;
+        //return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
+    }while(label_dominance.update(_ltss, simulations));
     //for(int i = 0; i < _ltss.size(); i++){
     //_ltss[i]->dump();
     //	_simulations[i]->dump(_ltss[i]->get_names());
@@ -328,12 +352,7 @@ void LDSimulation::compute_ld_simulation(Labels * _labels,
     //label_dominance.dump_equivalent();
     //label_dominance.dump_dominance();
     //exit(0);
-    // int num_pruned_trs = prune_irrelevant_transitions(_ltss, _simulations, label_dominance);
-
-    // if(num_pruned_trs){
-    // 	 cout <<  num_pruned_trs << " transitions in the LTSs were pruned." << endl;
-    // 	 _labels->prune_irrelevant_labels();
-    // }
+    //}
 }
 
 // void LDSimulation::compute_ld_simulation_efficient(Labels * _labels, 
@@ -436,45 +455,53 @@ void LDSimulation::compute_ld_simulation(Labels * _labels,
 //     exit(0);
 // }
 
-
-// THIS DOES NOT WORK YET
-int LDSimulation::prune_irrelevant_transitions(vector<LabelledTransitionSystem *> & _ltss, 
-        vector<SimulationRelation *> & _simulations,
+// PIET-edit: Seems to work now, at least if simulation shrinking is applied before calling this
+int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
         LabelRelation & label_dominance){
     int num_pruned_transitions = 0;
-    vector <int> labels_id;
-    label_dominance.get_labels_dominated_in_all(labels_id);
+
     //a) prune transitions of labels that are completely dominated by
     //other in all LTS
-    for (auto lts : _ltss){
-        Abstraction * abs = lts->get_abstraction();
+    vector <int> labels_id;
+    label_dominance.get_labels_dominated_in_all(labels_id);
+    for (auto abs : abstractions){
         for (int l : labels_id)
             num_pruned_transitions += abs->prune_transitions_dominated_label_all(l);
     }
+
     //b) prune transitions dominated by noop in a transition system
     for (int l = 0; l < label_dominance.get_num_labels(); l++){
         int lts = label_dominance.get_dominated_by_noop_in(l);
         if(lts >= 0){
-            num_pruned_transitions += _ltss[lts]->get_abstraction()->prune_transitions_dominated_label_noop(l, *(_simulations[lts]));
+            // the index of the LTS and its corresponding abstraction should always be the same -- be careful about
+            // this in the other code!
+            num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(l, *(simulations[lts]));
         }
     }
 
     //c) prune transitions dominated by other transitions
-    // for (int lts = 0; lts < _ltss.size(); lts++){
-    // 	Abstraction * abs = _ltss[lts]->get_abstraction();
-    // 	const auto & is_relvar = abs->get_relevant_labels();
-    // 	//l : Iterate over relevant labels
-    // 	for (int l = 0; l < is_relvar.size(); ++l){
-    // 	    if(!is_relvar[l]) continue;
-    // 	    for (int l2 = 0; l2 < is_relvar.size(); ++l2){
-    // 		if(!is_relvar[l2]) continue;
-    // 		//l2 : Iterate over relevant labels
-    // 		if (label_dominance.dominates(l2, l, lts)){
-    // 		    num_pruned_transitions += abs->prune_transitions_dominated_label(l, l2, *(_simulations[lts]));
-    // 		}
-    // 	    }
-    // 	}
-    // }
+    for (int lts = 0; lts < abstractions.size(); lts++) {
+        Abstraction* abs = abstractions[lts];
+        const auto & is_rel_label = abs->get_relevant_labels();
+        //l : Iterate over relevant labels
+        for (int l = 0; l < is_rel_label.size(); ++l){
+            if(!is_rel_label[l]) continue;
+            int label_l = labelMap.get_id(l);
+            for (int l2 = 0; l2 < is_rel_label.size(); ++l2){
+                if(!is_rel_label[l2]) continue;
+                int label_l2 = labelMap.get_id(l2);
+                //l2 : Iterate over relevant labels
+                /* PIET-edit: after talking to Alvaro, it seems that the only critical case, i.e., having two labels l and l'
+                 * with l >= l' and l' >= l, and two transitions, s--l->t and s--l'->t' with t >= t' and t' >= t, cannot occur
+                 * if we first run simulation-shrinking. So, if we make sure that it is run before irrelevance pruning, we
+                 * should have no problems here.
+                 */
+                if (label_dominance.dominates(label_l2, label_l, lts)){
+                    num_pruned_transitions += abs->prune_transitions_dominated_label(l, l2, *(simulations[lts]));
+                }
+            }
+        }
+    }
 
     return num_pruned_transitions;
 }
@@ -546,7 +573,7 @@ void LDSimulation::initialize() {
             simulations.push_back(new SimulationRelationIdentity(a));
         }
     }else{
-	compute_ld_simulation();
+        compute_ld_simulation();
     }
     cout << "Done initializing simulation heuristic [" << timer << "]"
             << endl;
@@ -764,6 +791,13 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
             "Perform only simulation but without label dominance",
             "false");
 
+    parser.add_option<bool>("apply_simulation_shrinking",
+            "Perform simulation shrinking",
+            "false");
+
+    parser.add_option<bool>("apply_irrelevant_transitions_pruning",
+            "Perform pruning of irrelevant transitions, based on simulation shrinking. Note: can only be used if simulation shrinking is applied!",
+            "false");
 
 }
 

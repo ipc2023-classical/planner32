@@ -10,7 +10,7 @@
 
 using namespace std;
 
-SimulationRelationIdentity::SimulationRelationIdentity(const Abstraction * _abs) : SimulationRelation(_abs){
+SimulationRelationIdentity::SimulationRelationIdentity(Abstraction * _abs) : SimulationRelation(_abs){
     for(int i = 0; i < relation.size(); i++){
 	for(int j = 0; j < relation[i].size(); j++){
 	    relation[i][j] = (i==j);

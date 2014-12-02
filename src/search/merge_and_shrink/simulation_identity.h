@@ -8,7 +8,7 @@
 class SimulationRelationIdentity : public SimulationRelation{
 
  public:
-    SimulationRelationIdentity(const Abstraction * _abs);
+    SimulationRelationIdentity(Abstraction * _abs);
     void update(int , 
 		const LabelledTransitionSystem * , 
 		const LabelRelation & ){}

@@ -9,7 +9,7 @@ class Labels;
 class SimulationRelationSimple : public SimulationRelation{
 
  public:
-    SimulationRelationSimple(const Abstraction * _abs);
+    SimulationRelationSimple(Abstraction * _abs);
 
     /*
      * THIS IMPLEMENTATION IS VERY INNEFICIENT

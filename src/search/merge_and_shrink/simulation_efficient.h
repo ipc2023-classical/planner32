@@ -206,7 +206,7 @@ class SimulationRelationEfficient : public SimulationRelation {
 			     std::queue <Block *> & blocksToUpdate);
     
  public:
-    SimulationRelationEfficient(const Abstraction * _abs);
+    SimulationRelationEfficient(Abstraction * _abs);
 
 
     virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,

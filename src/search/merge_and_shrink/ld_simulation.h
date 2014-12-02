@@ -24,6 +24,9 @@ protected:
     const bool skip_simulation;
     const bool nold_simulation;
 
+    const bool apply_simulation_shrinking;
+    const bool apply_irrelevant_transitions_pruning;
+
     const bool efficient_simulation;
     const bool efficient_lts;
 
@@ -70,15 +73,11 @@ protected:
 
 
     template <typename LTS>
-	static void compute_ld_simulation(Labels * _labels,
-					  std::vector<LTS *> & _ltss,
-					  std::vector<SimulationRelation *> & _simulations,
-					  const LabelMap & labelMap, bool no_ld = false);
+    void compute_ld_simulation(std::vector<LTS *> & _ltss,
+            const LabelMap & labelMap,
+            LabelRelation & label_dominance);
 
-
-
-    static int prune_irrelevant_transitions(std::vector<LabelledTransitionSystem *> & _ltss,
-            std::vector<SimulationRelation *> & _simulations,
+    int prune_irrelevant_transitions(const LabelMap & labelMap,
             LabelRelation & label_dominance);
 public:
     LDSimulation(const Options &options);

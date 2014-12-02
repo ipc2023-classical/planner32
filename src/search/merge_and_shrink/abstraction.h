@@ -51,6 +51,7 @@ class Abstraction {
     friend class PDBAbstraction;
 
     friend class ShrinkStrategy; // for apply() -- TODO: refactor!
+    friend class SimulationRelation; // for apply() -- TODO: refactor!
 
     static const int PRUNED_STATE;
     static const int DISTANCE_UNKNOWN;
@@ -121,7 +122,6 @@ class Abstraction {
 
     void apply_abstraction(std::vector<__gnu_cxx::slist<AbstractStateRef> > &collapsed_groups);
 
-    int total_transitions() const;
     int unique_unlabeled_transitions() const;
 protected:
     std::vector<int> varset;
@@ -132,6 +132,8 @@ protected:
 public:
     Abstraction(Labels *labels);
     virtual ~Abstraction();
+
+    int total_transitions() const;
 
     // Two methods to identify the abstraction in output.
     // tag is a convience method that upper-cases the first letter of

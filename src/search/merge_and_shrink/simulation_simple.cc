@@ -11,7 +11,7 @@
 
 using namespace std;
 
-SimulationRelationSimple::SimulationRelationSimple(const Abstraction * _abs) : 
+SimulationRelationSimple::SimulationRelationSimple(Abstraction * _abs) :
     SimulationRelation(_abs){
 }
 

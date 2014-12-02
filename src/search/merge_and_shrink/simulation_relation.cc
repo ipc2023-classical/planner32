@@ -4,11 +4,12 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <ext/slist>
 #include "abstraction.h"
 
 using namespace std;
 
-SimulationRelation::SimulationRelation(const Abstraction * _abs) : abs(_abs){
+SimulationRelation::SimulationRelation(Abstraction * _abs) : abs(_abs){
     int num_states = abs->size();
     const std::vector <bool> & goal_states = abs->get_goal_states();
     relation.resize(num_states);
@@ -200,3 +201,39 @@ double SimulationRelation::get_percentage_equivalences() const{
     return num_eq/(num_states*num_states);
 }
 
+void SimulationRelation::shrink() {
+    std::vector<__gnu_cxx::slist<int> > equivRel;
+    equivRel.reserve(relation.size());
+    std::vector<bool> already_in (relation.size(), false);
+    for (int i = 0; i < already_in.size(); i++) {
+        // was already added due to being similar to some other state
+        if (already_in[i])
+            continue;
+        already_in[i] = true;
+        __gnu_cxx::slist<int> newEquiv;
+        newEquiv.push_front(i);
+        for (int j = i + 1; j < relation.size(); j++) {
+            if (similar(i, j)) {
+                already_in[j] = true;
+                newEquiv.push_front(j);
+            }
+        }
+        equivRel.push_back(newEquiv);
+    }
+    if (abs->size() != equivRel.size()) {
+        cout << "Size for applying simulation shrinking: " << equivRel.size() << "; was: " << abs->size() << endl;
+        abs->apply_abstraction(equivRel);
+
+        vector<vector<int> > newRelation(equivRel.size());
+        for (int i = 0; i < newRelation.size(); i++) {
+            newRelation[i].resize(equivRel.size());
+            int old_i = equivRel[i].front();
+            for (int j = 0; j < equivRel.size(); j++) {
+                int old_j = equivRel[j].front();
+                newRelation[i][j] = relation[old_i][old_j];
+            }
+        }
+    } else {
+        cout << "Simulation shrinking did not shrink anything" << endl;
+    }
+}

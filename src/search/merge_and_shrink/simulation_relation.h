@@ -13,7 +13,7 @@ class Labels;
 // First implementation of a simulation relation. 
 class SimulationRelation {
 protected:
-    const Abstraction * abs;
+    Abstraction * abs;
 
     //By now we assume that the partition is unitary... we can improve
     //this later with EquivalenceRelation
@@ -32,7 +32,7 @@ protected:
     BDD zeroBDD;
 
 public:
-    SimulationRelation(const Abstraction * _abs);
+    SimulationRelation(Abstraction * _abs);
 
     virtual ~SimulationRelation(){}
 
@@ -112,6 +112,8 @@ public:
     //Computes the probability of selecting a random pair s, s' such that
     //s is equivalent to s'.
     double get_percentage_equivalences() const;
+
+    void shrink();
 
 };
 
