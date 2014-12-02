@@ -17,21 +17,21 @@
 using namespace std;
 
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
-		                  skip_simulation(opts.get<bool>("skip_simulation")),
-		                  nold_simulation(opts.get<bool>("nold_simulation")),
-		                  apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
-		                  apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
-		                  efficient_simulation(opts.get<bool>("efficient_simulation")),
-		                  efficient_lts(opts.get<bool>("efficient_lts")),
-		                  use_expensive_statistics(opts.get<bool>("expensive_statistics")),
-		                  limit_absstates_merge(opts.get<int>("limit_merge")),
-		                  limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
-		                  use_mas(opts.get<bool>("use_mas")),
-		                  limit_seconds_mas(opts.get<int>("limit_seconds")),
-		                  merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
-		                  use_bisimulation(opts.get<bool>("use_bisimulation")),
-		                  intermediate_simulations(opts.get<bool>("intermediate_simulations")),
-		                  labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
+		                          skip_simulation(opts.get<bool>("skip_simulation")),
+		                          nold_simulation(opts.get<bool>("nold_simulation")),
+		                          apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
+		                          apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
+		                          efficient_simulation(opts.get<bool>("efficient_simulation")),
+		                          efficient_lts(opts.get<bool>("efficient_lts")),
+		                          use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+		                          limit_absstates_merge(opts.get<int>("limit_merge")),
+		                          limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
+		                          use_mas(opts.get<bool>("use_mas")),
+		                          limit_seconds_mas(opts.get<int>("limit_seconds")),
+		                          merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
+		                          use_bisimulation(opts.get<bool>("use_bisimulation")),
+		                          intermediate_simulations(opts.get<bool>("intermediate_simulations")),
+		                          labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
     if (apply_irrelevant_transitions_pruning && ! apply_simulation_shrinking) {
         cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking is used!" << endl;
@@ -40,20 +40,20 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 }
 
 LDSimulation::LDSimulation(const Options &opts) : 
-    		                skip_simulation(opts.get<bool>("skip_simulation")),
-    		                nold_simulation(opts.get<bool>("nold_simulation")),
-                            apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
-                            apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
-    		                efficient_simulation(opts.get<bool>("efficient_simulation")),
-    		                efficient_lts(opts.get<bool>("efficient_lts")),
-    		                use_expensive_statistics(opts.get<bool>("expensive_statistics")),
-    		                limit_absstates_merge(opts.get<int>("limit_merge")),
-    		                limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
-    		                use_mas(opts.get<bool>("use_mas")),
-    		                limit_seconds_mas(opts.get<int>("limit_seconds")),
-    		                merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
-    		                use_bisimulation(opts.get<bool>("use_bisimulation")),
-    		                intermediate_simulations(opts.get<bool>("intermediate_simulations")){
+    		                        skip_simulation(opts.get<bool>("skip_simulation")),
+    		                        nold_simulation(opts.get<bool>("nold_simulation")),
+    		                        apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
+    		                        apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
+    		                        efficient_simulation(opts.get<bool>("efficient_simulation")),
+    		                        efficient_lts(opts.get<bool>("efficient_lts")),
+    		                        use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+    		                        limit_absstates_merge(opts.get<int>("limit_merge")),
+    		                        limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
+    		                        use_mas(opts.get<bool>("use_mas")),
+    		                        limit_seconds_mas(opts.get<int>("limit_seconds")),
+    		                        merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
+    		                        use_bisimulation(opts.get<bool>("use_bisimulation")),
+    		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")){
     if (apply_irrelevant_transitions_pruning && ! apply_simulation_shrinking) {
         cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking is used!" << endl;
         exit(1);
@@ -105,22 +105,28 @@ void LDSimulation::build_abstraction() {
     vector<Abstraction *> all_abstractions;
     all_abstractions.reserve(g_variable_domain.size() * 2 - 1);
     Abstraction::build_atomic_abstractions(all_abstractions, labels.get());
-
-    // vector of all simulations. only used when computing intermediate simulations
-    // vector<SimulationRelation *> all_simulations;
-    // if(intermediate_simulations){
-    //   all_simulations.reserve(g_variable_domain.size() * 2 - 1);
-    //   compute_ld_simulation(labels.get(), all_abstractions, all_simulations);
-    // }
+    // compute initial simulations, based on atomic abstractions
 
     unique_ptr<ShrinkStrategy> shrink_strategy;
     if(use_bisimulation){
         shrink_strategy = unique_ptr<ShrinkStrategy>(ShrinkBisimulation::create_default());
-        cout << "Shrinking atomic abstractions..." << endl;
+    }
+
+    if (intermediate_simulations) {
+        cout << "Simulation-shrinking atomic abstractions..." << endl;
+        for (size_t i = 0; i < all_abstractions.size(); ++i) {
+            if (all_abstractions[i]) {
+                abstractions.push_back(all_abstractions[i]);
+            }
+        }
+        compute_ld_simulation();
+    } else if (use_bisimulation) {
+        // do not use bisimulation shrinking on atomic abstractions if simulations are used
+        cout << "Bisimulation-shrinking atomic abstractions..." << endl;
         for (size_t i = 0; i < all_abstractions.size(); ++i) {
             all_abstractions[i]->compute_distances();
             // if (!all_abstractions[i]->is_solvable())
-            // 	return all_abstractions[i];
+            //  return all_abstractions[i];
             shrink_strategy->shrink_atomic(*all_abstractions[i]);
         }
     }
@@ -202,18 +208,21 @@ void LDSimulation::build_abstraction() {
 
         cout << "Next it: " << t() << endl;
         if(intermediate_simulations){
-	    abstractions.clear();
-	    for (size_t i = 0; i < all_abstractions.size(); ++i) {
-		if (all_abstractions[i]) {
-		    abstractions.push_back(all_abstractions[i]);
-		}
-	    }
-
-	    compute_ld_simulation();
-	}
+            vector<SimulationRelation *>().swap(simulations);
+            abstractions.clear();
+            for (size_t i = 0; i < all_abstractions.size(); ++i) {
+                if (all_abstractions[i]) {
+                    abstractions.push_back(all_abstractions[i]);
+                }
+            }
+            compute_ld_simulation();
+        }
     }
 
     for (size_t i = 0; i < all_abstractions.size(); ++i) {
+        if (intermediate_simulations) {
+            abstractions.clear();
+        }
         if (all_abstractions[i]) {
             abstractions.push_back(all_abstractions[i]);
             all_abstractions[i]->compute_distances();
@@ -513,26 +522,26 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
     return num_pruned_transitions;
 }
 
-// void LDSimulation::compute_ld_simulation_after_merge(vector<Abstraction *> & all_abstractions, 
-// 						     vector<SimulationRelation *> & all_simulations, 
-//  						     const pair<int, int> & next_systems) {
-//     Abstraction *new_abstraction = all_abstractions.back();
-//     vector <Abstraction *> _abstractions; //vector with only the non-null pointers
-//     vector <Abstraction *> _simulations;  //vector with only the non-null simulations
-//     for (auto a : all_abstractions) if(a) _abstractions.push_back(a);
-//     for (auto s : all_simulations) if(s) _simulations.push_back(s);
-
-//     //b) Reset simulations 
-//     //for(auto & sim :_ simulations){
-// 	//sim->reset();
-// 	//}
-//     //c) Initialize simulation from previous simulations
-//     SimulationRelation * new_sim = new SimulationRelation(new_abstraction, 
-// 							  simulations[next_systems.first],
-// 							  simulations[next_systems.second]);
-//     all_simulations.push_back(new_sim);
-//     _simulations.push_back(new_sim);  
-// }
+//void LDSimulation::compute_ld_simulation_after_merge(vector<Abstraction *> & all_abstractions,
+//        vector<SimulationRelation *> & all_simulations,
+//        const pair<int, int> & next_systems) {
+//    Abstraction *new_abstraction = all_abstractions.back();
+//    vector <Abstraction *> _abstractions; //vector with only the non-null pointers
+//    vector <Abstraction *> _simulations;  //vector with only the non-null simulations
+//    for (auto a : all_abstractions) if(a) _abstractions.push_back(a);
+//    for (auto s : all_simulations) if(s) _simulations.push_back(s);
+//
+//    //b) Reset simulations
+//    //for(auto & sim :_ simulations){
+//    //sim->reset();
+//    //}
+//    //c) Initialize simulation from previous simulations
+//    SimulationRelation * new_sim = new SimulationRelation(new_abstraction,
+//            simulations[next_systems.first],
+//            simulations[next_systems.second]);
+//    all_simulations.push_back(new_sim);
+//    _simulations.push_back(new_sim);
+//}
 
 
 void LDSimulation::dump_options() const {
@@ -580,6 +589,10 @@ void LDSimulation::initialize() {
             simulations.push_back(new SimulationRelationIdentity(a));
         }
     }else{
+        if (intermediate_simulations) {
+            // remove the intermediately built simulations, and create the final ones from scratch
+            vector<SimulationRelation *>().swap(simulations);
+        }
         compute_ld_simulation();
     }
     cout << "Done initializing simulation heuristic [" << timer << "]"

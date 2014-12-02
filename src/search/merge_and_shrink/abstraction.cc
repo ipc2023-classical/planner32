@@ -50,10 +50,10 @@ const int Abstraction::DISTANCE_UNKNOWN = -2;
 static const int infinity = numeric_limits<int>::max();
 
 Abstraction::Abstraction(Labels *labels_)
-    : labels(labels_), num_labels(labels->get_size()),
-      transitions_by_label(g_operators.empty() ? 0 : g_operators.size() * 2 - 1),
-      relevant_labels(transitions_by_label.size(), false),
-      transitions_sorted_unique(true), peak_memory(0) {
+: labels(labels_), num_labels(labels->get_size()),
+  transitions_by_label(g_operators.empty() ? 0 : g_operators.size() * 2 - 1),
+  relevant_labels(transitions_by_label.size(), false),
+  transitions_sorted_unique(true), peak_memory(0) {
     clear_distances();
 }
 
@@ -195,8 +195,8 @@ void Abstraction::compute_distances() {
     }
     if (unreachable_count || irrelevant_count) {
         cout << tag()
-             << "unreachable: " << unreachable_count << " states, "
-             << "irrelevant: " << irrelevant_count << " states" << endl;
+                                     << "unreachable: " << unreachable_count << " states, "
+                                     << "irrelevant: " << irrelevant_count << " states" << endl;
         /* Call shrink to discard unreachable and irrelevant states.
            The strategy must be one that prunes unreachable/irrelevant
            notes, but beyond that the details don't matter, as there
@@ -217,8 +217,8 @@ void Abstraction::compute_distances() {
 }
 
 static void breadth_first_search(
-    const vector<vector<int> > &graph, deque<int> &queue,
-    vector<int> &distances) {
+        const vector<vector<int> > &graph, deque<int> &queue,
+        vector<int> &distances) {
     while (!queue.empty()) {
         int state = queue.front();
         queue.pop_front();
@@ -273,9 +273,9 @@ void Abstraction::compute_goal_distances_unit_cost() {
 }
 
 static void dijkstra_search(
-    const vector<vector<pair<int, int> > > &graph,
-    AdaptiveQueue<int> &queue,
-    vector<int> &distances) {
+        const vector<vector<pair<int, int> > > &graph,
+        AdaptiveQueue<int> &queue,
+        vector<int> &distances) {
     while (!queue.empty()) {
         pair<int, int> top_pair = queue.pop();
         int distance = top_pair.first;
@@ -305,7 +305,7 @@ void Abstraction::compute_init_distances_general_cost() {
         for (int j = 0; j < transitions.size(); j++) {
             const AbstractTransition &trans = transitions[j];
             forward_graph[trans.src].push_back(
-                make_pair(trans.target, label_cost));
+                    make_pair(trans.target, label_cost));
         }
     }
 
@@ -329,7 +329,7 @@ void Abstraction::compute_goal_distances_general_cost() {
         for (int j = 0; j < transitions.size(); j++) {
             const AbstractTransition &trans = transitions[j];
             backward_graph[trans.target].push_back(
-                make_pair(trans.src, label_cost));
+                    make_pair(trans.src, label_cost));
         }
     }
 
@@ -417,7 +417,7 @@ void Abstraction::normalize() {
         for (int i = 0; i < transitions.size(); i++) {
             const AbstractTransition &t = transitions[i];
             target_buckets[t.target].push_back(
-                make_pair(t.src, label_no));
+                    make_pair(t.src, label_no));
         }
         vector<AbstractTransition> ().swap(transitions);
     }
@@ -436,15 +436,15 @@ void Abstraction::normalize() {
        Note that currently we do not detect the case where a label
        becomes irrelevant due to shrinking. This could be a future
        optimization.
-    */
+     */
 
     /* labels_made_irrelevant stores labels for which we collect
        transitions that later turn out to be unnecessary because the
        label becomes irrelevant.
-    */
+     */
     hash_set<int> labels_made_irrelevant;
     for (int reduced_label_no = num_labels; reduced_label_no < labels->get_size();
-         ++reduced_label_no) {
+            ++reduced_label_no) {
         const Label *reduced_label = labels->get_label_by_index(reduced_label_no);
         const vector<Label *> &parents = reduced_label->get_parents();
         bool some_parent_is_irrelevant = false;
@@ -464,7 +464,7 @@ void Abstraction::normalize() {
                 for (int i = 0; i < transitions.size(); i++) {
                     const AbstractTransition &t = transitions[i];
                     target_buckets[t.target].push_back(
-                        make_pair(t.src, reduced_label_no));
+                            make_pair(t.src, reduced_label_no));
                     if (t.target != t.src) {
                         all_transitions_are_self_loops = false;
                     }
@@ -475,7 +475,7 @@ void Abstraction::normalize() {
                 // marked as relevant in order to avoid confusions when
                 // considering all relevant labels).
                 relevant_labels[parent_id] = false;
-		labels->set_irrelevant_for(parent_id, this); 
+                labels->set_irrelevant_for(parent_id, this);
             } else {
                 some_parent_is_irrelevant = true;
             }
@@ -485,21 +485,21 @@ void Abstraction::normalize() {
                 // new label is irrelevant (implicit self-loops)
                 // remove all transitions (later)
                 labels_made_irrelevant.insert(reduced_label_no);
-		labels->set_irrelevant_for(reduced_label_no, this);
+                labels->set_irrelevant_for(reduced_label_no, this);
             } else {
                 // new label is relevant
                 relevant_labels[reduced_label_no] = true;
-		labels->set_relevant_for(reduced_label_no, this);
+                labels->set_relevant_for(reduced_label_no, this);
                 // make self loops explicit
                 for (int i = 0; i < num_states; ++i) {
                     target_buckets[i].push_back(
-                        make_pair(i, reduced_label_no));
+                            make_pair(i, reduced_label_no));
                 }
             }
         } else {
             // new label is relevant
             relevant_labels[reduced_label_no] = true;
-        labels->set_relevant_for(reduced_label_no, this);
+            labels->set_relevant_for(reduced_label_no, this);
         }
     }
 
@@ -576,7 +576,7 @@ EquivalenceRelation *Abstraction::compute_local_equivalence_relation() const {
             }
             const vector<AbstractTransition> &other_transitions = transitions_by_label[other_label_no];
             if ((transitions.empty() && other_transitions.empty())
-                || (transitions == other_transitions)) {
+                    || (transitions == other_transitions)) {
                 considered_labels[other_label_no] = true;
                 annotated_labels.push_back(make_pair(annotation, other_label_no));
             }
@@ -587,7 +587,7 @@ EquivalenceRelation *Abstraction::compute_local_equivalence_relation() const {
 }
 
 void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
-                                            Labels *labels) {
+        Labels *labels) {
     assert(result.empty());
     cout << "Building atomic abstractions... " << endl;
     int var_count = g_variable_domain.size();
@@ -609,7 +609,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
             AbstractTransition trans(value, value);
             abs->transitions_by_label[label_no].push_back(trans);
             abs->relevant_labels[label_no] = true;
-        labels->set_relevant_for(label_no, abs);
+            labels->set_relevant_for(label_no, abs);
         }
         const vector<PrePost> &pre_post = label->get_pre_post();
         for (int i = 0; i < pre_post.size(); i++) {
@@ -672,7 +672,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
             }
 
             abs->relevant_labels[label_no] = true;
-        labels->set_relevant_for(label_no, abs);
+            labels->set_relevant_for(label_no, abs);
         }
     }
 
@@ -683,7 +683,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
 }
 
 AtomicAbstraction::AtomicAbstraction(Labels *labels, int variable_)
-    : Abstraction(labels), variable(variable_) {
+: Abstraction(labels), variable(variable_) {
     varset.push_back(variable);
     /*
       This generates the states of the atomic abstraction, but not the
@@ -721,11 +721,11 @@ AtomicAbstraction::~AtomicAbstraction() {
 }
 
 CompositeAbstraction::CompositeAbstraction(Labels *labels,
-                                           Abstraction *abs1,
-                                           Abstraction *abs2)
-    : Abstraction(labels) {
+        Abstraction *abs1,
+        Abstraction *abs2)
+: Abstraction(labels) {
     cout << "Merging " << abs1->description() << " and "
-         << abs2->description() << endl;
+            << abs2->description() << endl;
 
     assert(abs1->is_solvable() && abs2->is_solvable());
     assert(abs1->is_normalized() && abs2->is_normalized());
@@ -734,7 +734,7 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
     components[1] = abs2;
 
     ::set_union(abs1->varset.begin(), abs1->varset.end(), abs2->varset.begin(),
-                abs2->varset.end(), back_inserter(varset));
+            abs2->varset.end(), back_inserter(varset));
 
     num_states = abs1->size() * abs2->size();
     goal_states.resize(num_states, false);
@@ -771,12 +771,12 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
         bool relevant2 = abs2->relevant_labels[label_no];
         if (relevant1 || relevant2) {
             relevant_labels[label_no] = true;
-        labels->set_relevant_for(label_no, this);
+            labels->set_relevant_for(label_no, this);
             vector<AbstractTransition> &transitions = transitions_by_label[label_no];
             const vector<AbstractTransition> &bucket1 =
-                abs1->transitions_by_label[label_no];
+                    abs1->transitions_by_label[label_no];
             const vector<AbstractTransition> &bucket2 =
-                abs2->transitions_by_label[label_no];
+                    abs2->transitions_by_label[label_no];
             if (relevant1 && relevant2) {
                 transitions.reserve(bucket1.size() * bucket2.size());
                 for (int i = 0; i < bucket1.size(); i++) {
@@ -837,35 +837,35 @@ string AtomicAbstraction::description() const {
 }
 
 string AtomicAbstraction::description(int s) const{
-  stringstream ss;
-  ss << "(";
-  for (int i = 0; i < lookup_table.size(); i++){
-    if(s == lookup_table[i]){
-      ss << g_fact_names[variable] [i];
+    stringstream ss;
+    ss << "(";
+    for (int i = 0; i < lookup_table.size(); i++){
+        if(s == lookup_table[i]){
+            ss << g_fact_names[variable] [i];
+        }
     }
-  }
-  ss << ")";
-  return ss.str();
+    ss << ")";
+    return ss.str();
 }
 
 string CompositeAbstraction::description() const {
     ostringstream s;
     s << "abstraction (" << varset.size() << "/"
-      << g_variable_domain.size() << " vars)";
+            << g_variable_domain.size() << " vars)";
     return s.str();
 }
 
 string CompositeAbstraction::description(int s) const{
-  stringstream ss;
-  ss << "s" << s;
-  // for(int i = 0; i < lookup_table.size(); i++){
-  //   for(int j = 0; j < lookup_table[i].size(); j++){
-  //     if(lookup_table[i][j] == s){
-  // 	ss << "(" << components[0]->description(i) << " AND " << components[1]->description(j) << ")";
-  //     }
-  //   }
-  // }
-  return ss.str();
+    stringstream ss;
+    ss << "s" << s;
+    // for(int i = 0; i < lookup_table.size(); i++){
+    //   for(int j = 0; j < lookup_table[i].size(); j++){
+    //     if(lookup_table[i][j] == s){
+    // 	ss << "(" << components[0]->description(i) << " AND " << components[1]->description(j) << ")";
+    //     }
+    //   }
+    // }
+    return ss.str();
 }
 
 AbstractStateRef AtomicAbstraction::get_abstract_state(const State &state) const {
@@ -882,7 +882,7 @@ AbstractStateRef CompositeAbstraction::get_abstract_state(const State &state) co
 }
 
 void Abstraction::apply_abstraction(
-    vector<slist<AbstractStateRef> > &collapsed_groups) {
+        vector<slist<AbstractStateRef> > &collapsed_groups) {
     /* Note on how this method interacts with the distance information
        (init_distances and goal_distances): if no two states with
        different g or h values are combined by the abstraction (i.e.,
@@ -922,7 +922,7 @@ void Abstraction::apply_abstraction(
 
 
     cout << tag() << "applying abstraction (" << size()
-         << " to " << collapsed_groups.size() << " states)" << endl;
+                                 << " to " << collapsed_groups.size() << " states)" << endl;
 
     typedef slist<AbstractStateRef> Group;
 
@@ -943,47 +943,71 @@ void Abstraction::apply_abstraction(
     vector<bool> new_goal_states(new_num_states, false);
 
     bool must_clear_distances = false;
-    for (AbstractStateRef new_state = 0; new_state < collapsed_groups.size(); new_state++) {
-        Group &group = collapsed_groups[new_state];
-        assert(!group.empty());
+    if (!init_distances.empty()){
+        for (AbstractStateRef new_state = 0; new_state < collapsed_groups.size(); new_state++) {
+            Group &group = collapsed_groups[new_state];
+            assert(!group.empty());
 
-        Group::iterator pos = group.begin();
-        int &new_init_dist = new_init_distances[new_state];
-        int &new_goal_dist = new_goal_distances[new_state];
+            Group::iterator pos = group.begin();
+            int &new_init_dist = new_init_distances[new_state];
+            int &new_goal_dist = new_goal_distances[new_state];
 
-        new_init_dist = init_distances[*pos];
-        new_goal_dist = goal_distances[*pos];
-        new_goal_states[new_state] = goal_states[*pos];
+            new_init_dist = init_distances[*pos];
+            new_goal_dist = goal_distances[*pos];
+            new_goal_states[new_state] = goal_states[*pos];
 
-        ++pos;
-        for (; pos != group.end(); ++pos) {
-            if (init_distances[*pos] != new_init_dist) {
-                must_clear_distances = true;
+            ++pos;
+            for (; pos != group.end(); ++pos) {
+                if (init_distances[*pos] != new_init_dist) {
+                    must_clear_distances = true;
+                }
+                if (goal_distances[*pos] != new_goal_dist) {
+                    must_clear_distances = true;
+                }
+                if (goal_states[*pos])
+                    new_goal_states[new_state] = true;
             }
-            if (goal_distances[*pos] != new_goal_dist) {
-                must_clear_distances = true;
-            }
-            if (goal_states[*pos])
-                new_goal_states[new_state] = true;
         }
+
+
+        // Release memory.
+        vector<int>().swap(init_distances);
+        vector<int>().swap(goal_distances);
+        vector<bool>().swap(goal_states);
+    } else {
+        must_clear_distances = true;
+        for (AbstractStateRef new_state = 0; new_state < collapsed_groups.size(); new_state++) {
+            Group &group = collapsed_groups[new_state];
+            assert(!group.empty());
+
+            Group::iterator pos = group.begin();
+            new_goal_states[new_state] = goal_states[*pos];
+
+            ++pos;
+            for (; pos != group.end(); ++pos) {
+                if (goal_states[*pos])
+                    new_goal_states[new_state] = true;
+            }
+        }
+
+
+        // Release memory.
+        vector<int>().swap(init_distances);
+        vector<int>().swap(goal_distances);
+        vector<bool>().swap(goal_states);
     }
 
-    // Release memory.
-    vector<int>().swap(init_distances);
-    vector<int>().swap(goal_distances);
-    vector<bool>().swap(goal_states);
-
     vector<vector<AbstractTransition> > new_transitions_by_label(
-        transitions_by_label.size());
+            transitions_by_label.size());
     for (int label_no = 0; label_no < num_labels; label_no++) {
         if (labels->is_label_reduced(label_no)) {
             // do not consider non-leaf labels
             continue;
         }
         const vector<AbstractTransition> &transitions =
-            transitions_by_label[label_no];
+                transitions_by_label[label_no];
         vector<AbstractTransition> &new_transitions =
-            new_transitions_by_label[label_no];
+                new_transitions_by_label[label_no];
         new_transitions.reserve(transitions.size());
         for (int i = 0; i < transitions.size(); i++) {
             const AbstractTransition &trans = transitions[i];
@@ -999,6 +1023,7 @@ void Abstraction::apply_abstraction(
     transitions_by_label.swap(new_transitions_by_label);
     init_distances.swap(new_init_distances);
     goal_distances.swap(new_goal_distances);
+
     goal_states.swap(new_goal_states);
     init_state = abstraction_mapping[init_state];
     if (init_state == PRUNED_STATE)
@@ -1034,7 +1059,7 @@ int Abstraction::memory_estimate() const {
     int result = sizeof(Abstraction);
     result += sizeof(Label *) * relevant_labels.capacity();
     result += sizeof(vector<AbstractTransition> )
-              * transitions_by_label.capacity();
+                                      * transitions_by_label.capacity();
     for (int i = 0; i < transitions_by_label.size(); i++)
         result += sizeof(AbstractTransition) * transitions_by_label[i].capacity();
     result += sizeof(int) * init_distances.capacity();
@@ -1077,11 +1102,11 @@ int Abstraction::unique_unlabeled_transitions() const {
     for (int i = 0; i < transitions_by_label.size(); i++) {
         const vector<AbstractTransition> &trans = transitions_by_label[i];
         unique_transitions.insert(unique_transitions.end(), trans.begin(),
-                                  trans.end());
+                trans.end());
     }
     ::sort(unique_transitions.begin(), unique_transitions.end());
     return unique(unique_transitions.begin(), unique_transitions.end())
-           - unique_transitions.begin();
+            - unique_transitions.begin();
 }
 
 void Abstraction::statistics(bool include_expensive_statistics) const {
@@ -1093,13 +1118,13 @@ void Abstraction::statistics(bool include_expensive_statistics) const {
     else
         cout << "???";
     cout << "/" << total_transitions() << " arcs, " << memory << " bytes"
-         << endl;
+            << endl;
     cout << tag();
     if (!are_distances_computed()) {
         cout << "distances not computed";
     } else if (is_solvable()) {
         cout << "init h=" << goal_distances[init_state] << ", max f=" << max_f
-             << ", max g=" << max_g << ", max h=" << max_h;
+                << ", max g=" << max_g << ", max h=" << max_h;
     } else {
         cout << "abstraction is unsolvable";
     }
@@ -1129,7 +1154,7 @@ void Abstraction::dump() const {
         bool is_init = (i == init_state);
         bool is_goal = (goal_states[i] == true);
         cout << "    node [shape = " << (is_goal ? "doublecircle" : "circle")
-             << "] node" << i << ";" << endl;
+                                     << "] node" << i << ";" << endl;
         if (is_init)
             cout << "    start -> node" << i << ";" << endl;
     }
@@ -1140,7 +1165,7 @@ void Abstraction::dump() const {
             int src = trans[i].src;
             int target = trans[i].target;
             cout << "    node" << src << " -> node" << target << " [label = o_"
-                 << label_no << "];" << endl;
+                    << label_no << "];" << endl;
         }
     }
     cout << "}" << endl;
@@ -1148,7 +1173,7 @@ void Abstraction::dump() const {
 
 bool Abstraction::is_own_label(int label_no){
     const set<Abstraction *> & relevant_abstractions =
-    labels->get_relevant_for(label_no);
+            labels->get_relevant_for(label_no);
     assert(relevant_abstractions.count(this));
     return relevant_abstractions.size() == 1;
 }
@@ -1159,71 +1184,71 @@ void Abstraction::count_transitions_by_label() {
     num_goal_transitions_by_label.resize(num_labels, 0); 
 
     for(int i = 0; i < transitions_by_label.size(); ++i){
-	if(transitions_by_label[i].empty()) continue;
-	for(int j = 0; j < transitions_by_label[i].size(); j++){
-	    if(transitions_by_label[i][j].target != transitions_by_label[i][j].src){
-		num_transitions_by_label[i] ++;
-		if(goal_states[transitions_by_label[i][j].target]){
-		    num_goal_transitions_by_label[i] ++;
-		}
-	    }
-	}
+        if(transitions_by_label[i].empty()) continue;
+        for(int j = 0; j < transitions_by_label[i].size(); j++){
+            if(transitions_by_label[i][j].target != transitions_by_label[i][j].src){
+                num_transitions_by_label[i] ++;
+                if(goal_states[transitions_by_label[i][j].target]){
+                    num_goal_transitions_by_label[i] ++;
+                }
+            }
+        }
     }
 }
 
 void Abstraction::count_transitions
 (const vector<Abstraction *> &all_abstractions, 
- const vector<int> & remaining, bool only_empty,
- bool only_goal, vector<int> & result){
+        const vector<int> & remaining, bool only_empty,
+        bool only_goal, vector<int> & result){
     result.resize(g_variable_name.size(), 0);
     if (num_transitions_by_label.empty()){
-    count_transitions_by_label();
+        count_transitions_by_label();
     }
     for (size_t label_no = 0; label_no < num_labels; ++label_no) {
-	int num_tr_label = only_goal ? num_goal_transitions_by_label[label_no] :
-	    num_transitions_by_label[label_no];
-	if(num_tr_label){
-	    for(int i = 0; i < remaining.size(); ++i){
-		int var = remaining[i];
-		const Label *l = labels->get_label_by_index(label_no);
-		assert(l->get_relevant_for().size() > 1);
-		if((!only_empty || l->get_relevant_for().size() == 2) &&
-		   l->is_relevant_for(all_abstractions[var])){
-		    result[var] += num_tr_label;
-		}
-	    }    
-	}
+        int num_tr_label = only_goal ? num_goal_transitions_by_label[label_no] :
+                num_transitions_by_label[label_no];
+        if(num_tr_label){
+            for(int i = 0; i < remaining.size(); ++i){
+                int var = remaining[i];
+                const Label *l = labels->get_label_by_index(label_no);
+                assert(l->get_relevant_for().size() > 1);
+                if((!only_empty || l->get_relevant_for().size() == 2) &&
+                        l->is_relevant_for(all_abstractions[var])){
+                    result[var] += num_tr_label;
+                }
+            }
+        }
     }
 }
 
 void CompositeAbstraction::getAbsStateBDDs(SymVariables * vars,
-					   std::vector<BDD> & abs_bdds) const{
-  vector<BDD> bdds1, bdds2;
-  components[0]->getAbsStateBDDs(vars, bdds1);
-  components[1]->getAbsStateBDDs(vars, bdds2);
-  for (int i = 0; i < num_states; i++){
-    abs_bdds.push_back(vars->zeroBDD());
-  }
-
-  for (int i = 0; i < lookup_table.size(); i++){  
-    for (int j = 0; j < lookup_table[i].size(); j++){  
-      if(lookup_table[i][j] != -1){
-	abs_bdds[lookup_table[i][j]] += bdds1[i]*bdds2[j];
-      }
+        std::vector<BDD> & abs_bdds) const{
+    vector<BDD> bdds1, bdds2;
+    components[0]->getAbsStateBDDs(vars, bdds1);
+    components[1]->getAbsStateBDDs(vars, bdds2);
+    for (int i = 0; i < num_states; i++){
+        abs_bdds.push_back(vars->zeroBDD());
     }
-  }
+
+    for (int i = 0; i < lookup_table.size(); i++){
+        for (int j = 0; j < lookup_table[i].size(); j++){
+            if(lookup_table[i][j] != -1){
+                abs_bdds[lookup_table[i][j]] += bdds1[i]*bdds2[j];
+            }
+        }
+    }
 }
 
 void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars, 
-					std::vector<BDD> & abs_bdds) const{
-  for (int i = 0; i < num_states; i++){
-    abs_bdds.push_back(vars->zeroBDD());
-  }
-  for (int i = 0; i < lookup_table.size(); i++){  
-      if (lookup_table[i] != -1){
-	  abs_bdds[lookup_table[i]] += vars->preBDD(variable, i);
-      }
-  }
+        std::vector<BDD> & abs_bdds) const{
+    for (int i = 0; i < num_states; i++){
+        abs_bdds.push_back(vars->zeroBDD());
+    }
+    for (int i = 0; i < lookup_table.size(); i++){
+        if (lookup_table[i] != -1){
+            abs_bdds[lookup_table[i]] += vars->preBDD(variable, i);
+        }
+    }
 }
 
 
@@ -1259,20 +1284,20 @@ int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by
 
 }
 
-    //Prune all the transitions dominated by noop 
+//Prune all the transitions dominated by noop
 int Abstraction::prune_transitions_dominated_label_noop(int label_no,
-							 SimulationRelation & rel){
+        SimulationRelation & rel){
     int num = transitions_by_label[label_no].size();
 
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
-							end(transitions_by_label[label_no]),
-							[this, &rel](AbstractTransition & t){
-							    return rel.simulates(t.src, t.target);
-							}),
-					 transitions_by_label[label_no].end());    
+            end(transitions_by_label[label_no]),
+            [this, &rel](AbstractTransition & t){
+        return rel.simulates(t.src, t.target);
+    }),
+    transitions_by_label[label_no].end());
     return num - transitions_by_label[label_no].size();
 }
-					 
+
 
 void PDBAbstraction::apply_abstraction_to_lookup_table(
         const vector<AbstractStateRef> &abstraction_mapping) {
@@ -1285,12 +1310,12 @@ void PDBAbstraction::apply_abstraction_to_lookup_table(
 }
 
 PDBAbstraction::PDBAbstraction(Labels *labels, const vector<int> & pattern_)
-    : Abstraction(labels), pattern(pattern_) {
+: Abstraction(labels), pattern(pattern_) {
     varset.insert(varset.end(), pattern.begin(), pattern.end());
-    
+
     goal_relevant_vars = 0;
     for (int goal_no = 0; goal_no < g_goal.size(); goal_no++) {
-	int goal_v = g_goal[goal_no].first; 
+        int goal_v = g_goal[goal_no].first;
         if (find(begin(pattern), end(pattern), goal_v) != end(pattern)) {
             goal_relevant_vars++;
         }
@@ -1299,93 +1324,93 @@ PDBAbstraction::PDBAbstraction(Labels *labels, const vector<int> & pattern_)
 
     num_states = 1;
     for (int v : pattern)
-	num_states *= g_variable_domain[v];
+        num_states *= g_variable_domain[v];
 
     lookup_table.reserve(num_states);
     for(int i = 0; i < num_states; i++){
-	lookup_table.push_back(i);
+        lookup_table.push_back(i);
     }
     init_state = rank(g_initial_state());
     goal_states.resize(num_states, false);
     // Set goals
     vector <int> goal_vals(g_variable_domain.size(), -1);
     for (const auto & goal : g_goal){
-	goal_vals[goal.first] = goal.second;
+        goal_vals[goal.first] = goal.second;
     } 
     insert_goals(goal_vals, 0);	
 
     // Set transitions
     for (int label_no = 0; label_no < labels->get_size(); label_no++) {
         const Label *label = labels->get_label_by_index(label_no);
-	vector <int> pre_vals(g_variable_domain.size(), -1);
-	vector <int> eff_vals(g_variable_domain.size(), -1);
+        vector <int> pre_vals(g_variable_domain.size(), -1);
+        vector <int> eff_vals(g_variable_domain.size(), -1);
         const vector<Prevail> &prev = label->get_prevail();
         for (int i = 0; i < prev.size(); i++) {
-	    pre_vals[prev[i].var] = prev[i].prev;
-	    eff_vals[prev[i].var] = prev[i].prev;
+            pre_vals[prev[i].var] = prev[i].prev;
+            eff_vals[prev[i].var] = prev[i].prev;
         }
         const vector<PrePost> &pre_post = label->get_pre_post();
         for (int i = 0; i < pre_post.size(); i++) {
-	    pre_vals[pre_post[i].var] = pre_post[i].pre;
-	    eff_vals[pre_post[i].var] = pre_post[i].post;
+            pre_vals[pre_post[i].var] = pre_post[i].pre;
+            eff_vals[pre_post[i].var] = pre_post[i].post;
         }
-	//Check whether is relevant for patter
-	bool is_relevant = false;
-	for(int v : pattern){
-	    if (pre_vals[v] != -1 || eff_vals[v] != -1){
-		is_relevant = true;
-	    }
-	}
-	if(!is_relevant) continue;
+        //Check whether is relevant for patter
+        bool is_relevant = false;
+        for(int v : pattern){
+            if (pre_vals[v] != -1 || eff_vals[v] != -1){
+                is_relevant = true;
+            }
+        }
+        if(!is_relevant) continue;
 
-	relevant_labels[label_no] = true;
-	labels->set_relevant_for(label_no, this);
+        relevant_labels[label_no] = true;
+        labels->set_relevant_for(label_no, this);
 
-	insert_transitions(pre_vals, eff_vals, label_no, 0);
+        insert_transitions(pre_vals, eff_vals, label_no, 0);
 
-	if (!are_transitions_sorted_unique())
-	    normalize();
+        if (!are_transitions_sorted_unique())
+            normalize();
     }
 }
 
 
 void PDBAbstraction::insert_transitions(vector <int> & pre_vals, vector <int> & eff_vals,
-					int label_no, int pos){
+        int label_no, int pos){
     if(pos == pattern.size()){
-	//cout << rank(pre_vals) << " ----" << label_no << "---> " << rank(eff_vals) << endl;
-	AbstractTransition trans(rank(pre_vals), rank(eff_vals));
-	transitions_by_label[label_no].push_back(trans);
-	return;
+        //cout << rank(pre_vals) << " ----" << label_no << "---> " << rank(eff_vals) << endl;
+        AbstractTransition trans(rank(pre_vals), rank(eff_vals));
+        transitions_by_label[label_no].push_back(trans);
+        return;
     }
     int v = pattern[pos];
     if(pre_vals[v] == -1){
-	bool change_eff = (eff_vals[v] == -1);
-	for(int val = 0; val < g_variable_domain[v]; val++){
-	    pre_vals[v] = val;
-	    if(change_eff) eff_vals[v] = val;	    
-	    insert_transitions(pre_vals, eff_vals, label_no, pos+1);
-	}
-	pre_vals[v] = -1;
-	if(change_eff) eff_vals[v] = -1;
+        bool change_eff = (eff_vals[v] == -1);
+        for(int val = 0; val < g_variable_domain[v]; val++){
+            pre_vals[v] = val;
+            if(change_eff) eff_vals[v] = val;
+            insert_transitions(pre_vals, eff_vals, label_no, pos+1);
+        }
+        pre_vals[v] = -1;
+        if(change_eff) eff_vals[v] = -1;
     }else{
-	insert_transitions(pre_vals, eff_vals, label_no, pos+1);
+        insert_transitions(pre_vals, eff_vals, label_no, pos+1);
     }
 }
 
 void PDBAbstraction::insert_goals(vector <int> & goal_vals, int pos){
     if(pos == pattern.size()){ 
-	goal_states[rank(goal_vals)] = true;
-	return;
+        goal_states[rank(goal_vals)] = true;
+        return;
     }
     int v = pattern[pos];
     if(goal_vals[v] == -1){
-	for(int val = 0; val < g_variable_domain[v]; val++){
-	    goal_vals[v] = val;
-	    insert_goals(goal_vals, pos+1);
-	}
-	goal_vals[v] = -1;
+        for(int val = 0; val < g_variable_domain[v]; val++){
+            goal_vals[v] = val;
+            insert_goals(goal_vals, pos+1);
+        }
+        goal_vals[v] = -1;
     }else{
-	insert_goals(goal_vals, pos+1);
+        insert_goals(goal_vals, pos+1);
     }
 }
 
@@ -1403,10 +1428,10 @@ string PDBAbstraction::description(int s) const{
     stringstream ss;
 
     for(int i = pattern.size() - 1; i >=0; --i){
-	int v = pattern[i];
-	int val = s % g_variable_domain[v];
-	s = s / g_variable_domain[v];
-	ss << g_fact_names[v][val] << " ";
+        int v = pattern[i];
+        int val = s % g_variable_domain[v];
+        s = s / g_variable_domain[v];
+        ss << g_fact_names[v][val] << " ";
     }
 
     //ss << "s" << s;
@@ -1426,40 +1451,40 @@ AbstractStateRef PDBAbstraction::get_abstract_state(const State &state) const {
 
 
 void PDBAbstraction::getAbsStateBDDs(SymVariables * vars, 
-				     std::vector<BDD> & abs_bdds) const{
+        std::vector<BDD> & abs_bdds) const{
     for (int i = 0; i < num_states; i++){
-	abs_bdds.push_back(vars->zeroBDD());
+        abs_bdds.push_back(vars->zeroBDD());
     }
     for (int i = 0; i < num_states; i++){  
-	if (lookup_table[i] != -1){
-	    abs_bdds[lookup_table[i]] += unrankBDD(vars, i);
-	}
+        if (lookup_table[i] != -1){
+            abs_bdds[lookup_table[i]] += unrankBDD(vars, i);
+        }
     }
 }
 
 BDD PDBAbstraction::unrankBDD(SymVariables * vars, int id) const {
     BDD res = vars->oneBDD();
     for(int i = pattern.size() - 1; i >=0; --i){
-	int v = pattern[i];
-	int val = id % g_variable_domain[v];
-	id = id / g_variable_domain[v];
-	res *= vars->preBDD(v, val);
+        int v = pattern[i];
+        int val = id % g_variable_domain[v];
+        id = id / g_variable_domain[v];
+        res *= vars->preBDD(v, val);
     }
     return res;
 }
 
 LabelledTransitionSystem * Abstraction::get_lts(const LabelMap & labelMap){
     if(!lts){
-	lts = std::unique_ptr<LabelledTransitionSystem> 
-	    (new LabelledTransitionSystem(this, labelMap));
+        lts = std::unique_ptr<LabelledTransitionSystem>
+        (new LabelledTransitionSystem(this, labelMap));
     }
     return lts.get();
 }
 
 LTSEfficient * Abstraction::get_lts_efficient(const LabelMap & labelMap){
     if(!lts_efficient){
-	lts_efficient = std::unique_ptr<LTSEfficient> 
-	    (new LTSEfficient(this, labelMap));
+        lts_efficient = std::unique_ptr<LTSEfficient>
+        (new LTSEfficient(this, labelMap));
     }
     return lts_efficient.get();
 }
@@ -1468,14 +1493,14 @@ LTSEfficient * Abstraction::get_lts_efficient(const LabelMap & labelMap){
 int Abstraction::estimate_transitions(const Abstraction * other) const{
     int num_total = 0;
     for (size_t label_no = 0; label_no < transitions_by_label.size(); ++label_no) {
-	if(relevant_labels[label_no] || other->relevant_labels[label_no]){
-	    int num_mine = (relevant_labels[label_no]? transitions_by_label[label_no].size() : 
-			num_states);
-	    int num_other = (other->relevant_labels[label_no]? 
-			 other->transitions_by_label[label_no].size() : 
-			 other->num_states);
-	    num_total += num_mine*num_other;
-	}
+        if(relevant_labels[label_no] || other->relevant_labels[label_no]){
+            int num_mine = (relevant_labels[label_no]? transitions_by_label[label_no].size() :
+                    num_states);
+            int num_other = (other->relevant_labels[label_no]?
+                    other->transitions_by_label[label_no].size() :
+                    other->num_states);
+            num_total += num_mine*num_other;
+        }
     }
     return num_total;
 }

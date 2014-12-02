@@ -222,6 +222,12 @@ void SimulationRelation::shrink() {
     }
     if (abs->size() != equivRel.size()) {
         cout << "Size for applying simulation shrinking: " << equivRel.size() << "; was: " << abs->size() << endl;
+        //for (auto er : equivRel) {
+        //    for (auto eq : er) {
+        //        cout << eq << " ";
+        //    }
+        //    cout << endl;
+        //}
         abs->apply_abstraction(equivRel);
         abs->normalize();
 
