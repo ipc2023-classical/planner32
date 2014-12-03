@@ -4,6 +4,7 @@
 #include "simulation_relation.h"
 #include "labelled_transition_system.h"
 #include "lts_efficient.h"
+#include "../equivalence_relation.h"
 #include "../globals.h"
 
 using namespace std;
@@ -102,9 +103,21 @@ void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_domina
 //            }
 //        }
         // PIET-edit: Here we remove one of the two labels dominating each other in all LTSs.
-        for (int l2 = 0; l2 < dominates_in.size(); ++l2){
-            if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && !dominates_in[l][l2] == DOMINATES_IN_ALL)
-                    || (l2 > l && dominates_in[l2][l] == DOMINATES_IN_ALL)) {
+//        for (int l2 = 0; l2 < dominates_in.size(); ++l2){
+//            if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && !dominates_in[l][l2] == DOMINATES_IN_ALL)
+//                    || (l2 > l && dominates_in[l2][l] == DOMINATES_IN_ALL)) {
+//                labels_dominated_in_all.push_back(l);
+//                break;
+//            }
+//        }
+        // PIET-edit: If we take proper care, this both dominating each other cannot ever happen.
+        for (int l2 = 0; l2 < dominates_in.size(); ++l2) {
+            if (l != l2 && dominates_in[l][l2] == DOMINATES_IN_ALL && dominates_in[l2][l] == DOMINATES_IN_ALL) {
+                cerr << "Error: two labels dominating each other in all abstractions. This CANNOT happen!" << endl;
+                cerr << l << "; " << l2 << endl;
+                exit(1);
+            }
+            if (dominates_in[l2][l] == DOMINATES_IN_ALL) {
                 labels_dominated_in_all.push_back(l);
                 break;
             }
@@ -377,4 +390,31 @@ void LabelRelation::init_identity(int num_lts, const LabelMap & labelMap){
         dominates_in[l1].resize(num_labels, DOMINATES_IN_NONE);
         dominates_in[l1][l1] = DOMINATES_IN_ALL;
     }
+}
+
+EquivalenceRelation * LabelRelation::get_equivalent_labels_relation(const LabelMap & labelMap) const {
+    list<Block> rel;
+    vector<bool> captured_labels(num_labels, false);
+    for (int l1 = 0; l1 < num_labels; l1++){
+        if (captured_labels[l1])
+            continue;
+        Block eq;
+        eq.insert(labelMap.get_old_id(l1));
+        captured_labels[l1] = true;
+        for (int l2 = l1 + 1; l2 < num_labels; l2++) {
+            if (captured_labels[l2])
+                // was already marked as equivalent to some other label, so cannot be equivalent to l1
+                continue;
+            if (dominates_in[l1][l2] != DOMINATES_IN_NONE && dominates_in[l2][l1] != DOMINATES_IN_NONE &&
+                    (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
+                            dominates_in[l2][l1] == DOMINATES_IN_ALL ||
+                            dominates_in[l1][l2] == dominates_in[l2][l1])) {
+                eq.insert(labelMap.get_old_id(l2));
+                cout << l2 << " eq " << l1 << endl;
+                captured_labels[l2] = true;
+            }
+        }
+        rel.push_back(eq);
+    }
+    return new EquivalenceRelation(rel.size(), rel);
 }

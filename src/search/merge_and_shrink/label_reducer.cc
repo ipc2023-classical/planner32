@@ -415,3 +415,7 @@ void LabelReducer::dump_options() const {
         cout << endl;
     }
 }
+
+bool LabelReducer::applies_perfect_label_reduction() const {
+    return label_reduction_method == ALL_ABSTRACTIONS_WITH_FIXPOINT;
+}

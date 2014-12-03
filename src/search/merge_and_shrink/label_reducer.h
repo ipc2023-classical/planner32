@@ -57,9 +57,6 @@ class LabelReducer {
                                                      const std::vector<Abstraction *> &all_abstractions,
                                                      const std::vector<Label *> &labels,
                                                      std::vector<EquivalenceRelation *> &local_equivalence_relations) const;
-    // returns true iff at least one new label has been created
-    bool reduce_exactly(const EquivalenceRelation *relation,
-                        std::vector<Label *> &labels) const;
 public:
     explicit LabelReducer(const Options &options);
     ~LabelReducer() {}
@@ -67,6 +64,10 @@ public:
                        const std::vector<Abstraction *> &all_abstractions,
                        std::vector<Label* > &labels) const;
     void dump_options() const;
+    bool applies_perfect_label_reduction() const;
+    // returns true iff at least one new label has been created
+    bool reduce_exactly(const EquivalenceRelation *relation,
+                        std::vector<Label *> &labels) const;
 };
 
 #endif

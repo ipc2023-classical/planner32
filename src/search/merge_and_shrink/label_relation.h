@@ -6,6 +6,7 @@
 #include "labels.h"
 #include "label.h"
 
+class EquivalenceRelation;
 class LTSEfficient;
 class LabelledTransitionSystem;
 class SimulationRelation;
@@ -133,6 +134,7 @@ public:
 //                        dominates_in[l1][l2] == lts);
     }
 
+    EquivalenceRelation* get_equivalent_labels_relation(const LabelMap & labelMap) const;
 };
 
 #endif

@@ -5,10 +5,13 @@
 
 #include <vector>
 #include <set>
+#include <list>
 
 class Abstraction;
 class Label;
+class LabelMap;
 class LabelReducer;
+class LabelRelation;
 class Options;
 
 
@@ -26,6 +29,7 @@ public:
     ~Labels();
     void reduce(std::pair<int, int> next_merge,
             const std::vector<Abstraction *> &all_abstractions);
+    void reduce(const LabelMap & labelMap, const LabelRelation & label_dominance);
     // TODO: consider removing get_label_by_index and forwarding all required
     // methods of Label and giving access to them by label number.
     const Label *get_label_by_index(int index) const;
@@ -47,6 +51,8 @@ public:
     const std::set<Abstraction *> & get_relevant_for (int label_no) const;
 
     void prune_irrelevant_labels();
+
+    bool applies_perfect_label_reduction() const;
 };
 
 

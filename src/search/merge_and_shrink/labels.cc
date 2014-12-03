@@ -2,10 +2,12 @@
 
 #include "label.h"
 #include "label_reducer.h"
+#include "label_relation.h"
 
 #include "../globals.h"
 #include "../utilities.h"
 #include "../debug.h"
+#include "../equivalence_relation.h"
 
 #include <algorithm>
 #include <cassert>
@@ -33,6 +35,12 @@ Labels::~Labels() {
 void Labels::reduce(pair<int, int> next_merge,
                     const std::vector<Abstraction *> &all_abstractions) {
     label_reducer->reduce_labels(next_merge, all_abstractions, labels);
+}
+
+void Labels::reduce(const LabelMap & labelMap, const LabelRelation & label_dominance) {
+    EquivalenceRelation* equiv_rel = label_dominance.get_equivalent_labels_relation(labelMap);
+    label_reducer->reduce_exactly(equiv_rel, labels);
+    delete equiv_rel;
 }
 
 const Label *Labels::get_label_by_index(int index) const {
@@ -85,4 +93,8 @@ void Labels::prune_irrelevant_labels(){
     for (int op : ops) {
         cout << "Irrelevant operator: " << g_operators[op].get_name() << endl;
     }
+}
+
+bool Labels::applies_perfect_label_reduction() const {
+    return label_reducer->applies_perfect_label_reduction();
 }

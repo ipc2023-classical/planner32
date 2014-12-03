@@ -11,6 +11,7 @@
 #include "opt_order.h"
 #include "../globals.h"
 #include "../causal_graph.h"
+#include "label_reducer.h"
 
 #include "variable_partition_finder.h"
 
@@ -33,8 +34,12 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          intermediate_simulations(opts.get<bool>("intermediate_simulations")),
 		                          labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
-    if (apply_irrelevant_transitions_pruning && ! apply_simulation_shrinking) {
-        cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking is used!" << endl;
+    if (apply_irrelevant_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
+        cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
+        exit(1);
+    }
+    if (apply_irrelevant_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
+        cerr << "Error: can only apply pruning of irrelevant transitions if perfect label reduction is applied" << endl;
         exit(1);
     }
 }
@@ -54,8 +59,8 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
     		                        use_bisimulation(opts.get<bool>("use_bisimulation")),
     		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")){
-    if (apply_irrelevant_transitions_pruning && ! apply_simulation_shrinking) {
-        cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking is used!" << endl;
+    if (apply_irrelevant_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
+        cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
     }
     //TODO: Copied from heuristic.cc. Move to the PlanningTask class
@@ -69,6 +74,10 @@ LDSimulation::LDSimulation(const Options &opts) :
         }
     }
     labels = unique_ptr<Labels> (new Labels(is_unit_cost, opts, cost_type)); //TODO: c++14::make_unique
+    if (apply_irrelevant_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
+        cerr << "Error: can only apply pruning of irrelevant transitions if perfect label reduction is applied" << endl;
+        exit(1);
+    }
 }
 
 LDSimulation::~LDSimulation(){
@@ -113,6 +122,13 @@ void LDSimulation::build_abstraction() {
     }
 
     if (intermediate_simulations) {
+        cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
+        labels->reduce(make_pair(0, 1), all_abstractions);
+        cout << "Normalize: " << t() << endl;
+        for (auto abs : all_abstractions) {
+            abs->normalize();
+            abs->statistics(use_expensive_statistics);
+        }
         cout << "Simulation-shrinking atomic abstractions..." << endl;
         for (size_t i = 0; i < all_abstractions.size(); ++i) {
             if (all_abstractions[i]) {
@@ -171,13 +187,14 @@ void LDSimulation::build_abstraction() {
         //     return other_abstraction;
 
         if(shrink_strategy){
+            /* PIET-edit: Well, we actually want to have bisim shrinking AFTER merge */
             cout << "Shrink: " << t() << endl;
             shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
             abstraction->statistics(use_expensive_statistics);
             other_abstraction->statistics(use_expensive_statistics);
         }
 
-        if (shrink_strategy && !reduced_labels) {
+        if ((shrink_strategy || intermediate_simulations || apply_irrelevant_transitions_pruning) && !reduced_labels) {
             labels->reduce(make_pair(system_one, system_two), all_abstractions);
         }
 
@@ -291,6 +308,7 @@ void LDSimulation::compute_ld_simulation() {
     }
 
     if (apply_irrelevant_transitions_pruning) {
+        labels->reduce(labelMap, label_dominance);
         int num_pruned_trs = prune_irrelevant_transitions(labelMap, label_dominance);
         //if(num_pruned_trs){
         std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
@@ -512,6 +530,11 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
                  * if we first run simulation-shrinking. So, if we make sure that it is run before irrelevance pruning, we
                  * should have no problems here.
                  */
+                if (l != l2 && label_dominance.dominates(label_l, label_l2, lts) && label_dominance.dominates(label_l2, label_l, lts)) {
+                    cerr << "Error: two labels dominating each other in all but one LTS; this CANNOT happen!" << endl;
+                    cerr << l << "; " << l2 << "; " << label_l << "; " << label_l2 << endl;
+                    exit(1);
+                }
                 if (label_dominance.dominates(label_l2, label_l, lts)){
                     num_pruned_transitions += abs->prune_transitions_dominated_label(l, l2, *(simulations[lts]));
                 }
