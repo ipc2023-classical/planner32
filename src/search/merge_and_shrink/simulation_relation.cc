@@ -51,7 +51,7 @@ void SimulationRelation::dump(const vector<string> & names) const{
                         cout << names[i] << " <=> " << names[j] << endl;
                     }
                 }else{
-                    cout << names[i] << " <= " << names[j] << endl;
+                    //cout << names[i] << " <= " << names[j] << endl;
                 }
             }
         }

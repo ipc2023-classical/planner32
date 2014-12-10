@@ -236,10 +236,13 @@ void LDSimulation::build_abstraction() {
         }
     }
 
+    if (intermediate_simulations) {
+        abstractions.clear();
+    }
     for (size_t i = 0; i < all_abstractions.size(); ++i) {
-        if (intermediate_simulations) {
-            abstractions.clear();
-        }
+//        if (intermediate_simulations) {
+//            abstractions.clear();
+//        }
         if (all_abstractions[i]) {
             abstractions.push_back(all_abstractions[i]);
             all_abstractions[i]->compute_distances();
@@ -301,6 +304,16 @@ void LDSimulation::compute_ld_simulation() {
         compute_ld_simulation(ltss_simple, labelMap, label_dominance);
     }
 
+    //for(int i = 0; i < simulations.size(); i++)
+        //simulations[i]->dump(ltss_simple[i]->get_names());
+
+    if (apply_irrelevant_transitions_pruning) {
+        int num_pruned_trs = prune_irrelevant_transitions(labelMap, label_dominance);
+        //if(num_pruned_trs){
+        std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
+        //_labels->prune_irrelevant_labels();
+    }
+
     if (apply_simulation_shrinking) {
         for (auto sim : simulations) {
             sim->shrink();
@@ -309,18 +322,12 @@ void LDSimulation::compute_ld_simulation() {
 
     if (apply_irrelevant_transitions_pruning) {
         labels->reduce(labelMap, label_dominance);
-        int num_pruned_trs = prune_irrelevant_transitions(labelMap, label_dominance);
-        //if(num_pruned_trs){
-        std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
-        //_labels->prune_irrelevant_labels();
-        // PIET-edit: Seems that the changes in the abstraction are not reflected in the corresponding LTS!
         for (auto abs : abstractions) {
-            std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << labelMap.get_num_labels() << " num_labels" << std::endl;
+            abs->normalize();
+            std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
         }
     }
 
-    // for(int i = 0; i < _simulations.size(); i++)
-    //     _simulations[i]->dump(ltss[i]->get_names());
 }
 
 
@@ -521,7 +528,7 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
         for (int l = 0; l < is_rel_label.size(); ++l){
             if(!is_rel_label[l]) continue;
             int label_l = labelMap.get_id(l);
-            for (int l2 = 0; l2 < is_rel_label.size(); ++l2){
+            for (int l2 = l + 1; l2 < is_rel_label.size(); ++l2){
                 if(!is_rel_label[l2]) continue;
                 int label_l2 = labelMap.get_id(l2);
                 //l2 : Iterate over relevant labels
@@ -530,13 +537,21 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
                  * if we first run simulation-shrinking. So, if we make sure that it is run before irrelevance pruning, we
                  * should have no problems here.
                  */
-                if (l != l2 && label_dominance.dominates(label_l, label_l2, lts) && label_dominance.dominates(label_l2, label_l, lts)) {
-                    cerr << "Error: two labels dominating each other in all but one LTS; this CANNOT happen!" << endl;
-                    cerr << l << "; " << l2 << "; " << label_l << "; " << label_l2 << endl;
-                    exit(1);
-                }
-                if (label_dominance.dominates(label_l2, label_l, lts)){
-                    num_pruned_transitions += abs->prune_transitions_dominated_label(l, l2, *(simulations[lts]));
+//                if (l != l2 && label_dominance.dominates(label_l, label_l2, lts) && label_dominance.dominates(label_l2, label_l, lts)) {
+//                    cerr << "Error: two labels dominating each other in all but one LTS; this CANNOT happen!" << endl;
+//                    cerr << l << "; " << l2 << "; " << label_l << "; " << label_l2 << endl;
+//                    exit(1);
+//                }
+                if (label_dominance.dominates(label_l2, label_l, lts)) {
+                    if (!label_dominance.dominates(label_l, label_l2, lts)) {
+                        num_pruned_transitions +=
+                                abs->prune_transitions_dominated_label(l, l2,
+                                        *(simulations[lts]));
+                    }
+                } else if (label_dominance.dominates(label_l, label_l2, lts)) {
+                    num_pruned_transitions +=
+                            abs->prune_transitions_dominated_label(l2, l,
+                                    *(simulations[lts]));
                 }
             }
         }

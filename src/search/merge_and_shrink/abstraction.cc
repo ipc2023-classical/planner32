@@ -103,6 +103,16 @@ int Abstraction::get_num_labels() const {
     return labels->get_size();
 }
 
+int Abstraction::get_num_nonreduced_labels() const {
+    int num = 0;
+    for (int l = 0; l < labels->get_size(); l++) {
+        if (!labels->is_label_reduced(l)) {
+            num++;
+        }
+    }
+    return num;
+}
+
 void Abstraction::compute_label_ranks(vector<int> &label_ranks) {
     // abstraction needs to be normalized when considering labels and their
     // transitions
@@ -913,6 +923,7 @@ void Abstraction::apply_abstraction(
     // not asserting is_normalized()), because shrink can indirectly be called
     // from the distances computation, which is done for the final abstraction
     // which on its turn may not be normalized at that time.
+    //cout << "abs->num_labels: " << num_labels << " / labels->get_size: " << labels->get_size() << endl;
     assert(num_labels == labels->get_size());
     // distances must have been computed before
     assert(are_distances_computed());

@@ -95,13 +95,13 @@ void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_domina
         }
 
         // PIET-edit: Here we do not remove either label if they dominate each other in all LTSs.
-//        for (int l2 = 0; l2 < dominates_in.size(); ++l2){
-//            if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL &&
-//                    !dominates_in[l][l2] == DOMINATES_IN_ALL){
-//                labels_dominated_in_all.push_back(l);
-//                break;
-//            }
-//        }
+        for (int l2 = 0; l2 < dominates_in.size(); ++l2){
+            if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL &&
+                    !dominates_in[l][l2] == DOMINATES_IN_ALL){
+                labels_dominated_in_all.push_back(l);
+                break;
+            }
+        }
         // PIET-edit: Here we remove one of the two labels dominating each other in all LTSs.
 //        for (int l2 = 0; l2 < dominates_in.size(); ++l2){
 //            if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && !dominates_in[l][l2] == DOMINATES_IN_ALL)
@@ -111,17 +111,17 @@ void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_domina
 //            }
 //        }
         // PIET-edit: If we take proper care, this both dominating each other cannot ever happen.
-        for (int l2 = 0; l2 < dominates_in.size(); ++l2) {
-            if (l != l2 && dominates_in[l][l2] == DOMINATES_IN_ALL && dominates_in[l2][l] == DOMINATES_IN_ALL) {
-                cerr << "Error: two labels dominating each other in all abstractions. This CANNOT happen!" << endl;
-                cerr << l << "; " << l2 << endl;
-                exit(1);
-            }
-            if (dominates_in[l2][l] == DOMINATES_IN_ALL) {
-                labels_dominated_in_all.push_back(l);
-                break;
-            }
-        }
+//        for (int l2 = 0; l2 < dominates_in.size(); ++l2) {
+//            if (l != l2 && dominates_in[l][l2] == DOMINATES_IN_ALL && dominates_in[l2][l] == DOMINATES_IN_ALL) {
+//                cerr << "Error: two labels dominating each other in all abstractions. This CANNOT happen!" << endl;
+//                cerr << l << "; " << l2 << endl;
+//                exit(1);
+//            }
+//            if (dominates_in[l2][l] == DOMINATES_IN_ALL) {
+//                labels_dominated_in_all.push_back(l);
+//                break;
+//            }
+//        }
     }
 }
 
@@ -410,7 +410,7 @@ EquivalenceRelation * LabelRelation::get_equivalent_labels_relation(const LabelM
                             dominates_in[l2][l1] == DOMINATES_IN_ALL ||
                             dominates_in[l1][l2] == dominates_in[l2][l1])) {
                 eq.insert(labelMap.get_old_id(l2));
-                cout << l2 << " eq " << l1 << endl;
+                //cout << l2 << " eq " << l1 << endl;
                 captured_labels[l2] = true;
             }
         }

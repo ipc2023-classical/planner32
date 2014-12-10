@@ -193,6 +193,7 @@ public:
     const std::vector<AbstractTransition> &get_transitions_for_label(int label_no) const;
     // This method is shrink_bisimulation-exclusive
     int get_num_labels() const;
+    int get_num_nonreduced_labels() const;
     // These methods are used by non_linear_merge_strategy
     void compute_label_ranks(std::vector<int> &label_ranks);
     bool is_goal_relevant() const {
