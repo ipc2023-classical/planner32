@@ -12,6 +12,7 @@
 #include "../globals.h"
 #include "../causal_graph.h"
 #include "label_reducer.h"
+#include <boost/dynamic_bitset.hpp>
 
 #include "variable_partition_finder.h"
 
@@ -44,6 +45,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
         cerr << "Error: can only apply pruning of irrelevant transitions if perfect label reduction is applied" << endl;
         exit(1);
     }*/
+    Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
 }
 
 LDSimulation::LDSimulation(const Options &opts) : 
@@ -82,6 +84,7 @@ LDSimulation::LDSimulation(const Options &opts) :
         cerr << "Error: can only apply pruning of irrelevant transitions if perfect label reduction is applied" << endl;
         exit(1);
     }*/
+    Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
 }
 
 LDSimulation::~LDSimulation(){
@@ -129,9 +132,19 @@ void LDSimulation::build_abstraction() {
     if (intermediate_simulations) {
         if (prune_dead_operators) {
             vector<bool> dead_labels(labels->get_size(), false);
+            int num_dead = 0;
             for (auto abs : all_abstractions) {
-                abs->check_dead_labels(dead_labels, dead_operators);
+                num_dead += abs->check_dead_labels(dead_labels, dead_operators);
             }
+            /*if (num_dead != 0) {
+                for (int i = 0; i < dead_labels.size(); i++) {
+                    if (dead_labels[i]) {
+                        for (auto abs : all_abstractions) {
+                            abs->prune_transitions_dominated_label_all(i);
+                        }
+                    }
+                }
+            }*/
         }
         cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
         labels->reduce(make_pair(0, 1), all_abstractions);
@@ -180,11 +193,23 @@ void LDSimulation::build_abstraction() {
         if (shrink_strategy && shrink_strategy->reduce_labels_before_shrinking()) {
             if (!intermediate_simulations && prune_dead_operators) {
                 vector<bool> dead_labels(labels->get_size(), false);
+                int num_dead = 0;
                 for (auto abs : all_abstractions) {
                     if (abs) {
-                        abs->check_dead_labels(dead_labels, dead_operators);
+                        num_dead += abs->check_dead_labels(dead_labels, dead_operators);
                     }
                 }
+                /*if (num_dead != 0) {
+                    for (int i = 0; i < dead_labels.size(); i++) {
+                        if (dead_labels[i]) {
+                            for (auto abs : all_abstractions) {
+                                if (abs) {
+                                    abs->prune_transitions_dominated_label_all(i);
+                                }
+                            }
+                        }
+                    }
+                }*/
             }
             cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
             labels->reduce(make_pair(system_one, system_two), all_abstractions);
@@ -341,9 +366,19 @@ void LDSimulation::compute_ld_simulation() {
 
     if (prune_dead_operators) {
         vector<bool> dead_labels(labels->get_size(), false);
+        int num_dead = 0;
         for (auto abs : abstractions) {
-            abs->check_dead_labels(dead_labels, dead_operators);
+            num_dead += abs->check_dead_labels(dead_labels, dead_operators);
         }
+        /*if (num_dead != 0) {
+            for (int i = 0; i < dead_labels.size(); i++) {
+                if (dead_labels[i]) {
+                    for (auto abs : abstractions) {
+                        abs->prune_transitions_dominated_label_all(i);
+                    }
+                }
+            }
+        }*/
     }
 
     if (apply_label_dominance_reduction) {
@@ -673,14 +708,41 @@ void LDSimulation::initialize() {
     cout << "States after simulation: " << simulations[i]->num_states() << " " 
 	 << simulations[i]->num_different_states() << endl;
 	 }*/
+
     int num_dead = 0;
     for (int i = 0; i < dead_operators.size(); i++) {
         if (dead_operators[i])
             num_dead++;
     }
-    cout << "Dead Operators: " << num_dead << " / " << g_operators.size() << endl;
+    cout << "Dead Operators due to dead labels: " << num_dead << " / " << g_operators.size() << endl;
 
-    exit(0);
+    boost::dynamic_bitset<> required_operators(g_operators.size());
+    for (int i = 0; i < labels->get_size(); i++) {
+        if (labels->is_label_reduced(i)) {
+            continue;
+        }
+        boost::dynamic_bitset<> required_operators_for_label;
+        for (auto abs : abstractions) {
+            boost::dynamic_bitset<> required_operators_for_abstraction(g_operators.size());
+            const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
+            for (int j = 0; j < transitions.size(); j++) {
+                required_operators_for_abstraction |= transitions[j].based_on_operators;
+            }
+            if (required_operators_for_label.size() == 0) {
+                required_operators_for_label = required_operators_for_abstraction;
+            } else {
+                required_operators_for_label &= required_operators_for_abstraction;
+            }
+        }
+        required_operators |= required_operators_for_label;
+    }
+    cout << "Dead Operators detected by storing original operators: " << (g_operators.size() - required_operators.count()) << " / " << g_operators.size() << endl;
+    for (int i = 0; i < g_operators.size(); i++) {
+        if (required_operators[i])
+            cout << g_operators[i].get_name() << endl;
+    }
+
+    //exit(0);
 }
 
 int LDSimulation::num_equivalences() const {
@@ -898,6 +960,10 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 
     parser.add_option<bool>("prune_dead_operators",
             "Prune all operators that are dead in some abstraction. Note: not yet implemented; so far, only the number of dead operators is returned!",
+            "false");
+
+    parser.add_option<bool>("store_original_operators",
+            "Store the original operators for each transition in an abstraction",
             "false");
 
 }

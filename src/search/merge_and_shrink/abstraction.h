@@ -4,6 +4,9 @@
 #include "shrink_strategy.h"
 #include "../utilities.h"
 #include "../sym/sym_variables.h"
+//#include <boost/any.hpp>
+//#include <boost/dynamic_bitset.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 #include <ext/slist>
 #include <string>
@@ -23,6 +26,7 @@ typedef int AbstractStateRef;
 struct AbstractTransition {
     AbstractStateRef src;
     AbstractStateRef target;
+    boost::dynamic_bitset<> based_on_operators;
 
     AbstractTransition(AbstractStateRef src_, AbstractStateRef target_)
         : src(src_), target(target_) {
@@ -52,9 +56,12 @@ class Abstraction {
 
     friend class ShrinkStrategy; // for apply() -- TODO: refactor!
     friend class SimulationRelation; // for apply() -- TODO: refactor!
+    friend class LDSimulation; // for setting store_original_operators -- TODO: refactor!
 
     static const int PRUNED_STATE;
     static const int DISTANCE_UNKNOWN;
+
+    static bool store_original_operators;
 
     // There should only be one instance of Labels at runtime. It is created
     // and managed by MergeAndShrinkHeuristic. All abstraction instances have
@@ -165,6 +172,7 @@ public:
     void compute_distances();
     bool is_normalized() const;
     void normalize();
+    void normalize2(); // Version of normalize handling the storing of original operators in the transitions
     EquivalenceRelation *compute_local_equivalence_relation() const;
     void release_memory();
 

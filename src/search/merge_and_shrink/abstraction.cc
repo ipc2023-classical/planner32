@@ -30,6 +30,7 @@ using namespace __gnu_cxx;
 
 const int Abstraction::PRUNED_STATE = -1;
 const int Abstraction::DISTANCE_UNKNOWN = -2;
+bool Abstraction::store_original_operators = false;
 
 /* Implementation note: Transitions are grouped by their labels,
  not by source state or any such thing. Such a grouping is beneficial
@@ -399,6 +400,10 @@ void Abstraction::normalize() {
     if (is_normalized()) {
         return;
     }
+    if (store_original_operators) {
+        normalize2();
+        return;
+    }
     lts.reset(); //In future versions, normalize the LTS instead
     //cout << tag() << "normalizing" << endl;
 
@@ -551,6 +556,175 @@ void Abstraction::normalize() {
     assert(is_normalized());
 }
 
+void Abstraction::normalize2() {
+    /* This method sorts all transitions and removes duplicate transitions.
+       It also maps the labels so that they are up to date with the labels
+       object. */
+
+    lts.reset(); //In future versions, normalize the LTS instead
+    //cout << tag() << "normalizing" << endl;
+
+    typedef vector<pair<AbstractStateRef, pair<int, boost::dynamic_bitset<> > > > StateBucket;
+
+    /* First, partition by target state. Possibly replace labels by
+       their new label which they are mapped to via label reduction and clear
+       away the transitions that have been processed. */
+    vector<StateBucket> target_buckets(num_states);
+
+    /* We handle "old" and "new" labels separately. The following loop
+       goes over all labels that were already known when we last
+       normalized. It ignores labels that are no longer current
+       because they have been mapped to fresh labels in the last label
+       reduction. (These labels are handled separately in the next
+       loop.) */
+
+    for (int label_no = 0; label_no < num_labels; label_no++) {
+        if (labels->is_label_reduced(label_no)) {
+            // skip all labels that have been reduced (previously, in which case
+            // they do not induce any transitions or recently, in which case we
+            // deal with them separately).
+            continue;
+        }
+        vector<AbstractTransition> &transitions = transitions_by_label[label_no];
+        for (int i = 0; i < transitions.size(); i++) {
+            const AbstractTransition &t = transitions[i];
+            target_buckets[t.target].push_back(
+                    make_pair(t.src, make_pair(label_no, t.based_on_operators)));
+        }
+        vector<AbstractTransition> ().swap(transitions);
+    }
+
+    /* Now we handle "new" labels. We iterate over the fresh labels and
+       determine the "old" labels from which they were generated to combine
+       their transitions.
+
+       Some complications arise when we combine labels of which some
+       are relevant and others are not. In this case, we test if all
+       transitions of relevant labels are self-loops. If this happens,
+       we make the new label irrelevant. Otherwise, the new labels is
+       relevant and we must materialize all previously implicit
+       self-loops.
+
+       Note that currently we do not detect the case where a label
+       becomes irrelevant due to shrinking. This could be a future
+       optimization.
+     */
+
+    /* labels_made_irrelevant stores labels for which we collect
+       transitions that later turn out to be unnecessary because the
+       label becomes irrelevant.
+     */
+    hash_set<int> labels_made_irrelevant;
+    for (int reduced_label_no = num_labels; reduced_label_no < labels->get_size();
+            ++reduced_label_no) {
+        const Label *reduced_label = labels->get_label_by_index(reduced_label_no);
+        const vector<Label *> &parents = reduced_label->get_parents();
+        bool some_parent_is_irrelevant = false;
+        bool all_transitions_are_self_loops = true;
+        for (size_t i = 0; i < parents.size(); ++i) {
+            const Label *parent = parents[i];
+            int parent_id = parent->get_id();
+            // We require that we only have to deal with one label reduction at
+            // at time when normalizing. Otherwise the following assertion could
+            // be broken and we would need to consider parents' parents and so
+            // on...
+            assert(parent_id < num_labels);
+            vector<AbstractTransition> &transitions =
+                    transitions_by_label[parent_id];
+
+            if (relevant_labels[parent_id]) {
+                for (int i = 0; i < transitions.size(); i++) {
+                    const AbstractTransition &t = transitions[i];
+                    target_buckets[t.target].push_back(
+                            make_pair(t.src, make_pair(reduced_label_no, t.based_on_operators)));
+                    if (t.target != t.src) {
+                        all_transitions_are_self_loops = false;
+                    }
+                }
+                vector<AbstractTransition> ().swap(transitions);
+
+                // mark parent as irrelevant (unused labels should not be
+                // marked as relevant in order to avoid confusions when
+                // considering all relevant labels).
+                relevant_labels[parent_id] = false;
+                labels->set_irrelevant_for(parent_id, this);
+            } else {
+                some_parent_is_irrelevant = true;
+            }
+        }
+        if (some_parent_is_irrelevant) {
+            if (all_transitions_are_self_loops) {
+                // new label is irrelevant (implicit self-loops)
+                // remove all transitions (later)
+                labels_made_irrelevant.insert(reduced_label_no);
+                labels->set_irrelevant_for(reduced_label_no, this);
+            } else {
+                // new label is relevant
+                relevant_labels[reduced_label_no] = true;
+                labels->set_relevant_for(reduced_label_no, this);
+                // make self loops explicit
+                for (int i = 0; i < num_states; ++i) {
+                    boost::dynamic_bitset<> original_operators(g_operators.size(), false);
+                    const Label* label = labels->get_label_by_index(reduced_label_no);
+                    set<int> op_ids;
+                    label->get_operators(op_ids);
+                    for (auto id : op_ids) {
+                        original_operators[id] = true;
+                    }
+                    target_buckets[i].push_back(
+                            make_pair(i, make_pair(reduced_label_no, original_operators)));
+                }
+            }
+        } else {
+            // new label is relevant
+            relevant_labels[reduced_label_no] = true;
+            labels->set_relevant_for(reduced_label_no, this);
+        }
+    }
+
+    // Second, partition by src state.
+    vector<StateBucket> src_buckets(num_states);
+
+    for (AbstractStateRef target = 0; target < num_states; target++) {
+        StateBucket &bucket = target_buckets[target];
+        for (int i = 0; i < bucket.size(); i++) {
+            AbstractStateRef src = bucket[i].first;
+            int label_no = bucket[i].second.first;
+            if (labels_made_irrelevant.count(label_no)) {
+                assert(transitions_by_label[label_no].empty());
+            } else {
+                src_buckets[src].push_back(
+                        make_pair(target, make_pair(label_no, bucket[i].second.second)));
+            }
+        }
+    }
+    vector<StateBucket> ().swap(target_buckets);
+
+    // Finally, partition by operator and drop duplicates.
+    for (AbstractStateRef src = 0; src < num_states; src++) {
+        StateBucket &bucket = src_buckets[src];
+        for (int i = 0; i < bucket.size(); i++) {
+            int target = bucket[i].first;
+            int label_no = bucket[i].second.first;
+
+            vector<AbstractTransition> &op_bucket = transitions_by_label[label_no];
+            AbstractTransition trans(src, target);
+            if (op_bucket.empty() || op_bucket.back() != trans) {
+                trans.based_on_operators = bucket[i].second.second;
+                op_bucket.push_back(trans);
+            } else {
+                trans.based_on_operators |= bucket[i].second.second;
+            }
+        }
+    }
+
+    // Abstraction has been normalized, restore invariant
+    assert(are_transitions_sorted_unique());
+    num_labels = labels->get_size();
+    transitions_sorted_unique = true;
+    assert(is_normalized());
+}
+
 EquivalenceRelation *Abstraction::compute_local_equivalence_relation() const {
     /* If label l1 is irrelevant and label l2 is relevant but has exactly the
        transitions of an irrelevant label, we do not detect the equivalence. */
@@ -617,6 +791,14 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
             int value = prev[i].prev;
             Abstraction *abs = result[var];
             AbstractTransition trans(value, value);
+            if (store_original_operators) {
+                /* PIET-edit: We should at some point change here from the full size to the subset corresponding
+                 * only to the operators as relevant for this label.
+                 */
+                boost::dynamic_bitset<> empty_bitset(g_operators.size());
+                trans.based_on_operators = empty_bitset;
+                trans.based_on_operators[label_no] = true;
+            }
             abs->transitions_by_label[label_no].push_back(trans);
             abs->relevant_labels[label_no] = true;
             labels->set_relevant_for(label_no, abs);
@@ -662,6 +844,14 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
                    a condition on var and this condition is not satisfied. */
                 if (cond_effect_pre_value == -1 || cond_effect_pre_value == value) {
                     AbstractTransition trans(value, post_value);
+                    if (store_original_operators) {
+                        /* PIET-edit: We should at some point change here from the full size to the subset corresponding
+                         * only to the operators as relevant for this label.
+                         */
+                        boost::dynamic_bitset<> empty_bitset(g_operators.size());
+                        trans.based_on_operators = empty_bitset;
+                        trans.based_on_operators[label_no] = true;
+                    }
                     abs->transitions_by_label[label_no].push_back(trans);
                 }
             }
@@ -676,6 +866,14 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
                        fails to trigger if this condition is false. */
                     if (has_other_effect_cond || value != cond_effect_pre_value) {
                         AbstractTransition loop(value, value);
+                        if (store_original_operators) {
+                            /* PIET-edit: We should at some point change here from the full size to the subset corresponding
+                             * only to the operators as relevant for this label.
+                             */
+                            boost::dynamic_bitset<> empty_bitset(g_operators.size());
+                            loop.based_on_operators = empty_bitset;
+                            loop.based_on_operators[label_no] = true;
+                        }
                         abs->transitions_by_label[label_no].push_back(loop);
                     }
                 }
@@ -797,7 +995,16 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                         int target2 = bucket2[j].target;
                         int src = src1 * multiplier + src2;
                         int target = target1 * multiplier + target2;
-                        transitions.push_back(AbstractTransition(src, target));
+                        if (store_original_operators) {
+                            /* PIET-edit: We should at some point change here from the full size to the subset corresponding
+                             * only to the operators as relevant for this label.
+                             */
+                            AbstractTransition new_trans(src, target);
+                            new_trans.based_on_operators = bucket1[i].based_on_operators & bucket2[j].based_on_operators;
+                            transitions.push_back(new_trans);
+                        } else {
+                            transitions.push_back(AbstractTransition(src, target));
+                        }
                     }
                 }
             } else if (relevant1) {
@@ -809,7 +1016,16 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                     for (int s2 = 0; s2 < abs2->size(); s2++) {
                         int src = src1 * multiplier + s2;
                         int target = target1 * multiplier + s2;
-                        transitions.push_back(AbstractTransition(src, target));
+                        if (store_original_operators) {
+                            /* PIET-edit: We should at some point change here from the full size to the subset corresponding
+                             * only to the operators as relevant for this label.
+                             */
+                            AbstractTransition new_trans(src, target);
+                            new_trans.based_on_operators = bucket1[i].based_on_operators;
+                            transitions.push_back(new_trans);
+                        } else {
+                            transitions.push_back(AbstractTransition(src, target));
+                        }
                     }
                 }
             } else if (relevant2) {
@@ -821,7 +1037,16 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                         int target2 = bucket2[i].target;
                         int src = s1 * multiplier + src2;
                         int target = s1 * multiplier + target2;
-                        transitions.push_back(AbstractTransition(src, target));
+                        if (store_original_operators) {
+                            /* PIET-edit: We should at some point change here from the full size to the subset corresponding
+                             * only to the operators as relevant for this label.
+                             */
+                            AbstractTransition new_trans(src, target);
+                            new_trans.based_on_operators = bucket2[i].based_on_operators;
+                            transitions.push_back(new_trans);
+                        } else {
+                            transitions.push_back(AbstractTransition(src, target));
+                        }
                     }
                 }
                 assert(is_sorted_unique(transitions));
@@ -1024,8 +1249,18 @@ void Abstraction::apply_abstraction(
             const AbstractTransition &trans = transitions[i];
             int src = abstraction_mapping[trans.src];
             int target = abstraction_mapping[trans.target];
-            if (src != PRUNED_STATE && target != PRUNED_STATE)
-                new_transitions.push_back(AbstractTransition(src, target));
+            if (src != PRUNED_STATE && target != PRUNED_STATE) {
+                if (store_original_operators) {
+                    /* PIET-edit: We should at some point change here from the full size to the subset corresponding
+                     * only to the operators as relevant for this label.
+                     */
+                    AbstractTransition new_trans(src, target);
+                    new_trans.based_on_operators = trans.based_on_operators;
+                    new_transitions.push_back(new_trans);
+                } else {
+                    new_transitions.push_back(AbstractTransition(src, target));
+                }
+            }
         }
     }
     vector<vector<AbstractTransition> > ().swap(transitions_by_label);
