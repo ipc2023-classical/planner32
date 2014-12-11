@@ -1286,12 +1286,44 @@ int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by
                 end(transitions_by_label[label_no_by]),
                 [&](AbstractTransition & t2){
             /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-            return t2.src == t.src && ((t2.target != t.target) || (label_no != label_no_by)) &&
-                    rel.simulates(t2.target, t.target);
+            return t2.src == t.src && rel.simulates(t2.target, t.target);
         }) != end(transitions_by_label[label_no_by]);
     }),
     transitions_by_label[label_no].end());
     return num - transitions_by_label[label_no].size();
+
+}
+
+// Prune all the transitions of label_no such that exist a better
+// transition for label_no_by
+int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label_no2,
+        SimulationRelation & rel) {
+    int num = transitions_by_label[label_no].size() + transitions_by_label[label_no2].size();
+    transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
+            end(transitions_by_label[label_no]),
+            [&](AbstractTransition & t){
+        return std::find_if(begin(transitions_by_label[label_no2]),
+                end(transitions_by_label[label_no2]),
+                [&](AbstractTransition & t2){
+            /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
+            return t2.src == t.src &&  rel.simulates(t2.target, t.target) && !rel.simulates(t.target, t2.target);
+        }) != end(transitions_by_label[label_no2]);
+    }),
+    transitions_by_label[label_no].end());
+
+    transitions_by_label[label_no2].erase(std::remove_if(begin(transitions_by_label[label_no2]),
+                end(transitions_by_label[label_no2]),
+                [&](AbstractTransition & t){
+            return std::find_if(begin(transitions_by_label[label_no]),
+                    end(transitions_by_label[label_no]),
+                    [&](AbstractTransition & t2){
+                /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
+                return t2.src == t.src &&  rel.simulates(t2.target, t.target) && !rel.simulates(t.target, t2.target);
+            }) != end(transitions_by_label[label_no]);
+        }),
+        transitions_by_label[label_no2].end());
+
+    return num - transitions_by_label[label_no].size() - transitions_by_label[label_no2].size();
 
 }
 
@@ -1514,4 +1546,28 @@ int Abstraction::estimate_transitions(const Abstraction * other) const{
         }
     }
     return num_total;
+}
+
+bool Abstraction::check_dead_labels(vector<bool> & dead_labels, vector<bool> & dead_operators) const {
+    bool ret = false;
+    //cout << dead_labels.size() << " / " << labels->get_size() << endl;
+    for (int i = 0; i < labels->get_size(); i++) {
+        if (dead_labels[i])
+            continue; // corresponding operators must already have been extracted somewhere else
+        if (labels->is_label_reduced(i))
+            continue;
+        if (relevant_labels[i] && transitions_by_label[i].empty()) {
+            dead_labels[i] = true;
+            const Label* label = labels->get_label_by_index(i);
+            set<int> op_ids;
+            label->get_operators(op_ids);
+            for (auto id : op_ids) {
+                //cout << id << " / " << g_operators.size() << endl;
+                if (!dead_operators[id])
+                    ret = true;
+                dead_operators[id] = true;
+            }
+        }
+    }
+    return ret;
 }

@@ -22,6 +22,8 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          nold_simulation(opts.get<bool>("nold_simulation")),
 		                          apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
 		                          apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
+		                          apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
+		                          prune_dead_operators(opts.get<bool>("prune_dead_operators")),
 		                          efficient_simulation(opts.get<bool>("efficient_simulation")),
 		                          efficient_lts(opts.get<bool>("efficient_lts")),
 		                          use_expensive_statistics(opts.get<bool>("expensive_statistics")),
@@ -38,10 +40,10 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
         cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
     }
-    if (apply_irrelevant_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
+    /*if (apply_irrelevant_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
         cerr << "Error: can only apply pruning of irrelevant transitions if perfect label reduction is applied" << endl;
         exit(1);
-    }
+    }*/
 }
 
 LDSimulation::LDSimulation(const Options &opts) : 
@@ -49,6 +51,8 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        nold_simulation(opts.get<bool>("nold_simulation")),
     		                        apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
     		                        apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
+                                    apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
+                                    prune_dead_operators(opts.get<bool>("prune_dead_operators")),
     		                        efficient_simulation(opts.get<bool>("efficient_simulation")),
     		                        efficient_lts(opts.get<bool>("efficient_lts")),
     		                        use_expensive_statistics(opts.get<bool>("expensive_statistics")),
@@ -74,10 +78,10 @@ LDSimulation::LDSimulation(const Options &opts) :
         }
     }
     labels = unique_ptr<Labels> (new Labels(is_unit_cost, opts, cost_type)); //TODO: c++14::make_unique
-    if (apply_irrelevant_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
+    /*if (apply_irrelevant_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
         cerr << "Error: can only apply pruning of irrelevant transitions if perfect label reduction is applied" << endl;
         exit(1);
-    }
+    }*/
 }
 
 LDSimulation::~LDSimulation(){
@@ -121,7 +125,14 @@ void LDSimulation::build_abstraction() {
         shrink_strategy = unique_ptr<ShrinkStrategy>(ShrinkBisimulation::create_default());
     }
 
+    dead_operators.resize(g_operators.size(), false);
     if (intermediate_simulations) {
+        if (prune_dead_operators) {
+            vector<bool> dead_labels(labels->get_size(), false);
+            for (auto abs : all_abstractions) {
+                abs->check_dead_labels(dead_labels, dead_operators);
+            }
+        }
         cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
         labels->reduce(make_pair(0, 1), all_abstractions);
         cout << "Normalize: " << t() << endl;
@@ -167,6 +178,14 @@ void LDSimulation::build_abstraction() {
         // Note: we do not reduce labels several times for the same abstraction
         bool reduced_labels = false;
         if (shrink_strategy && shrink_strategy->reduce_labels_before_shrinking()) {
+            if (!intermediate_simulations && prune_dead_operators) {
+                vector<bool> dead_labels(labels->get_size(), false);
+                for (auto abs : all_abstractions) {
+                    if (abs) {
+                        abs->check_dead_labels(dead_labels, dead_operators);
+                    }
+                }
+            }
             cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
             labels->reduce(make_pair(system_one, system_two), all_abstractions);
             reduced_labels = true;
@@ -320,12 +339,19 @@ void LDSimulation::compute_ld_simulation() {
         }
     }
 
-    if (apply_irrelevant_transitions_pruning) {
-        labels->reduce(labelMap, label_dominance);
+    if (prune_dead_operators) {
+        vector<bool> dead_labels(labels->get_size(), false);
         for (auto abs : abstractions) {
-            abs->normalize();
-            std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
+            abs->check_dead_labels(dead_labels, dead_operators);
         }
+    }
+
+    if (apply_label_dominance_reduction) {
+        labels->reduce(labelMap, label_dominance);
+    }
+    for (auto abs : abstractions) {
+        abs->normalize();
+        std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
     }
 
 }
@@ -507,7 +533,7 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
     label_dominance.get_labels_dominated_in_all(labels_id);
     for (auto abs : abstractions){
         for (int l : labels_id)
-            num_pruned_transitions += abs->prune_transitions_dominated_label_all(l);
+            num_pruned_transitions += abs->prune_transitions_dominated_label_all(labelMap.get_old_id(l));
     }
 
     //b) prune transitions dominated by noop in a transition system
@@ -516,7 +542,7 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
         if(lts >= 0){
             // the index of the LTS and its corresponding abstraction should always be the same -- be careful about
             // this in the other code!
-            num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(l, *(simulations[lts]));
+            num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(labelMap.get_old_id(l), *(simulations[lts]));
         }
     }
 
@@ -528,7 +554,7 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
         for (int l = 0; l < is_rel_label.size(); ++l){
             if(!is_rel_label[l]) continue;
             int label_l = labelMap.get_id(l);
-            for (int l2 = l + 1; l2 < is_rel_label.size(); ++l2){
+            for (int l2 = l; l2 < is_rel_label.size(); ++l2){
                 if(!is_rel_label[l2]) continue;
                 int label_l2 = labelMap.get_id(l2);
                 //l2 : Iterate over relevant labels
@@ -542,12 +568,15 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
 //                    cerr << l << "; " << l2 << "; " << label_l << "; " << label_l2 << endl;
 //                    exit(1);
 //                }
-                if (label_dominance.dominates(label_l2, label_l, lts)) {
-                    if (!label_dominance.dominates(label_l, label_l2, lts)) {
-                        num_pruned_transitions +=
-                                abs->prune_transitions_dominated_label(l, l2,
-                                        *(simulations[lts]));
-                    }
+                if (label_dominance.dominates(label_l2, label_l, lts)
+                        && label_dominance.dominates(label_l, label_l2, lts)) {
+                    num_pruned_transitions +=
+                            abs->prune_transitions_dominated_label_equiv(l, l2,
+                                    *(simulations[lts]));
+                } else if (label_dominance.dominates(label_l2, label_l, lts)) {
+                    num_pruned_transitions +=
+                            abs->prune_transitions_dominated_label(l, l2,
+                                    *(simulations[lts]));
                 } else if (label_dominance.dominates(label_l, label_l2, lts)) {
                     num_pruned_transitions +=
                             abs->prune_transitions_dominated_label(l2, l,
@@ -644,6 +673,12 @@ void LDSimulation::initialize() {
     cout << "States after simulation: " << simulations[i]->num_states() << " " 
 	 << simulations[i]->num_different_states() << endl;
 	 }*/
+    int num_dead = 0;
+    for (int i = 0; i < dead_operators.size(); i++) {
+        if (dead_operators[i])
+            num_dead++;
+    }
+    cout << "Dead Operators: " << num_dead << " / " << g_operators.size() << endl;
 
     exit(0);
 }
@@ -855,6 +890,14 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 
     parser.add_option<bool>("apply_irrelevant_transitions_pruning",
             "Perform pruning of irrelevant transitions, based on simulation shrinking. Note: can only be used if simulation shrinking is applied!",
+            "false");
+
+    parser.add_option<bool>("apply_label_dominance_reduction",
+            "Perform label reduction based on found label dominances",
+            "false");
+
+    parser.add_option<bool>("prune_dead_operators",
+            "Prune all operators that are dead in some abstraction. Note: not yet implemented; so far, only the number of dead operators is returned!",
             "false");
 
 }

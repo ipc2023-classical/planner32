@@ -245,12 +245,18 @@ public:
     // transition for label_no_by
     int prune_transitions_dominated_label(int label_no, int label_no_by,
 					  SimulationRelation & rel);
+    // Prune all the transitions of label_no such that exist a better
+    // transition for label_no_by
+    int prune_transitions_dominated_label_equiv(int label_no, int label_no_by,
+                      SimulationRelation & rel);
     
     //Prune all the transitions dominated by noop 
     int prune_transitions_dominated_label_noop(int label_no,
 					       SimulationRelation & rel);
 
     int estimate_transitions(const Abstraction * other) const;
+
+    bool check_dead_labels(std::vector<bool> & dead_labels, std::vector<bool> & dead_operators) const;
 };
 
 class AtomicAbstraction : public Abstraction {

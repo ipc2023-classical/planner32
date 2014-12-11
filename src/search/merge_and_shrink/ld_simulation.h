@@ -26,6 +26,8 @@ protected:
 
     const bool apply_simulation_shrinking;
     const bool apply_irrelevant_transitions_pruning;
+    const bool apply_label_dominance_reduction;
+    const bool prune_dead_operators;
 
     const bool efficient_simulation;
     const bool efficient_lts;
@@ -45,6 +47,7 @@ protected:
     std::unique_ptr<Labels> labels;
     std::vector<Abstraction *> abstractions;
     std::vector<SimulationRelation *> simulations;
+    std::vector<bool> dead_operators;
 
     // std::unique_ptr<LabelRelation>  label_dominance;
     //  std::vector<LabelledTransitionSystem *> ltss;
