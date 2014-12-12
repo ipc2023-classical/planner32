@@ -141,6 +141,7 @@ public:
     virtual ~Abstraction();
 
     int total_transitions() const;
+    int total_transition_operators() const;
 
     // Two methods to identify the abstraction in output.
     // tag is a convience method that upper-cases the first letter of

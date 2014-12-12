@@ -713,7 +713,7 @@ void Abstraction::normalize2() {
                 trans.based_on_operators = bucket[i].second.second;
                 op_bucket.push_back(trans);
             } else {
-                trans.based_on_operators |= bucket[i].second.second;
+                op_bucket.back().based_on_operators |= bucket[i].second.second;
             }
         }
     }
@@ -1343,6 +1343,16 @@ int Abstraction::total_transitions() const {
     return total;
 }
 
+int Abstraction::total_transition_operators() const {
+    int total = 0;
+    for (auto transitions : transitions_by_label) {
+        for (auto trans : transitions) {
+            total += trans.based_on_operators.count();
+        }
+    }
+    return total;
+}
+
 int Abstraction::unique_unlabeled_transitions() const {
     vector<AbstractTransition> unique_transitions;
     for (int i = 0; i < transitions_by_label.size(); i++) {
@@ -1365,6 +1375,10 @@ void Abstraction::statistics(bool include_expensive_statistics) const {
         cout << "???";
     cout << "/" << total_transitions() << " arcs, " << memory << " bytes"
             << endl;
+    if (store_original_operators && include_expensive_statistics) {
+        cout << tag();
+        cout << total_transition_operators() << " stored operators in transitions" << endl;
+    }
     cout << tag();
     if (!are_distances_computed()) {
         cout << "distances not computed";

@@ -723,8 +723,11 @@ void LDSimulation::initialize() {
         }
         boost::dynamic_bitset<> required_operators_for_label;
         for (auto abs : abstractions) {
-            boost::dynamic_bitset<> required_operators_for_abstraction(g_operators.size());
             const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
+            //cout << transitions.size() << " " << abs->get_relevant_labels()[i] << endl;
+            if (!abs->get_relevant_labels()[i])
+                continue;
+            boost::dynamic_bitset<> required_operators_for_abstraction(g_operators.size());
             for (int j = 0; j < transitions.size(); j++) {
                 required_operators_for_abstraction |= transitions[j].based_on_operators;
             }
@@ -734,15 +737,19 @@ void LDSimulation::initialize() {
                 required_operators_for_label &= required_operators_for_abstraction;
             }
         }
+        //cout << endl;
         required_operators |= required_operators_for_label;
     }
     cout << "Dead Operators detected by storing original operators: " << (g_operators.size() - required_operators.count()) << " / " << g_operators.size() << endl;
-    for (int i = 0; i < g_operators.size(); i++) {
+    /*for (int i = 0; i < g_operators.size(); i++) {
         if (required_operators[i])
             cout << g_operators[i].get_name() << endl;
-    }
+    }*/
+    /*for (auto abs : abstractions) {
+        abs->statistics(true);
+    }*/
 
-    //exit(0);
+    exit(0);
 }
 
 int LDSimulation::num_equivalences() const {

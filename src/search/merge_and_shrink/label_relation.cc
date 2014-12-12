@@ -23,6 +23,7 @@ void LabelRelation::dump_equivalent() const {
                     dominates_in[l2][l1] == dominates_in[l1][l2]){
                 redundant[l2] =true;
                 num_redundant ++;
+                cout << l1 << " equivalent to " << l2 << " in " << dominates_in[l1][l2] << endl;
             }
         }
     }
