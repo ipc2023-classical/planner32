@@ -22,7 +22,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          skip_simulation(opts.get<bool>("skip_simulation")),
 		                          nold_simulation(opts.get<bool>("nold_simulation")),
 		                          apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
-		                          apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
+		                          apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
 		                          apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
 		                          prune_dead_operators(opts.get<bool>("prune_dead_operators")),
 		                          efficient_simulation(opts.get<bool>("efficient_simulation")),
@@ -37,12 +37,12 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          intermediate_simulations(opts.get<bool>("intermediate_simulations")),
 		                          labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
-    if (apply_irrelevant_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
-        cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
+    if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
+        cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
     }
-    /*if (apply_irrelevant_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
-        cerr << "Error: can only apply pruning of irrelevant transitions if perfect label reduction is applied" << endl;
+    /*if (apply_subsumed_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
+        cerr << "Error: can only apply pruning of subsumed transitions if perfect label reduction is applied" << endl;
         exit(1);
     }*/
     Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
@@ -52,7 +52,7 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        skip_simulation(opts.get<bool>("skip_simulation")),
     		                        nold_simulation(opts.get<bool>("nold_simulation")),
     		                        apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
-    		                        apply_irrelevant_transitions_pruning(opts.get<bool>("apply_irrelevant_transitions_pruning")),
+    		                        apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
                                     apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
                                     prune_dead_operators(opts.get<bool>("prune_dead_operators")),
     		                        efficient_simulation(opts.get<bool>("efficient_simulation")),
@@ -65,8 +65,8 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
     		                        use_bisimulation(opts.get<bool>("use_bisimulation")),
     		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")){
-    if (apply_irrelevant_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
-        cerr << "Error: can only apply pruning of irrelevant transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
+    if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
+        cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
     }
     //TODO: Copied from heuristic.cc. Move to the PlanningTask class
@@ -80,8 +80,8 @@ LDSimulation::LDSimulation(const Options &opts) :
         }
     }
     labels = unique_ptr<Labels> (new Labels(is_unit_cost, opts, cost_type)); //TODO: c++14::make_unique
-    /*if (apply_irrelevant_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
-        cerr << "Error: can only apply pruning of irrelevant transitions if perfect label reduction is applied" << endl;
+    /*if (apply_subsumed_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
+        cerr << "Error: can only apply pruning of subsumed transitions if perfect label reduction is applied" << endl;
         exit(1);
     }*/
     Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
@@ -147,7 +147,7 @@ void LDSimulation::build_abstraction() {
             }*/
         }
         cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
-        labels->reduce(make_pair(0, 1), all_abstractions);
+        labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
         cout << "Normalize: " << t() << endl;
         for (auto abs : all_abstractions) {
             abs->normalize();
@@ -161,6 +161,13 @@ void LDSimulation::build_abstraction() {
         }
         compute_ld_simulation();
     } else if (use_bisimulation) {
+        cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
+        labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+        cout << "Normalize: " << t() << endl;
+        for (auto abs : all_abstractions) {
+            abs->normalize();
+            abs->statistics(use_expensive_statistics);
+        }
         // do not use bisimulation shrinking on atomic abstractions if simulations are used
         cout << "Bisimulation-shrinking atomic abstractions..." << endl;
         for (size_t i = 0; i < all_abstractions.size(); ++i) {
@@ -188,6 +195,22 @@ void LDSimulation::build_abstraction() {
         Abstraction *other_abstraction = all_abstractions[system_two];
         assert(other_abstraction);
 
+        cout << "Merge: " << t() << endl;
+
+        //TODO: UPDATE SIMULATION WHEN DOING INCREMENTAL COMPUTATION
+        Abstraction *new_abstraction = new CompositeAbstraction(labels.get(),
+                abstraction,
+                other_abstraction);
+
+        abstraction->release_memory();
+        other_abstraction->release_memory();
+
+        new_abstraction->statistics(use_expensive_statistics);
+
+        all_abstractions[system_one] = 0;
+        all_abstractions[system_two] = 0;
+        all_abstractions.push_back(new_abstraction);
+
         // Note: we do not reduce labels several times for the same abstraction
         bool reduced_labels = false;
         if (shrink_strategy && shrink_strategy->reduce_labels_before_shrinking()) {
@@ -212,19 +235,23 @@ void LDSimulation::build_abstraction() {
                 }*/
             }
             cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
-            labels->reduce(make_pair(system_one, system_two), all_abstractions);
+            //labels->reduce(make_pair(system_one, system_two), all_abstractions);
+            labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
             reduced_labels = true;
             cout << "Normalize: " << t() << endl;
-            abstraction->normalize();
+            /*abstraction->normalize();
             other_abstraction->normalize();
             abstraction->statistics(use_expensive_statistics);
-            other_abstraction->statistics(use_expensive_statistics);
+            other_abstraction->statistics(use_expensive_statistics);*/
+            new_abstraction->normalize();
+            new_abstraction->statistics(use_expensive_statistics);
         }
 
         cout << "Compute distances: " << t() << endl;
         // distances need to be computed before shrinking
-        abstraction->compute_distances();
-        other_abstraction->compute_distances();
+        //abstraction->compute_distances();
+        //other_abstraction->compute_distances();
+        new_abstraction->compute_distances();
         // if (!abstraction->is_solvable())
         //     return abstraction;
         // if (!other_abstraction->is_solvable())
@@ -233,39 +260,29 @@ void LDSimulation::build_abstraction() {
         if(shrink_strategy){
             /* PIET-edit: Well, we actually want to have bisim shrinking AFTER merge */
             cout << "Shrink: " << t() << endl;
-            shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
-            abstraction->statistics(use_expensive_statistics);
-            other_abstraction->statistics(use_expensive_statistics);
+            //shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
+            shrink_strategy->shrink(*new_abstraction, /*1*/new_abstraction->size(), true); /* force maximal bisimulation shrinking */
+            //abstraction->statistics(use_expensive_statistics);
+            //other_abstraction->statistics(use_expensive_statistics);
+            new_abstraction->statistics(use_expensive_statistics);
         }
 
-        if ((shrink_strategy || intermediate_simulations || apply_irrelevant_transitions_pruning) && !reduced_labels) {
-            labels->reduce(make_pair(system_one, system_two), all_abstractions);
+        if ((shrink_strategy || intermediate_simulations || apply_subsumed_transitions_pruning) && !reduced_labels) {
+            //labels->reduce(make_pair(system_one, system_two), all_abstractions);
+            labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
         }
 
         cout << "Normalize: " << t() << endl;
-        abstraction->normalize();
-        other_abstraction->normalize();
+        //abstraction->normalize();
+        //other_abstraction->normalize();
+        new_abstraction->normalize();
 
         if (!reduced_labels) {
             // only print statistics if we just possibly reduced labels
-            other_abstraction->statistics(use_expensive_statistics);
-            abstraction->statistics(use_expensive_statistics);
+            //other_abstraction->statistics(use_expensive_statistics);
+            //abstraction->statistics(use_expensive_statistics);
+            new_abstraction->statistics(use_expensive_statistics);
         }
-        cout << "Merge: " << t() << endl;
-
-        //TODO: UPDATE SIMULATION WHEN DOING INCREMENTAL COMPUTATION
-        Abstraction *new_abstraction = new CompositeAbstraction(labels.get(),
-                abstraction,
-                other_abstraction);
-
-        abstraction->release_memory();
-        other_abstraction->release_memory();
-
-        new_abstraction->statistics(use_expensive_statistics);
-
-        all_abstractions[system_one] = 0;
-        all_abstractions[system_two] = 0;
-        all_abstractions.push_back(new_abstraction);
 
         cout << "Next it: " << t() << endl;
         if(intermediate_simulations){
@@ -351,8 +368,8 @@ void LDSimulation::compute_ld_simulation() {
     //for(int i = 0; i < simulations.size(); i++)
         //simulations[i]->dump(ltss_simple[i]->get_names());
 
-    if (apply_irrelevant_transitions_pruning) {
-        int num_pruned_trs = prune_irrelevant_transitions(labelMap, label_dominance);
+    if (apply_subsumed_transitions_pruning) {
+        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance);
         //if(num_pruned_trs){
         std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
         //_labels->prune_irrelevant_labels();
@@ -362,6 +379,13 @@ void LDSimulation::compute_ld_simulation() {
         for (auto sim : simulations) {
             sim->shrink();
         }
+    }
+
+    for (auto abs : abstractions) {
+        /* PIET-edit: Is this safe? I.e., do we not need to recalculate the label dominance
+         * relation? Otherwise, how is this gonna help us detect more subsumed transitions?
+         */
+        abs->compute_distances();
     }
 
     if (prune_dead_operators) {
@@ -558,8 +582,12 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 // }
 
 // PIET-edit: Seems to work now, at least if simulation shrinking is applied before calling this
-int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
+int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
         LabelRelation & label_dominance){
+    /*cout << "number of transitions before pruning:" << endl;
+    for (auto abs : abstractions) {
+        abs->statistics(false);
+    }*/
     int num_pruned_transitions = 0;
 
     //a) prune transitions of labels that are completely dominated by
@@ -620,6 +648,10 @@ int LDSimulation::prune_irrelevant_transitions(const LabelMap & labelMap,
             }
         }
     }
+    /*cout << "number of transitions after pruning:" << endl;
+    for (auto abs : abstractions) {
+        abs->statistics(false);
+    }*/
 
     return num_pruned_transitions;
 }
@@ -957,8 +989,8 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
             "Perform simulation shrinking",
             "false");
 
-    parser.add_option<bool>("apply_irrelevant_transitions_pruning",
-            "Perform pruning of irrelevant transitions, based on simulation shrinking. Note: can only be used if simulation shrinking is applied!",
+    parser.add_option<bool>("apply_subsumed_transitions_pruning",
+            "Perform pruning of subsumed transitions, based on simulation shrinking. Note: can only be used if simulation shrinking is applied!",
             "false");
 
     parser.add_option<bool>("apply_label_dominance_reduction",

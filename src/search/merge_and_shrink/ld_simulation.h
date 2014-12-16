@@ -25,7 +25,7 @@ protected:
     const bool nold_simulation;
 
     const bool apply_simulation_shrinking;
-    const bool apply_irrelevant_transitions_pruning;
+    const bool apply_subsumed_transitions_pruning;
     const bool apply_label_dominance_reduction;
     const bool prune_dead_operators;
 
@@ -80,7 +80,7 @@ protected:
             const LabelMap & labelMap,
             LabelRelation & label_dominance);
 
-    int prune_irrelevant_transitions(const LabelMap & labelMap,
+    int prune_subsumed_transitions(const LabelMap & labelMap,
             LabelRelation & label_dominance);
 public:
     LDSimulation(const Options &options);
