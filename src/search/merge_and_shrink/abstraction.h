@@ -196,6 +196,11 @@ public:
         return init_distances[state];
     }
 
+
+    const std::vector<int> & get_goal_distances() const {
+        return goal_distances;
+    }
+
     int get_goal_distance(int state) const {
         return goal_distances[state];
     }

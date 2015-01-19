@@ -12,17 +12,33 @@ using namespace std;
 SimulationRelation::SimulationRelation(Abstraction * _abs) : abs(_abs){
     int num_states = abs->size();
     const std::vector <bool> & goal_states = abs->get_goal_states();
+    abs->compute_distances();
+    const std::vector <int> & goal_distances = abs->get_goal_distances();
     relation.resize(num_states);
     for(int i = 0; i < num_states; i++){
         relation[i].resize(num_states, true);
         if(!goal_states[i]){
             for (int j = 0; j < num_states; j++){
-                if (goal_states[j]){
+                if (goal_states[j] || goal_distances[i] > goal_distances[j]){
+		    //if (!goal_states[j]) cout << "BANG" << endl;
                     relation[i][j] = false;
                 }
             }
         }
     }
+
+    // const std::vector <bool> & goal_states = abs->get_goal_states();
+    // relation.resize(num_states);
+    // for(int i = 0; i < num_states; i++){
+    //     relation[i].resize(num_states, true);
+    //     if(!goal_states[i]){
+    //         for (int j = 0; j < num_states; j++){
+    //             if (goal_states[j]){
+    //                 relation[i][j] = false;
+    //             }
+    //         }
+    //     }
+    // }
     // set a pointer in the abstraction to this simulation relation
     abs->set_simulation_relation(this);
 }
