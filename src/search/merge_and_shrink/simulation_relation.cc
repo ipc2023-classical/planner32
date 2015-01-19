@@ -23,6 +23,36 @@ SimulationRelation::SimulationRelation(Abstraction * _abs) : abs(_abs){
             }
         }
     }
+    // set a pointer in the abstraction to this simulation relation
+    abs->set_simulation_relation(this);
+}
+
+SimulationRelation::~SimulationRelation() {
+    // make sure that the abstraction still works fine, even when this simulation relation is deleted
+    abs->set_simulation_relation(0);
+}
+
+void SimulationRelation::apply_shrinking_to_table(const vector<int> & abstraction_mapping) {
+    cout << "reducing simulation size from " << relation.size() << " to " << abs->size() << endl;
+    int new_states = abs->size();
+    vector<vector<bool> > new_relation(new_states);
+    for (int i = 0; i < new_states; i++) {
+        new_relation[i].resize(new_states, false);
+    }
+    int old_states = abstraction_mapping.size();
+    for (int i = 0; i < old_states; i++) {
+        int new_i = abstraction_mapping[i];
+        if (new_i == Abstraction::PRUNED_STATE)
+            continue;
+        for (int j = 0; j < old_states; j++) {
+            int new_j = abstraction_mapping[j];
+            if (new_j == Abstraction::PRUNED_STATE)
+                continue;
+            new_relation[new_i][new_j] = relation[i][j];
+        }
+    }
+    vector<vector<bool> >().swap(relation);
+    relation.swap(new_relation);
 }
 
 void SimulationRelation::reset() {
@@ -231,7 +261,8 @@ void SimulationRelation::shrink() {
         abs->apply_abstraction(equivRel);
         abs->normalize();
 
-        vector<vector<bool> > newRelation(equivRel.size());
+        // PIET-edit: This is now automatically handled by the actual shrinking
+        /*vector<vector<bool> > newRelation(equivRel.size());
         for (int i = 0; i < newRelation.size(); i++) {
             newRelation[i].resize(equivRel.size());
             int old_i = equivRel[i].front();
@@ -241,7 +272,7 @@ void SimulationRelation::shrink() {
             }
         }
         vector<vector<bool> >().swap(relation);
-        relation.swap(newRelation);
+        relation.swap(newRelation);*/
     } else {
         cout << "Simulation shrinking did not shrink anything" << endl;
     }

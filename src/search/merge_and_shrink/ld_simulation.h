@@ -41,6 +41,7 @@ protected:
     std::unique_ptr<MergeStrategy> merge_strategy;
     const bool use_bisimulation;
     const bool intermediate_simulations;
+    const bool incremental_simulations;
 
 
     //TODO: Use unique_ptr here
@@ -58,6 +59,7 @@ protected:
 
     void build_abstraction();
     void compute_ld_simulation();
+    void compute_ld_simulation_incremental();
     void build_factored_systems ();
 
     std::vector<std::vector<int> > get_variable_partition_greedy();
@@ -77,6 +79,10 @@ protected:
 
     template <typename LTS>
     void compute_ld_simulation(std::vector<LTS *> & _ltss,
+            const LabelMap & labelMap,
+            LabelRelation & label_dominance);
+    template <typename LTS>
+    void compute_ld_simulation_incremental(std::vector<LTS *> & _ltss,
             const LabelMap & labelMap,
             LabelRelation & label_dominance);
 

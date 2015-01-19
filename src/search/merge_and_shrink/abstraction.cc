@@ -54,7 +54,8 @@ Abstraction::Abstraction(Labels *labels_)
 : labels(labels_), num_labels(labels->get_size()),
   transitions_by_label(g_operators.empty() ? 0 : g_operators.size() * 2 - 1),
   relevant_labels(transitions_by_label.size(), false),
-  transitions_sorted_unique(true), peak_memory(0) {
+  transitions_sorted_unique(true), peak_memory(0),
+  simulation_relation(0) {
     clear_distances();
 }
 
@@ -364,6 +365,9 @@ void AtomicAbstraction::apply_abstraction_to_lookup_table(
         if (old_state != PRUNED_STATE)
             lookup_table[i] = abstraction_mapping[old_state];
     }
+    if (simulation_relation) {
+        simulation_relation->apply_shrinking_to_table(abstraction_mapping);
+    }
 }
 
 void CompositeAbstraction::apply_abstraction_to_lookup_table(
@@ -375,6 +379,9 @@ void CompositeAbstraction::apply_abstraction_to_lookup_table(
             if (old_state != PRUNED_STATE)
                 lookup_table[i][j] = abstraction_mapping[old_state];
         }
+    }
+    if (simulation_relation) {
+        simulation_relation->apply_shrinking_to_table(abstraction_mapping);
     }
 }
 
@@ -1534,7 +1541,6 @@ int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by
         return std::find_if(begin(transitions_by_label[label_no_by]),
                 end(transitions_by_label[label_no_by]),
                 [&](AbstractTransition & t2){
-            /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
             return t2.src == t.src && rel.simulates(t2.target, t.target);
         }) != end(transitions_by_label[label_no_by]);
     }),
@@ -1555,7 +1561,7 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
                 end(transitions_by_label[label_no2]),
                 [&](AbstractTransition & t2){
             /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-            return t2.src == t.src &&  rel.simulates(t2.target, t.target) && !rel.simulates(t.target, t2.target);
+            return t2.src == t.src && rel.simulates(t2.target, t.target) && !rel.simulates(t.target, t2.target);
         }) != end(transitions_by_label[label_no2]);
     }),
     transitions_by_label[label_no].end());
@@ -1567,7 +1573,7 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
                     end(transitions_by_label[label_no]),
                     [&](AbstractTransition & t2){
                 /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-                return t2.src == t.src &&  rel.simulates(t2.target, t.target) && !rel.simulates(t.target, t2.target);
+                return t2.src == t.src && rel.simulates(t2.target, t.target) && !rel.simulates(t.target, t2.target);
             }) != end(transitions_by_label[label_no]);
         }),
         transitions_by_label[label_no2].end());

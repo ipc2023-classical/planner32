@@ -35,6 +35,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
 		                          use_bisimulation(opts.get<bool>("use_bisimulation")),
 		                          intermediate_simulations(opts.get<bool>("intermediate_simulations")),
+		                          incremental_simulations(opts.get<bool>("incremental_simulations")),
 		                          labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
     if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
@@ -45,6 +46,14 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
         cerr << "Error: can only apply pruning of subsumed transitions if perfect label reduction is applied" << endl;
         exit(1);
     }*/
+    if (incremental_simulations && !intermediate_simulations) {
+        cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
+        exit(1);
+    }
+    if (incremental_simulations && efficient_simulation) {
+        cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) efficient simulation relation!" << endl;
+        exit(1);
+    }
     Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
 }
 
@@ -64,9 +73,18 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        limit_seconds_mas(opts.get<int>("limit_seconds")),
     		                        merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
     		                        use_bisimulation(opts.get<bool>("use_bisimulation")),
-    		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")){
+    		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")),
+                                    incremental_simulations(opts.get<bool>("incremental_simulations")) {
     if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
+        exit(1);
+    }
+    if (incremental_simulations && !intermediate_simulations) {
+        cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
+        exit(1);
+    }
+    if (incremental_simulations && efficient_simulation) {
+        cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) efficient simulation relation!" << endl;
         exit(1);
     }
     //TODO: Copied from heuristic.cc. Move to the PlanningTask class
@@ -120,6 +138,9 @@ void LDSimulation::build_abstraction() {
     // vector of all abstractions. entries with 0 have been merged.
     vector<Abstraction *> all_abstractions;
     all_abstractions.reserve(g_variable_domain.size() * 2 - 1);
+    vector<SimulationRelation *> all_simulations;
+    if (incremental_simulations)
+        all_simulations.reserve(g_variable_domain.size() * 2 - 1);
     Abstraction::build_atomic_abstractions(all_abstractions, labels.get());
     // compute initial simulations, based on atomic abstractions
 
@@ -159,7 +180,13 @@ void LDSimulation::build_abstraction() {
                 abstractions.push_back(all_abstractions[i]);
             }
         }
+        // initialize simulations
         compute_ld_simulation();
+        if (incremental_simulations) {
+            for (int i = 0; i < simulations.size(); i++) {
+                all_simulations.push_back(simulations[i]);
+            }
+        }
     } else if (use_bisimulation) {
         cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
         labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
@@ -210,6 +237,7 @@ void LDSimulation::build_abstraction() {
         all_abstractions[system_one] = 0;
         all_abstractions[system_two] = 0;
         all_abstractions.push_back(new_abstraction);
+        cout << "#abstractions: " << all_abstractions.size() - 1 << endl;
 
         // Note: we do not reduce labels several times for the same abstraction
         bool reduced_labels = false;
@@ -261,7 +289,7 @@ void LDSimulation::build_abstraction() {
             /* PIET-edit: Well, we actually want to have bisim shrinking AFTER merge */
             cout << "Shrink: " << t() << endl;
             //shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
-            shrink_strategy->shrink(*new_abstraction, /*1*/new_abstraction->size(), true); /* force maximal bisimulation shrinking */
+            shrink_strategy->shrink(*new_abstraction, new_abstraction->size(), true); /* force bisimulation shrinking */
             //abstraction->statistics(use_expensive_statistics);
             //other_abstraction->statistics(use_expensive_statistics);
             new_abstraction->statistics(use_expensive_statistics);
@@ -286,14 +314,34 @@ void LDSimulation::build_abstraction() {
 
         cout << "Next it: " << t() << endl;
         if(intermediate_simulations){
-            vector<SimulationRelation *>().swap(simulations);
+            /* PIET-edit: What to do in case of incremental calculations? My guess is: Same as with abstractions.
+             * That is, set the simulation relations corresponding to the just merged abstractions to null pointers
+             * and in compute_ld_simulation add a single new simulation relation at the end of the vector.
+             */
             abstractions.clear();
             for (size_t i = 0; i < all_abstractions.size(); ++i) {
                 if (all_abstractions[i]) {
                     abstractions.push_back(all_abstractions[i]);
                 }
             }
-            compute_ld_simulation();
+            vector<SimulationRelation *>().swap(simulations);
+            if (incremental_simulations) {
+                for (size_t i = 0; i < all_simulations.size(); ++i) {
+                    if (all_abstractions[i]) {
+                        // There should be one simulation for each abstraction (plus the two simulations for the just merged abstractions)
+                        simulations.push_back(all_simulations[i]);
+                    }
+                }
+                compute_ld_simulation_incremental();
+                // Now we can also free the memory of the simulations corresponding to the two just merged abstractions
+                delete all_simulations[system_one];
+                all_simulations[system_one] = 0;
+                delete all_simulations[system_two];
+                all_simulations[system_two] = 0;
+                all_simulations.push_back(simulations.back());
+            } else {
+                compute_ld_simulation();
+            }
         }
     }
 
@@ -332,6 +380,7 @@ void LDSimulation::compute_ld_simulation() {
     cout << "Building LTSs and Simulation Relations" << endl;
     vector<LabelledTransitionSystem *> ltss_simple;
     vector<LTSEfficient *> ltss_efficient;
+    /* PIET-edit: In case of incremental calculation, just add new simulation to the end of the vector. */
     for (auto a : abstractions){
         int lts_size, lts_trs;
         if(efficient_lts){
@@ -353,7 +402,7 @@ void LDSimulation::compute_ld_simulation() {
             }else{
                 simulations.push_back(new SimulationRelationEfficient(a));
             }
-        }else{
+        }else {
             //Create initial goal-respecting relation
             simulations.push_back(new SimulationRelationSimple(a));
         }
@@ -376,15 +425,17 @@ void LDSimulation::compute_ld_simulation() {
     }
 
     if (apply_simulation_shrinking) {
+        /* PIET-edit: In case of incremental calculation, do we need to shrink all here, or should we rather only shrink the last one? */
         for (auto sim : simulations) {
             sim->shrink();
         }
     }
 
+    if (apply_label_dominance_reduction) {
+        labels->reduce(labelMap, label_dominance);
+    }
+
     for (auto abs : abstractions) {
-        /* PIET-edit: Is this safe? I.e., do we not need to recalculate the label dominance
-         * relation? Otherwise, how is this gonna help us detect more subsumed transitions?
-         */
         abs->compute_distances();
     }
 
@@ -405,9 +456,6 @@ void LDSimulation::compute_ld_simulation() {
         }*/
     }
 
-    if (apply_label_dominance_reduction) {
-        labels->reduce(labelMap, label_dominance);
-    }
     for (auto abs : abstractions) {
         abs->normalize();
         std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
@@ -464,6 +512,7 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
     do{
         std::cout << "LDsimulation loop: ";
         //label_dominance.dump();
+        /* PIET-edit: In case of incremental calculation, I guess we should stick to the last simulation here */
         for (int i = 0; i < simulations.size(); i++){
             simulations[i]->update(i, _ltss[i], label_dominance);
             //_simulations[i]->dump(_ltss[i]->get_names());
@@ -580,6 +629,115 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 
 //     exit(0);
 // }
+
+void LDSimulation::compute_ld_simulation_incremental() {
+
+    LabelMap labelMap (labels.get());
+
+    cout << "Building LTSs and Simulation Relations" << endl;
+    vector<LabelledTransitionSystem *> ltss_simple;
+    vector<LTSEfficient *> ltss_efficient;
+    for (auto a : abstractions){
+        int lts_size, lts_trs;
+        if(efficient_lts){
+            ltss_efficient.push_back(a->get_lts_efficient(labels.get()));
+            lts_size= ltss_efficient.back()->size();
+            lts_trs= ltss_efficient.back()->num_transitions();
+        }else{
+            ltss_simple.push_back(a->get_lts(labels.get()));
+            lts_size= ltss_simple.back()->size();
+            lts_trs= ltss_simple.back()->num_transitions();
+        }
+        cout << "LTS built: " << lts_size << " states "
+                << lts_trs << " transitions "
+                << labelMap.get_num_labels() << " num_labels"  << endl;
+    }
+    /* PIET-edit: In case of incremental calculation, just add new simulation to the end of the vector. */
+    simulations.push_back(new SimulationRelationSimple(abstractions.back()));
+
+    LabelRelation label_dominance (labels.get());
+    if(efficient_lts){
+        compute_ld_simulation_incremental(ltss_efficient, labelMap, label_dominance);
+    }else{
+        compute_ld_simulation_incremental(ltss_simple, labelMap, label_dominance);
+    }
+
+    //for(int i = 0; i < simulations.size(); i++)
+        //simulations[i]->dump(ltss_simple[i]->get_names());
+
+    if (apply_subsumed_transitions_pruning) {
+        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance);
+        //if(num_pruned_trs){
+        std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
+        //_labels->prune_irrelevant_labels();
+    }
+
+    if (apply_simulation_shrinking) {
+        /* PIET-edit: In case of incremental calculation, do we need to shrink all here, or should we rather only shrink the last one? */
+        for (auto sim : simulations) {
+            sim->shrink();
+        }
+    }
+
+    if (apply_label_dominance_reduction) {
+        labels->reduce(labelMap, label_dominance);
+    }
+
+    for (auto abs : abstractions) {
+        abs->compute_distances();
+    }
+
+    if (prune_dead_operators) {
+        vector<bool> dead_labels(labels->get_size(), false);
+        int num_dead = 0;
+        for (auto abs : abstractions) {
+            num_dead += abs->check_dead_labels(dead_labels, dead_operators);
+        }
+        /*if (num_dead != 0) {
+            for (int i = 0; i < dead_labels.size(); i++) {
+                if (dead_labels[i]) {
+                    for (auto abs : abstractions) {
+                        abs->prune_transitions_dominated_label_all(i);
+                    }
+                }
+            }
+        }*/
+    }
+
+    for (auto abs : abstractions) {
+        abs->normalize();
+        std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
+    }
+}
+
+template <typename LTS>
+void LDSimulation::compute_ld_simulation_incremental(std::vector<LTS *> & _ltss,
+        const LabelMap & labelMap, LabelRelation & label_dominance){
+    Timer t;
+    if(!nold_simulation){
+        label_dominance.init(_ltss, simulations, labelMap);
+    }else{
+        label_dominance.init_identity(_ltss.size(), labelMap);
+    }
+    std::cout << "Label dominance initialized: " << t() << std::endl;
+    do{
+        std::cout << "LDsimulation loop: ";
+        //label_dominance.dump();
+        /* PIET-edit: In case of incremental calculation, I guess we should stick to the last simulation here */
+        simulations.back()->update(simulations.size() - 1, _ltss.back(), label_dominance);
+            //_simulations[i]->dump(_ltss[i]->get_names());
+        std::cout << " took " << t() << "s" << std::endl;
+        //return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
+    }while(label_dominance.update(_ltss, simulations));
+    //for(int i = 0; i < _ltss.size(); i++){
+    //_ltss[i]->dump();
+    //  _simulations[i]->dump(_ltss[i]->get_names());
+    //}
+    //label_dominance.dump_equivalent();
+    //label_dominance.dump_dominance();
+    //exit(0);
+    //}
+}
 
 // PIET-edit: Seems to work now, at least if simulation shrinking is applied before calling this
 int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
@@ -748,31 +906,33 @@ void LDSimulation::initialize() {
     }
     cout << "Dead Operators due to dead labels: " << num_dead << " / " << g_operators.size() << endl;
 
-    boost::dynamic_bitset<> required_operators(g_operators.size());
-    for (int i = 0; i < labels->get_size(); i++) {
-        if (labels->is_label_reduced(i)) {
-            continue;
-        }
-        boost::dynamic_bitset<> required_operators_for_label;
-        for (auto abs : abstractions) {
-            const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
-            //cout << transitions.size() << " " << abs->get_relevant_labels()[i] << endl;
-            if (!abs->get_relevant_labels()[i])
+    if (Abstraction::store_original_operators) {
+        boost::dynamic_bitset<> required_operators(g_operators.size());
+        for (int i = 0; i < labels->get_size(); i++) {
+            if (labels->is_label_reduced(i)) {
                 continue;
-            boost::dynamic_bitset<> required_operators_for_abstraction(g_operators.size());
-            for (int j = 0; j < transitions.size(); j++) {
-                required_operators_for_abstraction |= transitions[j].based_on_operators;
             }
-            if (required_operators_for_label.size() == 0) {
-                required_operators_for_label = required_operators_for_abstraction;
-            } else {
-                required_operators_for_label &= required_operators_for_abstraction;
+            boost::dynamic_bitset<> required_operators_for_label;
+            for (auto abs : abstractions) {
+                const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
+                //cout << transitions.size() << " " << abs->get_relevant_labels()[i] << endl;
+                if (!abs->get_relevant_labels()[i])
+                    continue;
+                boost::dynamic_bitset<> required_operators_for_abstraction(g_operators.size());
+                for (int j = 0; j < transitions.size(); j++) {
+                    required_operators_for_abstraction |= transitions[j].based_on_operators;
+                }
+                if (required_operators_for_label.size() == 0) {
+                    required_operators_for_label = required_operators_for_abstraction;
+                } else {
+                    required_operators_for_label &= required_operators_for_abstraction;
+                }
             }
+            //cout << endl;
+            required_operators |= required_operators_for_label;
         }
-        //cout << endl;
-        required_operators |= required_operators_for_label;
+        cout << "Dead Operators detected by storing original operators: " << (g_operators.size() - required_operators.count()) << " / " << g_operators.size() << endl;
     }
-    cout << "Dead Operators detected by storing original operators: " << (g_operators.size() - required_operators.count()) << " / " << g_operators.size() << endl;
     /*for (int i = 0; i < g_operators.size(); i++) {
         if (required_operators[i])
             cout << g_operators[i].get_name() << endl;
@@ -956,6 +1116,10 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 
     parser.add_option<bool>("intermediate_simulations",
             "Compute intermediate simulations and use them for shrinking",
+            "false");
+
+    parser.add_option<bool>("incremental_simulations",
+            "Compute incremental simulations and use them for shrinking",
             "false");
 
     parser.add_option<bool>("use_mas",

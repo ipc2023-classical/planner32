@@ -112,6 +112,9 @@ class Abstraction {
 
     mutable int peak_memory;
 
+    // Need this pointer to the simulation relation in order to update its table in case of shrinking
+    SimulationRelation* simulation_relation;
+
     void clear_distances();
     void compute_init_distances_unit_cost();
     void compute_goal_distances_unit_cost();
@@ -266,6 +269,14 @@ public:
     int estimate_transitions(const Abstraction * other) const;
 
     bool check_dead_labels(std::vector<bool> & dead_labels, std::vector<bool> & dead_operators) const;
+
+    void set_simulation_relation(SimulationRelation* simrel) {
+        simulation_relation = simrel;
+    }
+
+    const SimulationRelation* get_simulation_relation() const {
+        return simulation_relation;
+    }
 };
 
 class AtomicAbstraction : public Abstraction {
@@ -300,6 +311,13 @@ public:
 
     virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
+    const Abstraction* get_component(const int id) const {
+        assert(id == 0 || id == 1);
+        return components[id];
+    }
+    int get_abstract_state(int i, int j) const {
+        return lookup_table[i][j];
+    }
 };
 
 class PDBAbstraction : public Abstraction {

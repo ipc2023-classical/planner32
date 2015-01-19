@@ -9,7 +9,7 @@ class Labels;
 class SimulationRelationSimple : public SimulationRelation{
 
  public:
-    SimulationRelationSimple(Abstraction * _abs);
+    SimulationRelationSimple(Abstraction * _abs, bool incremental = false);
 
     /*
      * THIS IMPLEMENTATION IS VERY INNEFICIENT

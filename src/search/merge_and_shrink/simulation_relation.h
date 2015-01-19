@@ -34,7 +34,9 @@ protected:
 public:
     SimulationRelation(Abstraction * _abs);
 
-    virtual ~SimulationRelation(){}
+    virtual ~SimulationRelation();
+
+    void apply_shrinking_to_table(const std::vector<int> & abstraction_mapping);
 
     virtual void update(int lts_id, const LabelledTransitionSystem * lts,
             const LabelRelation & label_dominance) = 0;
