@@ -887,8 +887,22 @@ void LDSimulation::initialize() {
         }
         compute_ld_simulation();
     }
+    cout << endl;
     cout << "Done initializing simulation heuristic [" << timer << "]"
             << endl;
+
+    cout << "Final abstractions:" << endl;
+    for (auto abs : abstractions) {
+        abs->normalize();
+        const vector<int> & varset = abs->get_varset();
+        cout << varset.size() << " variables " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << endl;
+        cout << "used variables:";
+        for (auto var : varset) {
+            cout << " " << var;
+        }
+        cout << endl;
+    }
+
     int num_equi = num_equivalences();
     int num_sims = num_simulations();
     cout << "Total Simulations: " << num_sims + num_equi*2  << endl;

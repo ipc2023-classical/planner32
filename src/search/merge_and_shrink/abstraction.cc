@@ -1527,6 +1527,8 @@ int Abstraction::prune_transitions_dominated_label_all(int label_no) {
     //int num = transitions_by_label.size();
     int num = transitions_by_label[label_no].size();
     vector<AbstractTransition> ().swap(transitions_by_label[label_no]);
+    if (num != 0)
+        clear_distances();
     return num;
 }
 
@@ -1545,6 +1547,8 @@ int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by
         }) != end(transitions_by_label[label_no_by]);
     }),
     transitions_by_label[label_no].end());
+    if (transitions_by_label[label_no].size() != num)
+        clear_distances();
     return num - transitions_by_label[label_no].size();
 
 }
@@ -1578,6 +1582,8 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
         }),
         transitions_by_label[label_no2].end());
 
+    if (transitions_by_label[label_no].size() + transitions_by_label[label_no2].size() != num)
+        clear_distances();
     return num - transitions_by_label[label_no].size() - transitions_by_label[label_no2].size();
 
 }
@@ -1593,6 +1599,8 @@ int Abstraction::prune_transitions_dominated_label_noop(int label_no,
         return rel.simulates(t.src, t.target);
     }),
     transitions_by_label[label_no].end());
+    if (transitions_by_label[label_no].size() != num)
+        clear_distances();
     return num - transitions_by_label[label_no].size();
 }
 
