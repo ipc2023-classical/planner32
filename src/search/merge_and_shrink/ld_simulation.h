@@ -58,8 +58,7 @@ protected:
     int num_simulations() const;
 
     void build_abstraction();
-    void compute_ld_simulation();
-    void compute_ld_simulation_incremental();
+    void compute_ld_simulation(bool incremental_step = false);
     void build_factored_systems ();
 
     std::vector<std::vector<int> > get_variable_partition_greedy();
@@ -80,11 +79,8 @@ protected:
     template <typename LTS>
     void compute_ld_simulation(std::vector<LTS *> & _ltss,
             const LabelMap & labelMap,
-            LabelRelation & label_dominance);
-    template <typename LTS>
-    void compute_ld_simulation_incremental(std::vector<LTS *> & _ltss,
-            const LabelMap & labelMap,
-            LabelRelation & label_dominance);
+            LabelRelation & label_dominance,
+            bool incremental_step = false);
 
     int prune_subsumed_transitions(const LabelMap & labelMap,
             LabelRelation & label_dominance);

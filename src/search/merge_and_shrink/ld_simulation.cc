@@ -237,7 +237,6 @@ void LDSimulation::build_abstraction() {
         all_abstractions[system_one] = 0;
         all_abstractions[system_two] = 0;
         all_abstractions.push_back(new_abstraction);
-        cout << "#abstractions: " << all_abstractions.size() - 1 << endl;
 
         // Note: we do not reduce labels several times for the same abstraction
         bool reduced_labels = false;
@@ -332,7 +331,7 @@ void LDSimulation::build_abstraction() {
                         simulations.push_back(all_simulations[i]);
                     }
                 }
-                compute_ld_simulation_incremental();
+                compute_ld_simulation(true);
                 // Now we can also free the memory of the simulations corresponding to the two just merged abstractions
                 delete all_simulations[system_one];
                 all_simulations[system_one] = 0;
@@ -373,14 +372,13 @@ void LDSimulation::build_abstraction() {
     cout << endl;
 }
 
-void LDSimulation::compute_ld_simulation() {
+void LDSimulation::compute_ld_simulation(bool incremental_step) {
 
     LabelMap labelMap (labels.get());
 
     cout << "Building LTSs and Simulation Relations" << endl;
     vector<LabelledTransitionSystem *> ltss_simple;
     vector<LTSEfficient *> ltss_efficient;
-    /* PIET-edit: In case of incremental calculation, just add new simulation to the end of the vector. */
     for (auto a : abstractions){
         int lts_size, lts_trs;
         if(efficient_lts){
@@ -396,22 +394,31 @@ void LDSimulation::compute_ld_simulation() {
                 << lts_trs << " transitions "
                 << labelMap.get_num_labels() << " num_labels"  << endl;
 
-        if(efficient_simulation){
-            if(nold_simulation){
-                simulations.push_back(new SimulationRelationEfficientNoLD(a));
-            }else{
-                simulations.push_back(new SimulationRelationEfficient(a));
+        if (!incremental_step) {
+            if (efficient_simulation) {
+                if (nold_simulation) {
+                    simulations.push_back(
+                            new SimulationRelationEfficientNoLD(a));
+                } else {
+                    simulations.push_back(new SimulationRelationEfficient(a));
+                }
+            } else {
+                //Create initial goal-respecting relation
+                simulations.push_back(new SimulationRelationSimple(a));
             }
-        }else {
-            //Create initial goal-respecting relation
-            simulations.push_back(new SimulationRelationSimple(a));
         }
     }
+    if (incremental_step) {
+        // We only allow for incremental calculation with the simple simulation relation so far.
+        // Enough to add the new simulation relation to the end of the vector.
+        simulations.push_back(new SimulationRelationSimple(abstractions.back()));
+    }
+
     LabelRelation label_dominance (labels.get());
     if(efficient_lts){
-        compute_ld_simulation(ltss_efficient, labelMap, label_dominance);
+        compute_ld_simulation(ltss_efficient, labelMap, label_dominance, incremental_step);
     }else{
-        compute_ld_simulation(ltss_simple, labelMap, label_dominance);
+        compute_ld_simulation(ltss_simple, labelMap, label_dominance, incremental_step);
     }
 
     //for(int i = 0; i < simulations.size(); i++)
@@ -425,18 +432,27 @@ void LDSimulation::compute_ld_simulation() {
     }
 
     if (apply_simulation_shrinking) {
-        /* PIET-edit: In case of incremental calculation, do we need to shrink all here, or should we rather only shrink the last one? */
-        for (auto sim : simulations) {
-            sim->shrink();
+        if (incremental_step) {
+            // Should be enough to just shrink the new abstraction (using the new simulation relation).
+            simulations.back()->shrink();
+        } else {
+            for (auto sim : simulations) {
+                sim->shrink();
+            }
         }
+    }
+
+    /* PIET-edit: Having this here and not after the compute_distances results in errors, e.g., in nomystery-opt11:p06 */
+    /*if (apply_label_dominance_reduction) {
+        labels->reduce(labelMap, label_dominance);
+    }*/
+
+    for (auto abs : abstractions) {
+        abs->compute_distances();
     }
 
     if (apply_label_dominance_reduction) {
         labels->reduce(labelMap, label_dominance);
-    }
-
-    for (auto abs : abstractions) {
-        abs->compute_distances();
     }
 
     if (prune_dead_operators) {
@@ -460,7 +476,6 @@ void LDSimulation::compute_ld_simulation() {
         abs->normalize();
         std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
     }
-
 }
 
 
@@ -499,9 +514,10 @@ void LDSimulation::compute_ld_simulation() {
 //        std::vector<SimulationRelation *> & _simulations,
 //        const LabelMap & labelMap, bool no_ld);
 
-template <typename LTS>
+template<typename LTS>
 void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
-        const LabelMap & labelMap, LabelRelation & label_dominance){
+        const LabelMap & labelMap, LabelRelation & label_dominance,
+        bool incremental_step) {
     Timer t;
     if(!nold_simulation){
         label_dominance.init(_ltss, simulations, labelMap);
@@ -512,10 +528,14 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
     do{
         std::cout << "LDsimulation loop: ";
         //label_dominance.dump();
-        /* PIET-edit: In case of incremental calculation, I guess we should stick to the last simulation here */
-        for (int i = 0; i < simulations.size(); i++){
-            simulations[i]->update(i, _ltss[i], label_dominance);
-            //_simulations[i]->dump(_ltss[i]->get_names());
+        if (incremental_step) {
+            // Should be enough to just update the last (i.e., the new) simulation here.
+            simulations.back()->update(simulations.size() - 1, _ltss.back(), label_dominance);
+        } else {
+            for (int i = 0; i < simulations.size(); i++){
+                simulations[i]->update(i, _ltss[i], label_dominance);
+                //_simulations[i]->dump(_ltss[i]->get_names());
+            }
         }
         std::cout << " took " << t() << "s" << std::endl;
         //return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
@@ -630,116 +650,6 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 //     exit(0);
 // }
 
-void LDSimulation::compute_ld_simulation_incremental() {
-
-    LabelMap labelMap (labels.get());
-
-    cout << "Building LTSs and Simulation Relations" << endl;
-    vector<LabelledTransitionSystem *> ltss_simple;
-    vector<LTSEfficient *> ltss_efficient;
-    for (auto a : abstractions){
-        int lts_size, lts_trs;
-        if(efficient_lts){
-            ltss_efficient.push_back(a->get_lts_efficient(labels.get()));
-            lts_size= ltss_efficient.back()->size();
-            lts_trs= ltss_efficient.back()->num_transitions();
-        }else{
-            ltss_simple.push_back(a->get_lts(labels.get()));
-            lts_size= ltss_simple.back()->size();
-            lts_trs= ltss_simple.back()->num_transitions();
-        }
-        cout << "LTS built: " << lts_size << " states "
-                << lts_trs << " transitions "
-                << labelMap.get_num_labels() << " num_labels"  << endl;
-    }
-    /* PIET-edit: In case of incremental calculation, just add new simulation to the end of the vector. */
-    simulations.push_back(new SimulationRelationSimple(abstractions.back()));
-
-    LabelRelation label_dominance (labels.get());
-    if(efficient_lts){
-        compute_ld_simulation_incremental(ltss_efficient, labelMap, label_dominance);
-    }else{
-        compute_ld_simulation_incremental(ltss_simple, labelMap, label_dominance);
-    }
-
-    //for(int i = 0; i < simulations.size(); i++)
-        //simulations[i]->dump(ltss_simple[i]->get_names());
-
-    if (apply_subsumed_transitions_pruning) {
-        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance);
-        //if(num_pruned_trs){
-        std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
-        //_labels->prune_irrelevant_labels();
-    }
-
-    if (apply_simulation_shrinking) {
-        /* PIET-edit: In case of incremental calculation, do we need to shrink all here, or should we rather only shrink the last one? */
-        for (auto sim : simulations) {
-            sim->shrink();
-        }
-    }
-
-    if (apply_label_dominance_reduction) {
-        labels->reduce(labelMap, label_dominance);
-    }
-
-    for (auto abs : abstractions) {
-        abs->compute_distances();
-    }
-
-    if (prune_dead_operators) {
-        vector<bool> dead_labels(labels->get_size(), false);
-        int num_dead = 0;
-        for (auto abs : abstractions) {
-            num_dead += abs->check_dead_labels(dead_labels, dead_operators);
-        }
-        /*if (num_dead != 0) {
-            for (int i = 0; i < dead_labels.size(); i++) {
-                if (dead_labels[i]) {
-                    for (auto abs : abstractions) {
-                        abs->prune_transitions_dominated_label_all(i);
-                    }
-                }
-            }
-        }*/
-    }
-
-    for (auto abs : abstractions) {
-        abs->normalize();
-        std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
-    }
-}
-
-template <typename LTS>
-void LDSimulation::compute_ld_simulation_incremental(std::vector<LTS *> & _ltss,
-        const LabelMap & labelMap, LabelRelation & label_dominance){
-    Timer t;
-    if(!nold_simulation){
-        label_dominance.init(_ltss, simulations, labelMap);
-    }else{
-        label_dominance.init_identity(_ltss.size(), labelMap);
-    }
-    std::cout << "Label dominance initialized: " << t() << std::endl;
-    do{
-        std::cout << "LDsimulation loop: ";
-        //label_dominance.dump();
-        /* PIET-edit: In case of incremental calculation, I guess we should stick to the last simulation here */
-        simulations.back()->update(simulations.size() - 1, _ltss.back(), label_dominance);
-            //_simulations[i]->dump(_ltss[i]->get_names());
-        std::cout << " took " << t() << "s" << std::endl;
-        //return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
-    }while(label_dominance.update(_ltss, simulations));
-    //for(int i = 0; i < _ltss.size(); i++){
-    //_ltss[i]->dump();
-    //  _simulations[i]->dump(_ltss[i]->get_names());
-    //}
-    //label_dominance.dump_equivalent();
-    //label_dominance.dump_dominance();
-    //exit(0);
-    //}
-}
-
-// PIET-edit: Seems to work now, at least if simulation shrinking is applied before calling this
 int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
         LabelRelation & label_dominance){
     /*cout << "number of transitions before pruning:" << endl;
