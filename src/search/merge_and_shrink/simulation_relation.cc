@@ -12,7 +12,9 @@ using namespace std;
 SimulationRelation::SimulationRelation(Abstraction * _abs) : abs(_abs){
     int num_states = abs->size();
     const std::vector <bool> & goal_states = abs->get_goal_states();
-    abs->compute_distances();
+    if (!abs->are_distances_computed()) {
+        cerr << "Error: Distances must have been computed before creating the simulation relation!" << endl;
+    }
     const std::vector <int> & goal_distances = abs->get_goal_distances();
     relation.resize(num_states);
     for(int i = 0; i < num_states; i++){

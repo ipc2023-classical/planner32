@@ -38,7 +38,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          incremental_simulations(opts.get<bool>("incremental_simulations")),
 		                          labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
-    if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
+    if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
     }
@@ -75,7 +75,7 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        use_bisimulation(opts.get<bool>("use_bisimulation")),
     		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")),
                                     incremental_simulations(opts.get<bool>("incremental_simulations")) {
-    if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking || ! intermediate_simulations)) {
+    if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
     }
@@ -380,6 +380,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
     vector<LabelledTransitionSystem *> ltss_simple;
     vector<LTSEfficient *> ltss_efficient;
     for (auto a : abstractions){
+        a->compute_distances();
         int lts_size, lts_trs;
         if(efficient_lts){
             ltss_efficient.push_back(a->get_lts_efficient(labels.get()));
@@ -519,6 +520,7 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
         const LabelMap & labelMap, LabelRelation & label_dominance,
         bool incremental_step) {
     Timer t;
+
     if(!nold_simulation){
         label_dominance.init(_ltss, simulations, labelMap);
     }else{
