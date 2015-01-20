@@ -148,6 +148,7 @@ int EagerSearch::step() {
 
     for (int i = 0; i < applicable_ops.size(); i++) {
         const Operator *op = applicable_ops[i];
+	if (op->is_dead()) continue;
 
         if ((node.get_real_g() + op->get_cost()) >= bound){
             continue;

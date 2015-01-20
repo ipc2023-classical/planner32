@@ -41,7 +41,8 @@ void LandmarkCutHeuristic::initialize() {
 
     // Build relaxed operators for operators and axioms.
     for (int i = 0; i < g_operators.size(); i++)
-        build_relaxed_operator(g_operators[i]);
+	if(!g_operators[i].is_dead())
+	    build_relaxed_operator(g_operators[i]);
 
     // Simplify relaxed operators.
     // simplify();

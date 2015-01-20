@@ -855,7 +855,15 @@ void LDSimulation::initialize() {
             required_operators |= required_operators_for_label;
         }
         cout << "Dead Operators detected by storing original operators: " << (g_operators.size() - required_operators.count()) << " / " << g_operators.size() << endl;
+
+	for (int i = 0; i < g_operators.size(); i++){
+	    if (!required_operators[i]){
+		g_operators[i].set_dead();
+	    }
+	}
+	
     }
+
     /*for (int i = 0; i < g_operators.size(); i++) {
         if (required_operators[i])
             cout << g_operators[i].get_name() << endl;
@@ -863,8 +871,6 @@ void LDSimulation::initialize() {
     /*for (auto abs : abstractions) {
         abs->statistics(true);
     }*/
-
-    exit(0);
 }
 
 int LDSimulation::num_equivalences() const {

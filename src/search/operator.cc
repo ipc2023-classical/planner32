@@ -18,7 +18,7 @@ PrePost::PrePost(istream &in) {
 
 Operator::Operator(istream &in, bool axiom) {
     marked = false;
-
+    dead = false;
     is_an_axiom = axiom;
     if (!is_an_axiom) {
         check_magic(in, "begin_operator");

@@ -1,13 +1,13 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-
 #include "mutex_group.h"
 
 #include <iosfwd>
 #include <string>
 #include <vector>
 
+#include <boost/dynamic_bitset.hpp>
 
 class Axiom;
 class AxiomEvaluator;

@@ -396,6 +396,7 @@ vector<int> g_default_axiom_values;
 IntPacker *g_state_packer;
 vector<int> g_initial_state_data;
 vector<pair<int, int> > g_goal;
+
 vector<Operator> g_operators;
 vector<Operator> g_axioms;
 AxiomEvaluator *g_axiom_evaluator;

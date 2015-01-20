@@ -66,12 +66,21 @@ class Operator {
     int cost;
 
     mutable bool marked; // Used for short-term marking of preferred operators
+    bool dead;
 public:
     Operator(std::istream &in, bool is_axiom);
     void dump() const;
     std::string get_name() const {return name; }
 
     bool is_axiom() const {return is_an_axiom; }
+
+    void set_dead() {
+	dead = true;
+    }
+
+    bool is_dead() const{
+	return dead;
+    }
 
     const std::vector<Prevail> &get_prevail() const {return prevail; }
     const std::vector<PrePost> &get_pre_post() const {return pre_post; }

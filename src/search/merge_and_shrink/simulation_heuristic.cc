@@ -100,6 +100,7 @@ int SimulationHeuristic::compute_heuristic(const State &state) {
 }
 
 bool SimulationHeuristic::prune_generation(const State &state, int g) {
+    if(pruning_type == PruningType::None) return false;
     if(!deadend_is_activated()){
         if(print_desactivation){
             print_desactivation = false;
@@ -142,6 +143,7 @@ bool SimulationHeuristic::prune_generation(const State &state, int g) {
 }
 
 bool SimulationHeuristic::prune_expansion (const State &state, int g){
+    if(pruning_type == PruningType::None) return false;
     if(!prune_is_activated()){
         if(print_desactivation){
             print_desactivation = false;
@@ -290,6 +292,7 @@ std::ostream & operator<<(std::ostream &os, const PruningType & pt){
     switch(pt){
     case PruningType::Expansion: return os << "expansion";
     case PruningType::Generation: return os << "generation";
+    case PruningType::None: return os << "none";
     default:
         std::cerr << "Name of PruningTypeStrategy not known";
         exit(-1);
@@ -302,7 +305,7 @@ const std::vector<std::string> PruningDDValues {
 };
 
 const std::vector<std::string> PruningTypeValues {
-    "expansion", "generation"
+    "expansion", "generation", "none"
 };
 
 
