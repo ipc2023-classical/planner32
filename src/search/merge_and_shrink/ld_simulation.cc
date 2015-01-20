@@ -443,17 +443,14 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
         }
     }
 
-    /* PIET-edit: Having this here and not after the compute_distances results in errors, e.g., in nomystery-opt11:p06 */
-    /*if (apply_label_dominance_reduction) {
-        labels->reduce(labelMap, label_dominance);
-    }*/
-
-    for (auto abs : abstractions) {
-        abs->compute_distances();
-    }
-
     if (apply_label_dominance_reduction) {
         labels->reduce(labelMap, label_dominance);
+    }
+
+    for (auto abs : abstractions) {
+        // normalize here is necessary, as otherwise compute_distances might remove more transitions than it should (e.g., in nomystery-opt11:p06)
+        abs->normalize();
+        abs->compute_distances();
     }
 
     if (prune_dead_operators) {
