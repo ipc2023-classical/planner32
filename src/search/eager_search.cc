@@ -51,6 +51,11 @@ void EagerSearch::initialize() {
         cout << "Using multi-path dependence (LM-A*)" << endl;
     assert(open_list != NULL);
 
+
+    if(prune_heuristic){
+        prune_heuristic->initialize();
+    }
+
     set<Heuristic *> hset;
     open_list->get_involved_heuristics(hset);
 
@@ -97,10 +102,6 @@ void EagerSearch::initialize() {
         node.open_initial(heuristics[0]->get_value());
 
         open_list->insert(initial_state.get_id());
-    }
-
-    if(prune_heuristic){
-        prune_heuristic->initialize();
     }
 }
 
