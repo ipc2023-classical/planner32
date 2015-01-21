@@ -822,12 +822,20 @@ void LDSimulation::initialize() {
 	 << simulations[i]->num_different_states() << endl;
 	 }*/
 
-    int num_dead = 0;
-    for (int i = 0; i < dead_operators.size(); i++) {
-        if (dead_operators[i])
-            num_dead++;
+    if (prune_dead_operators) {
+        int num_dead = 0;
+        for (int i = 0; i < dead_operators.size(); i++) {
+            if (dead_operators[i])
+                num_dead++;
+        }
+        printf("Dead operators due to dead labels: %d / %d (%.2lf%%)\n",
+                num_dead, g_operators.size(),
+                ((double) num_dead / g_operators.size()) * 100);
+        /*cout << "Dead Operators due to dead labels: " << num_dead << " / "
+                << g_operators.size() << " i.e., "
+                << ((double) num_dead / g_operators.size() * 100) << "%"
+                << endl;*/
     }
-    cout << "Dead Operators due to dead labels: " << num_dead << " / " << g_operators.size() << endl;
 
     if (Abstraction::store_original_operators) {
         boost::dynamic_bitset<> required_operators(g_operators.size());
@@ -854,7 +862,16 @@ void LDSimulation::initialize() {
             //cout << endl;
             required_operators |= required_operators_for_label;
         }
-        cout << "Dead Operators detected by storing original operators: " << (g_operators.size() - required_operators.count()) << " / " << g_operators.size() << endl;
+        printf("Dead operators detected by storing original operators: %d / %d (%.2lf%%)\n",
+                g_operators.size() - required_operators.count(),
+                g_operators.size(),
+                ((double) g_operators.size() - required_operators.count())
+                        / g_operators.size() * 100);
+        /*cout << "Dead Operators detected by storing original operators: "
+                << (g_operators.size() - required_operators.count()) << " / "
+                << g_operators.size() << " i.e., "
+                << ((double) (g_operators.size() - required_operators.count())
+                        / g_operators.size() * 100) << "%" << endl;*/
 
 	for (int i = 0; i < g_operators.size(); i++){
 	    if (!required_operators[i]){

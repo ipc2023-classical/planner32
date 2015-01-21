@@ -426,11 +426,13 @@ void SymManager::init_transitions(){
     if(min_transition_cost == 0 || min_transition_cost > it->first){
       min_transition_cost = it->first;      
     }
-    cout << "TRs cost=" << it->first << " (" << it->second.size() << "): ";
+    // PIET-edit: commented out for (better) readability of the output
+    cout << "TRs cost=" << it->first << " (" << it->second.size() << ")" << endl;
+    /*cout << "TRs cost=" << it->first << " (" << it->second.size() << "): ";
     for(auto bdd : it->second){
       cout <<" "<< bdd.nodeCount();      
     }
-    cout << endl;
+    cout << endl;*/
   }
 }
 
