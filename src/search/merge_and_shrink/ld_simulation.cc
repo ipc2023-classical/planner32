@@ -800,7 +800,7 @@ void LDSimulation::initialize() {
     cout << "Done initializing simulation heuristic [" << timer << "]"
             << endl;
 
-    cout << "Final abstractions:" << endl;
+    cout << "Final abstractions: " << abstractions.size() << endl;
     for (auto abs : abstractions) {
         abs->normalize();
         const vector<int> & varset = abs->get_varset();
