@@ -51,7 +51,6 @@ void LabelRelation::dump() const {
         }else{
             cout << "l" << l << ":";  dump(l);
         }
-
     }
 }
 
@@ -393,29 +392,63 @@ void LabelRelation::init_identity(int num_lts, const LabelMap & labelMap){
     }
 }
 
-EquivalenceRelation * LabelRelation::get_equivalent_labels_relation(const LabelMap & labelMap) const {
+EquivalenceRelation * LabelRelation::get_equivalent_labels_relation(const LabelMap & labelMap, 
+								    set<int> &  dangerous_LTSs)
+    const {
     list<Block> rel;
-    vector<bool> captured_labels(num_labels, false);
+    vector<int> captured_labels(num_labels, -1);
+    vector<int> Theta (num_labels, DOMINATES_IN_ALL); //LTS in which we are aggregating each labels
     for (int l1 = 0; l1 < num_labels; l1++){
-        if (captured_labels[l1])
-            continue;
-        Block eq;
-        eq.insert(labelMap.get_old_id(l1));
-        captured_labels[l1] = true;
-        for (int l2 = l1 + 1; l2 < num_labels; l2++) {
-            if (captured_labels[l2])
-                // was already marked as equivalent to some other label, so cannot be equivalent to l1
-                continue;
-            if (dominates_in[l1][l2] != DOMINATES_IN_NONE && dominates_in[l2][l1] != DOMINATES_IN_NONE &&
-                    (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
-                            dominates_in[l2][l1] == DOMINATES_IN_ALL ||
-                            dominates_in[l1][l2] == dominates_in[l2][l1])) {
-                eq.insert(labelMap.get_old_id(l2));
-                //cout << l2 << " eq " << l1 << endl;
-                captured_labels[l2] = true;
-            }
-        }
-        rel.push_back(eq);
+	Block eq;
+	if(captured_labels[l1] == -1){
+	    captured_labels[l1] = l1;
+	    eq.insert(labelMap.get_old_id(l1));
+	}
+	for (int l2 = l1 + 1; l2 < num_labels; l2++) {
+	    // was already marked as equivalent to some other label, so cannot be equivalent to l1
+	    if (dominates_in[l1][l2] != DOMINATES_IN_NONE && 
+		dominates_in[l2][l1] != DOMINATES_IN_NONE &&
+		(dominates_in[l1][l2] == DOMINATES_IN_ALL ||
+		 dominates_in[l2][l1] == DOMINATES_IN_ALL ||
+		 dominates_in[l1][l2] == dominates_in[l2][l1])) {
+
+		int new_Theta = dominates_in[l1][l2] == DOMINATES_IN_ALL? dominates_in[l2][l1] : dominates_in[l1][l2];
+
+		if (new_Theta == DOMINATES_IN_ALL || 
+		    ((Theta[l2] == DOMINATES_IN_ALL || Theta[l2] == new_Theta) 
+		     && (Theta[l1] == DOMINATES_IN_ALL || Theta[l1] == new_Theta) )){
+		    // we can insert l2 into rel
+		    if (new_Theta != DOMINATES_IN_ALL){
+                        //Assign new_Theta as the only LTS where l2 and l1 can be aggregated with other labels
+			Theta[l2] = new_Theta; 
+			Theta[l1] = new_Theta;
+		    }
+
+		    if(captured_labels[l2] == -1){
+			eq.insert(labelMap.get_old_id(l2));
+			//cout << labelMap.get_old_id(l2) << " eq " << labelMap.get_old_id(l1) << endl;
+			//cout << dominates_in[l1][l2] << " --- " <<  dominates_in[l2][l1] << " --- " << endl;		    
+			captured_labels[l2] = l1;
+		    }else if (captured_labels[l2] != captured_labels[l1]){
+			cout << "Assertion Error: two labels are aggregated but they were already aggregated before?" << endl;
+			exit_with(EXIT_CRITICAL_ERROR);
+
+		    }
+		}else if (new_Theta != DOMINATES_IN_ALL){
+		    //cout << "eq skipped because is dangerous: " << 
+			//labelMap.get_old_id(l2) << " eq " << labelMap.get_old_id(l1) << endl 
+			// << dominates_in[l1][l2] << " --- " <<  dominates_in[l2][l1] << " --- " << endl;		    
+		    dangerous_LTSs.insert(new_Theta);
+		}else{
+		    cout << "Assertion Error: two labels dominate in all but cannot be aggregated?" << endl;
+		    exit_with(EXIT_CRITICAL_ERROR);
+
+		}
+	    }
+	}
+	
+	rel.push_back(eq);
     }
-    return new EquivalenceRelation(rel.size(), rel);
+
+return new EquivalenceRelation(rel.size(), rel);
 }

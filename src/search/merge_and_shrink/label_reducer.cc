@@ -131,6 +131,7 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
         } else {
             ++num_unsuccessful_iterations;
         }
+
         if (num_unsuccessful_iterations == all_abstractions.size() - 1)
             break;
 
@@ -150,6 +151,40 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
         delete local_equivalence_relations[i];
 }
 
+
+
+void LabelReducer::reduce_labels_to_cost(std::vector<Label *> &labels) const {
+    if (label_reduction_method == NONE) {
+        return;
+    }
+    int num_labels = labels.size();
+
+    vector<pair<int, int> > annotated_labels;
+    map<int, int> costID;  
+    int numids = 0;
+    annotated_labels.reserve(num_labels);
+    for (int label_no = 0; label_no < num_labels; ++label_no) {
+        const Label *label = labels[label_no];
+        assert(label->get_id() == label_no);
+        if (!label->is_reduced()) {
+	    int labelcost = label->get_cost();
+	    int id;
+	    if(costID.count(labelcost)){
+		id = costID [labelcost];
+	    } else {
+		id = numids++;
+		costID[labelcost] = id;
+	    }
+            // only consider non-reduced labels
+            annotated_labels.push_back(make_pair(id, label_no));
+        }
+    }
+
+    EquivalenceRelation *relation = 
+	EquivalenceRelation::from_annotated_elements<int>(num_labels, annotated_labels);
+    reduce_exactly(relation, labels);
+    delete relation;
+}
 
 typedef pair<int, int> Assignment;
 

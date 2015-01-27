@@ -37,10 +37,16 @@ void Labels::reduce(pair<int, int> next_merge,
     label_reducer->reduce_labels(next_merge, all_abstractions, labels);
 }
 
-void Labels::reduce(const LabelMap & labelMap, const LabelRelation & label_dominance) {
-    EquivalenceRelation* equiv_rel = label_dominance.get_equivalent_labels_relation(labelMap);
+void Labels::reduce(const LabelMap & labelMap, const LabelRelation & label_dominance, 
+		    std::set<int> & dangerous_LTSs) {
+    EquivalenceRelation* equiv_rel = label_dominance.get_equivalent_labels_relation(labelMap, 
+										    dangerous_LTSs);
     label_reducer->reduce_exactly(equiv_rel, labels);
     delete equiv_rel;
+}
+
+void Labels::reduce_to_cost(){
+    label_reducer->reduce_labels_to_cost(labels);
 }
 
 const Label *Labels::get_label_by_index(int index) const {

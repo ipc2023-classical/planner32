@@ -196,6 +196,9 @@ public:
         return init_distances[state];
     }
 
+    bool is_useless() const{
+	     return num_states == 1;
+    }
 
     const std::vector<int> & get_goal_distances() const {
         return goal_distances;
@@ -273,7 +276,10 @@ public:
 
     int estimate_transitions(const Abstraction * other) const;
 
-    bool check_dead_labels(std::vector<bool> & dead_labels, std::vector<bool> & dead_operators) const;
+    void remove_dead_labels(std::vector<bool> & dead_labels, 
+			    std::vector<Abstraction *> & abstractions);
+
+    bool check_dead_operators(std::vector<bool> & dead_labels, std::vector<bool> & dead_operators) const;
 
     void set_simulation_relation(SimulationRelation* simrel) {
         simulation_relation = simrel;

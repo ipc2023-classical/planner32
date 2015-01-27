@@ -1425,6 +1425,7 @@ void Abstraction::dump() const {
         if (is_init)
             cout << "    start -> node" << i << ";" << endl;
     }
+
     for (int label_no = 0; label_no < num_labels; label_no++) {
         // reduced labels are automatically skipped because trans is then empty
         const vector<AbstractTransition> &trans = transitions_by_label[label_no];
@@ -1811,7 +1812,27 @@ int Abstraction::estimate_transitions(const Abstraction * other) const{
     return num_total;
 }
 
-bool Abstraction::check_dead_labels(vector<bool> & dead_labels, vector<bool> & dead_operators) const {
+
+void Abstraction::remove_dead_labels(vector<bool> & dead_labels, 
+				      vector<Abstraction *> & abstractions) {
+
+    for (int i = 0; i < labels->get_size(); i++) {
+        if (dead_labels[i])
+            continue; // corresponding operators must already have been extracted somewhere else
+        if (labels->is_label_reduced(i))
+            continue;
+        if (relevant_labels[i] && transitions_by_label[i].empty()) {
+	    dead_labels[i] = true;
+	    for (auto abs : abstractions) {
+		if(abs) abs->prune_transitions_dominated_label_all(i);
+	    }
+        }
+    }
+
+}
+
+
+bool Abstraction::check_dead_operators(vector<bool> & dead_labels, vector<bool> & dead_operators) const {
     bool ret = false;
     //cout << dead_labels.size() << " / " << labels->get_size() << endl;
     for (int i = 0; i < labels->get_size(); i++) {

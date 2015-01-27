@@ -191,6 +191,9 @@ Abstraction *MergeAndShrinkHeuristic::build_abstraction() {
         cout << system_order[i - 1] << " " << system_order[i] << ", ";
     }
     cout << endl;
+
+
+
     return final_abstraction;
 }
 

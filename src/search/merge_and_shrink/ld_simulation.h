@@ -48,7 +48,10 @@ protected:
     std::unique_ptr<Labels> labels;
     std::vector<Abstraction *> abstractions;
     std::vector<SimulationRelation *> simulations;
-    std::vector<bool> dead_operators;
+
+    std::vector<int> useless_vars;
+    std::vector<bool> dead_labels;
+
 
     // std::unique_ptr<LabelRelation>  label_dominance;
     //  std::vector<LabelledTransitionSystem *> ltss;
@@ -84,6 +87,12 @@ protected:
 
     int prune_subsumed_transitions(const LabelMap & labelMap,
             LabelRelation & label_dominance);
+
+
+    void remove_dead_labels(std::vector<Abstraction *> & abstractions);
+
+    int remove_useless_abstractions(std::vector<Abstraction *> & abstractions, 
+				    std::vector<SimulationRelation *> & simulations) ;
 public:
     LDSimulation(const Options &options);
     LDSimulation(bool unit_cost, const Options &options, OperatorCost cost_type);

@@ -134,7 +134,8 @@ public:
 //                        dominates_in[l1][l2] == lts);
     }
 
-    EquivalenceRelation* get_equivalent_labels_relation(const LabelMap & labelMap) const;
+    //dangerousLTSs returns the set of LTSs where labels that dominate each other could not be included in the equivalence relation. 
+    EquivalenceRelation* get_equivalent_labels_relation(const LabelMap & labelMap, std::set<int> &  dangerous_LTSs) const;
 };
 
 #endif

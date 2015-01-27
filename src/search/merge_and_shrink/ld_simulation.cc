@@ -129,6 +129,32 @@ void LDSimulation::build_factored_systems() {
     }
 }
 
+void LDSimulation::remove_dead_labels(vector<Abstraction *> & abstractions){
+    dead_labels.resize(labels->get_size(), false);
+    for (auto abs : abstractions) {
+	if(abs) abs->remove_dead_labels(dead_labels, abstractions);
+    }
+}
+
+int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractions, 
+					      vector<SimulationRelation *> & simulations) {
+    remove_dead_labels(abstractions);
+    int removed_abstractions = 0;
+    for(int i =0; i < abstractions.size(); ++i){
+	if(abstractions[i] && abstractions[i]->is_useless()){
+	    useless_vars.insert(end(useless_vars), begin(abstractions[i]->get_varset()), 
+				end(abstractions[i]->get_varset()));
+	    abstractions[i]->release_memory();
+	    delete simulations[i];
+	    delete abstractions[i];
+	    abstractions[i] = nullptr;
+	    simulations[i] = nullptr;
+	    removed_abstractions++;
+	}
+    }
+
+    return removed_abstractions;			    
+}
 
 void LDSimulation::build_abstraction() {
     // TODO: We're leaking memory here in various ways. Fix this.
@@ -149,30 +175,15 @@ void LDSimulation::build_abstraction() {
         shrink_strategy = unique_ptr<ShrinkStrategy>(ShrinkBisimulation::create_default());
     }
 
-    dead_operators.resize(g_operators.size(), false);
     if (intermediate_simulations) {
-        if (prune_dead_operators) {
-            vector<bool> dead_labels(labels->get_size(), false);
-            int num_dead = 0;
-            for (auto abs : all_abstractions) {
-                num_dead += abs->check_dead_labels(dead_labels, dead_operators);
-            }
-            /*if (num_dead != 0) {
-                for (int i = 0; i < dead_labels.size(); i++) {
-                    if (dead_labels[i]) {
-                        for (auto abs : all_abstractions) {
-                            abs->prune_transitions_dominated_label_all(i);
-                        }
-                    }
-                }
-            }*/
-        }
         cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
         labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
         cout << "Normalize: " << t() << endl;
         for (auto abs : all_abstractions) {
-            abs->normalize();
-            abs->statistics(use_expensive_statistics);
+	    if(abs){
+		abs->normalize();
+		abs->statistics(use_expensive_statistics);
+	    }
         }
         cout << "Simulation-shrinking atomic abstractions..." << endl;
         for (size_t i = 0; i < all_abstractions.size(); ++i) {
@@ -192,22 +203,30 @@ void LDSimulation::build_abstraction() {
         labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
         cout << "Normalize: " << t() << endl;
         for (auto abs : all_abstractions) {
-            abs->normalize();
-            abs->statistics(use_expensive_statistics);
+	    if(abs){
+		abs->normalize();
+		abs->statistics(use_expensive_statistics);
+	    }
         }
         // do not use bisimulation shrinking on atomic abstractions if simulations are used
         cout << "Bisimulation-shrinking atomic abstractions..." << endl;
         for (size_t i = 0; i < all_abstractions.size(); ++i) {
-            all_abstractions[i]->compute_distances();
-            // if (!all_abstractions[i]->is_solvable())
-            //  return all_abstractions[i];
-            shrink_strategy->shrink_atomic(*all_abstractions[i]);
+	    if(all_abstractions[i]){
+		all_abstractions[i]->compute_distances();
+		// if (!all_abstractions[i]->is_solvable())
+		//  return all_abstractions[i];
+		shrink_strategy->shrink_atomic(*all_abstractions[i]);
+	    }
         }
     }
 
+    int remaining_abstractions = all_abstractions.size();
+    remaining_abstractions -= remove_useless_abstractions(all_abstractions, all_simulations);
+
     cout << "Merging abstractions..." << endl;
 
-    while (!merge_strategy->done() && t() <= limit_seconds_mas) {
+    while (!merge_strategy->done() && t() <= limit_seconds_mas && remaining_abstractions > 1) {
+
         pair<int, int> next_systems = merge_strategy->get_next(all_abstractions,
                 limit_absstates_merge,
                 limit_transitions_merge);
@@ -232,6 +251,7 @@ void LDSimulation::build_abstraction() {
         abstraction->release_memory();
         other_abstraction->release_memory();
 
+	remaining_abstractions --;
         new_abstraction->statistics(use_expensive_statistics);
 
         all_abstractions[system_one] = 0;
@@ -241,29 +261,14 @@ void LDSimulation::build_abstraction() {
         // Note: we do not reduce labels several times for the same abstraction
         bool reduced_labels = false;
         if (shrink_strategy && shrink_strategy->reduce_labels_before_shrinking()) {
-            if (!intermediate_simulations && prune_dead_operators) {
-                vector<bool> dead_labels(labels->get_size(), false);
-                int num_dead = 0;
-                for (auto abs : all_abstractions) {
-                    if (abs) {
-                        num_dead += abs->check_dead_labels(dead_labels, dead_operators);
-                    }
-                }
-                /*if (num_dead != 0) {
-                    for (int i = 0; i < dead_labels.size(); i++) {
-                        if (dead_labels[i]) {
-                            for (auto abs : all_abstractions) {
-                                if (abs) {
-                                    abs->prune_transitions_dominated_label_all(i);
-                                }
-                            }
-                        }
-                    }
-                }*/
-            }
+	    remove_dead_labels(all_abstractions);
             cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
             //labels->reduce(make_pair(system_one, system_two), all_abstractions);
-            labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    if(new_abstraction->get_varset().size() == g_variable_domain.size()){
+		labels->reduce_to_cost();
+	    }else{
+		labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    }
             reduced_labels = true;
             cout << "Normalize: " << t() << endl;
             /*abstraction->normalize();
@@ -295,8 +300,13 @@ void LDSimulation::build_abstraction() {
         }
 
         if ((shrink_strategy || intermediate_simulations || apply_subsumed_transitions_pruning) && !reduced_labels) {
+	    remove_dead_labels(all_abstractions);
             //labels->reduce(make_pair(system_one, system_two), all_abstractions);
-            labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    if(new_abstraction->get_varset().size() == g_variable_domain.size()){
+		labels->reduce_to_cost();
+	    }else{
+		labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    }
         }
 
         cout << "Normalize: " << t() << endl;
@@ -342,6 +352,8 @@ void LDSimulation::build_abstraction() {
                 compute_ld_simulation();
             }
         }
+
+	remaining_abstractions -= remove_useless_abstractions(all_abstractions, all_simulations);
     }
 
     if (intermediate_simulations) {
@@ -431,43 +443,43 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
         std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
         //_labels->prune_irrelevant_labels();
     }
-
-    if (apply_simulation_shrinking) {
-        if (incremental_step) {
-            // Should be enough to just shrink the new abstraction (using the new simulation relation).
-            simulations.back()->shrink();
-        } else {
-            for (auto sim : simulations) {
-                sim->shrink();
-            }
-        }
-    }
-
+   
     if (apply_label_dominance_reduction) {
-        labels->reduce(labelMap, label_dominance);
+	set<int> dangerous_LTSs;
+	//labels->reduce(make_pair(0, 1), abstractions);
+	labels->reduce(labelMap, label_dominance, dangerous_LTSs);
+	//cout << "Labels reduced. Dangerous for: ";
+	//for (auto v : dangerous_LTSs) cout << v << " ";
+	//cout << endl;
+
+	for (auto abs : abstractions) {
+	    // normalize here is necessary, as otherwise compute_distances might remove more transitions than it should (e.g., in nomystery-opt11:p06)
+	    abs->normalize();
+	}
+	if (apply_simulation_shrinking) {
+	    if (incremental_step) {
+		// Should be enough to just shrink the new abstraction (using the new simulation relation).
+		if(!dangerous_LTSs.count(simulations.size() - 1)){
+		    simulations.back()->shrink();
+		}
+	    } else {
+		//cout << "Shrink all" << endl;
+		for (int i = 0; i < simulations.size(); i++) {
+		    if(!dangerous_LTSs.count(i)){
+			simulations[i]->shrink();
+		    }
+		}
+	    }       
+	}
+
     }
+
+    remove_dead_labels(abstractions);
 
     for (auto abs : abstractions) {
         // normalize here is necessary, as otherwise compute_distances might remove more transitions than it should (e.g., in nomystery-opt11:p06)
         abs->normalize();
         abs->compute_distances();
-    }
-
-    if (prune_dead_operators) {
-        vector<bool> dead_labels(labels->get_size(), false);
-        int num_dead = 0;
-        for (auto abs : abstractions) {
-            num_dead += abs->check_dead_labels(dead_labels, dead_operators);
-        }
-        /*if (num_dead != 0) {
-            for (int i = 0; i < dead_labels.size(); i++) {
-                if (dead_labels[i]) {
-                    for (auto abs : abstractions) {
-                        abs->prune_transitions_dominated_label_all(i);
-                    }
-                }
-            }
-        }*/
     }
 
     for (auto abs : abstractions) {
@@ -720,6 +732,8 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
         abs->statistics(false);
     }*/
 
+    remove_dead_labels(abstractions);
+
     return num_pruned_transitions;
 }
 
@@ -817,12 +831,16 @@ void LDSimulation::initialize() {
     cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
     cout << "Similarity equivalences: " << num_equi  << endl;
     cout << "Only Simulations: " << num_sims << endl;
+    cout << "Useless vars: " << useless_vars.size() << endl;
     /*for(int i = 0; i < simulations.size(); i++){
     cout << "States after simulation: " << simulations[i]->num_states() << " " 
 	 << simulations[i]->num_different_states() << endl;
 	 }*/
 
     if (prune_dead_operators) {
+	vector<bool> dead_labels_ops (labels->get_size(), false);
+	vector<bool> dead_operators (g_operators.size(), false);
+	for (auto abs : abstractions) abs->check_dead_operators(dead_labels_ops, dead_operators);
         int num_dead = 0;
         for (int i = 0; i < dead_operators.size(); i++) {
             if (dead_operators[i])
@@ -840,15 +858,15 @@ void LDSimulation::initialize() {
     if (Abstraction::store_original_operators) {
         boost::dynamic_bitset<> required_operators(g_operators.size());
         for (int i = 0; i < labels->get_size(); i++) {
-            if (labels->is_label_reduced(i)) {
+            if (dead_labels[i] || labels->is_label_reduced(i)) {
                 continue;
             }
             boost::dynamic_bitset<> required_operators_for_label;
             for (auto abs : abstractions) {
-                const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
-                //cout << transitions.size() << " " << abs->get_relevant_labels()[i] << endl;
                 if (!abs->get_relevant_labels()[i])
                     continue;
+                const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
+                //cout << transitions.size() << " " << abs->get_relevant_labels()[i] << endl;
                 boost::dynamic_bitset<> required_operators_for_abstraction(g_operators.size());
                 for (int j = 0; j < transitions.size(); j++) {
                     required_operators_for_abstraction |= transitions[j].based_on_operators;
@@ -875,11 +893,13 @@ void LDSimulation::initialize() {
 
 	for (int i = 0; i < g_operators.size(); i++){
 	    if (!required_operators[i]){
+		//	cout << g_operators[i].get_name() << " is dead." << endl;
 		g_operators[i].set_dead();
 	    }
 	}
 	
     }
+
 
     /*for (int i = 0; i < g_operators.size(); i++) {
         if (required_operators[i])
@@ -1171,6 +1191,9 @@ void LDSimulation::getVariableOrdering(vector <int> & var_order){
     }
 
     ig_vars.optimize_variable_ordering_gamer(var_order, partition_begin, partition_size);
+
+    var_order.insert(end(var_order), begin(useless_vars), end(useless_vars));
+
     cout << "Var ordering: ";
     for(int v : var_order) cout << v << " ";
     cout  << endl;

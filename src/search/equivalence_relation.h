@@ -41,6 +41,7 @@ public:
     ElementListIter end() {return elements.end(); }
     ElementListConstIter begin() const {return elements.begin(); }
     ElementListConstIter end() const {return elements.end(); }
+    int size() const {return elements.size(); }
 };
 
 class EquivalenceRelation {

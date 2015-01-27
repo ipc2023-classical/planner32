@@ -68,6 +68,8 @@ public:
     // returns true iff at least one new label has been created
     bool reduce_exactly(const EquivalenceRelation *relation,
                         std::vector<Label *> &labels) const;
+
+    void reduce_labels_to_cost(std::vector<Label *> &labels) const;
 };
 
 #endif

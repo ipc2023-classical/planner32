@@ -29,7 +29,9 @@ public:
     ~Labels();
     void reduce(std::pair<int, int> next_merge,
             const std::vector<Abstraction *> &all_abstractions);
-    void reduce(const LabelMap & labelMap, const LabelRelation & label_dominance);
+    void reduce_to_cost();
+    void reduce(const LabelMap & labelMap, const LabelRelation & label_dominance, 
+		std::set<int> & dangerous_LTSs);
     // TODO: consider removing get_label_by_index and forwarding all required
     // methods of Label and giving access to them by label number.
     const Label *get_label_by_index(int index) const;
