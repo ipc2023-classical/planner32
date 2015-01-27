@@ -76,8 +76,7 @@ class SimulationHeuristic : public PruneHeuristic {
 		    << states_pruned << " pruned " << states_checked << " checked " << 
 	      states_inserted << " inserted " << deadends_pruned << " deadends " << std::endl;
       }
-
-      return all_desactivated;
+      return !all_desactivated;
   }
 
 
