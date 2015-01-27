@@ -144,15 +144,17 @@ int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractio
 	if(abstractions[i] && abstractions[i]->is_useless()){
 	    useless_vars.insert(end(useless_vars), begin(abstractions[i]->get_varset()), 
 				end(abstractions[i]->get_varset()));
+	    if (i < simulations.size() && simulations[i]){
+		delete simulations[i];
+		simulations[i] = nullptr;
+	    }
 	    abstractions[i]->release_memory();
-	    delete simulations[i];
 	    delete abstractions[i];
 	    abstractions[i] = nullptr;
-	    simulations[i] = nullptr;
+	    
 	    removed_abstractions++;
 	}
     }
-
     return removed_abstractions;			    
 }
 
