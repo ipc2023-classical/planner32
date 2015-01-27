@@ -30,14 +30,11 @@ SimulationHeuristic::SimulationHeuristic(const Options &opts)
   remove_spurious_dominated_states(opts.get<bool>("remove_spurious")),
   insert_dominated(opts.get<bool>("insert_dominated")),
   pruning_type(PruningType(opts.get_enum("pruning_type"))),
-  print_desactivation(true),
-  min_pruning_ratio(opts.get<double>("min_pruning_ratio")),
-  min_insert_ratio(opts.get<double>("min_insert_ratio")),
-  min_deadend_ratio(opts.get<double>("min_deadends_ratio")),
-  min_insertions(opts.get<int>("min_insertions")),
-  min_deadends(opts.get<int>("min_deadends")),
+  min_insertions_desactivation(opts.get<int>("min_insertions")),
+  min_desactivation_ratio(opts.get<double>("min_desactivation_ratio")),
   vars(new SymVariables()), ldSimulation(new LDSimulation(opts)),
-  states_inserted(0), states_pruned(0), deadends_pruned(0) {
+  all_desactivated(false), activation_checked(false), 
+  states_inserted(0), states_checked(0), states_pruned(0), deadends_pruned(0) {
 }
 
 SimulationHeuristic::~SimulationHeuristic() {
@@ -85,7 +82,7 @@ void SimulationHeuristic::initialize() {
   }*/
 
 bool SimulationHeuristic::is_dead_end(const State &state) {
-    if(deadend_is_activated() &&  ldSimulation->pruned_state(state)){
+    if(is_activated() && ldSimulation->pruned_state(state)){
         deadends_pruned ++;
         return true;
     }
@@ -101,14 +98,8 @@ int SimulationHeuristic::compute_heuristic(const State &state) {
 
 bool SimulationHeuristic::prune_generation(const State &state, int g) {
     if(pruning_type == PruningType::None) return false;
-    if(!deadend_is_activated()){
-        if(print_desactivation){
-            print_desactivation = false;
-            cout << "Desactivation of deadend: " << states_pruned << " pruned " << states_inserted << " inserted" << endl;
-        }
-
-        return false;
-    }
+    if(!is_activated()) return false;
+    
     // if(states_inserted%1000 == 0){
     // 	cout << "Deadend is still activated. "
     // 	     << "  States inserted: " << states_inserted
@@ -126,43 +117,34 @@ bool SimulationHeuristic::prune_generation(const State &state, int g) {
         return true;
     }
     //a) Check if state is in a BDD with g.closed <= g
+    states_checked ++;
     if (check(state, g)){
         states_pruned ++;
         return true;
     }
 
     //b) Insert state and other states dominated by it
-    if(pruning_type == PruningType::Generation && insert_is_activated()){
+    if(pruning_type == PruningType::Generation){
         insert(state, g);
         states_inserted ++;
-    }else if (pruning_type == PruningType::Generation && print_desactivation) {
-        print_desactivation = false;
-        cout << "Desactivation of insertion: " << states_pruned << " pruned " << states_inserted << " inserted" << endl;
     }
     return false;
 }
 
 bool SimulationHeuristic::prune_expansion (const State &state, int g){
     if(pruning_type == PruningType::None) return false;
-    if(!prune_is_activated()){
-        if(print_desactivation){
-            print_desactivation = false;
-            cout << "Desactivation of pruning: " << states_pruned << " pruned " << states_inserted << " inserted" << endl;
-        }
-        return false;
-    }
+    if(!is_activated()) return false;
+    
     //a) Check if state is in a BDD with g.closed <= g
+    states_checked++;
     if(check(state, g)){
         states_pruned ++;
         return true;
     }
     //b) Insert state and other states dominated by it
-    if(pruning_type == PruningType::Expansion && insert_is_activated()){
+    if(pruning_type == PruningType::Expansion){
         insert(state, g);
         states_inserted ++;
-    }else if (pruning_type == PruningType::Expansion && print_desactivation){
-        print_desactivation = false;
-        cout << "Desactivation of insertion: " << states_pruned << " pruned " << states_inserted << " inserted" << endl;
     }
     return false;
 }
@@ -232,23 +214,11 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "Whether we store the set of dominated states (default) or just the set of closed.",
             "true");
 
-    parser.add_option<double>("min_pruning_ratio",
-            "Ratio of pruned/inserted needed to continue pruning the search.",
-            "0.0");
-
-    parser.add_option<double>("min_insert_ratio",
-            "Ratio of pruned/inserted needed to continue inserting dominated states.",
-            "0.0");
-
-    parser.add_option<double>("min_deadends_ratio",
-            "Ratio of deadends_pruned/inserted needed to continue pruning deadend states.",
+    parser.add_option<double>("min_desactivation_ratio",
+            "Ratio of pruned/checked needed to continue pruning the search.",
             "0.0");
 
     parser.add_option<int>("min_insertions",
-            "States are inserted and pruning until this limit. Afterwards, depends on the ratios",
-            "100000000");
-
-    parser.add_option<int>("min_deadends",
             "States are inserted and pruning until this limit. Afterwards, depends on the ratios",
             "100000000");
 

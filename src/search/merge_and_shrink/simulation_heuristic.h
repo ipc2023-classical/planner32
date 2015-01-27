@@ -26,24 +26,28 @@ class SimulationHeuristic : public PruneHeuristic {
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
   const PruningType pruning_type;
-  bool print_desactivation;
 
   /*
    * Three parameters help to decide whether to apply dominance
-   * pruning or not. Dominance pruning is used until min_expansions
-   * are performed. Afterwards, pruning is only used if the ratio
-   * pruned/inserted is greater than min_pruning_ratio. If the ratio
-   * pruned/inserted is lower than min_insert_ratio, we use the states
-   * already inserted to prune but avoid inserting more states.
+   * pruning or not. Dominance pruning is used until
+   * min_insertions_desactivation are performed. At that moment, if
+   * the ratio pruned/checked is lower than min_desactivation_ratio
+   * the pruning is desactivated. If not, the pruning remains
+   * activated until the planner finishes.
    */
-  const double min_pruning_ratio, min_insert_ratio, min_deadend_ratio;
-  const int min_insertions, min_deadends;
-
+  const int min_insertions_desactivation;
+  const double min_desactivation_ratio;
+  
   std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
   std::unique_ptr<SymManager> mgr;    //The symbolic manager to handle mutex BDDs
 
   std::unique_ptr<LDSimulation> ldSimulation;
+
+  bool all_desactivated;
+  bool activation_checked;
+
   int states_inserted; //Count the number of states inserted
+  int states_checked; //Count the number of states inserted
   int states_pruned; //Count the number of states pruned
   int deadends_pruned; //Count the number of dead ends detected
 
@@ -63,20 +67,39 @@ class SimulationHeuristic : public PruneHeuristic {
 
   //void build_abstraction();
 
-  inline bool insert_is_activated() const {
-      return states_inserted < min_insertions || 
-	  states_pruned >= states_inserted*min_insert_ratio;
-  }
-  inline bool prune_is_activated() const {
-      return states_inserted < min_insertions || 
-	  states_pruned >= states_inserted*min_pruning_ratio;
+  inline bool is_activated() {
+      if(!activation_checked && states_inserted > min_insertions_desactivation){
+	  activation_checked = true;
+	  all_desactivated = states_pruned == 0 || 
+	      states_pruned < states_checked*min_desactivation_ratio;
+	  std::cout << "Simulation pruning " << (all_desactivated ? "desactivated: " : "activated: ")
+		    << states_pruned << " pruned " << states_checked << " checked " << 
+	      states_inserted << " inserted " << deadends_pruned << " deadends " << std::endl;
+      }
+
+      return all_desactivated;
   }
 
-  inline bool deadend_is_activated() const {
-      return prune_is_activated();
-      //|| states_inserted < min_deadends 
-      //  || deadends_pruned >= states_inserted*min_deadend_ratio;
-  }
+
+/*   inline bool insert_is_activated() const { */
+/*       if (states_inserted > min_insertions && !activation_checked){ */
+/* 	  all_activated = states_pruned >= states_inserted*min_insert_ratio; */
+/*       } */
+/*       return !all_activated; */
+/*       //    return all_desactivated states_inserted < min_insertions ||  */
+/*       //  states_pruned >= states_inserted*min_insert_ratio; */
+/*   } */
+/*   inline bool prune_is_activated() const { */
+/*       return !all_activated; */
+/*       //return states_inserted < min_insertions ||  */
+/* //	  states_pruned >= states_inserted*min_pruning_ratio; */
+/*   } */
+/*   inline bool deadend_is_activated() const { */
+/*       return !all_activated; */
+/*       //return prune_is_activated(); */
+/*       //|| states_inserted < min_deadends  */
+/*       //  || deadends_pruned >= states_inserted*min_deadend_ratio; */
+/*   } */
 
  public:
   virtual void initialize();
