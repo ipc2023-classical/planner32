@@ -280,7 +280,7 @@ void LDSimulation::build_abstraction() {
 	    remove_dead_labels(all_abstractions);
             cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
             //labels->reduce(make_pair(system_one, system_two), all_abstractions);
-	    if(new_abstraction->get_varset().size() == g_variable_domain.size()){
+	    if(remaining_abstractions == 1){
 		labels->reduce_to_cost();
 	    }else{
 		labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
@@ -318,7 +318,7 @@ void LDSimulation::build_abstraction() {
         if ((shrink_strategy || intermediate_simulations || apply_subsumed_transitions_pruning) && !reduced_labels) {
 	    remove_dead_labels(all_abstractions);
             //labels->reduce(make_pair(system_one, system_two), all_abstractions);
-	    if(new_abstraction->get_varset().size() == g_variable_domain.size()){
+	    if(remaining_abstractions == 1){
 		labels->reduce_to_cost();
 	    }else{
 		labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
@@ -875,7 +875,7 @@ void LDSimulation::initialize() {
 	      << ((double) num_dead / g_operators.size() * 100) << "%"
 	      << endl;*/
 	    for (int i = 0; i < g_operators.size(); i++){
-		if (!dead_operators[i]){
+		if (dead_operators[i]){
 		    //	cout << g_operators[i].get_name() << " is dead." << endl;
 		    g_operators[i].set_dead();
 		}
