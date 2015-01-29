@@ -54,7 +54,14 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
         cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) efficient simulation relation!" << endl;
         exit(1);
     }
+
     Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
+
+    if (!prune_dead_operators && Abstraction::store_original_operators) {
+        cerr << "Error: Why do you want to store operators if you don't prune them?" << endl;
+        exit(1);
+    }
+
 }
 
 LDSimulation::LDSimulation(const Options &opts) : 
@@ -87,6 +94,7 @@ LDSimulation::LDSimulation(const Options &opts) :
         cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) efficient simulation relation!" << endl;
         exit(1);
     }
+
     //TODO: Copied from heuristic.cc. Move to the PlanningTask class
     //that someday will be added to FD.
     OperatorCost cost_type = OperatorCost::NORMAL;
@@ -103,6 +111,12 @@ LDSimulation::LDSimulation(const Options &opts) :
         exit(1);
     }*/
     Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
+
+    if (!prune_dead_operators && Abstraction::store_original_operators) {
+        cerr << "Error: Why do you want to store operators if you don't prune them?" << endl;
+        exit(1);
+    }
+
 }
 
 LDSimulation::~LDSimulation(){
@@ -839,6 +853,8 @@ void LDSimulation::initialize() {
 	 << simulations[i]->num_different_states() << endl;
 	 }*/
 
+    
+
     if (prune_dead_operators) {
 	vector<bool> dead_labels_ops (labels->get_size(), false);
 	vector<bool> dead_operators (g_operators.size(), false);
@@ -848,13 +864,23 @@ void LDSimulation::initialize() {
             if (dead_operators[i])
                 num_dead++;
         }
-        printf("Dead operators due to dead labels: %d / %d (%.2lf%%)\n",
-                num_dead, g_operators.size(),
-                ((double) num_dead / g_operators.size()) * 100);
-        /*cout << "Dead Operators due to dead labels: " << num_dead << " / "
-                << g_operators.size() << " i.e., "
-                << ((double) num_dead / g_operators.size() * 100) << "%"
-                << endl;*/
+
+	printf("Dead operators due to dead labels: %d / %d (%.2lf%%)\n",
+	       num_dead, g_operators.size(),
+	       ((double) num_dead / g_operators.size()) * 100);
+
+	if(!Abstraction::store_original_operators){
+	    /*cout << "Dead Operators due to dead labels: " << num_dead << " / "
+	      << g_operators.size() << " i.e., "
+	      << ((double) num_dead / g_operators.size() * 100) << "%"
+	      << endl;*/
+	    for (int i = 0; i < g_operators.size(); i++){
+		if (!dead_operators[i]){
+		    //	cout << g_operators[i].get_name() << " is dead." << endl;
+		    g_operators[i].set_dead();
+		}
+	    }	
+	}
     }
 
     if (Abstraction::store_original_operators) {
@@ -893,15 +919,13 @@ void LDSimulation::initialize() {
                 << ((double) (g_operators.size() - required_operators.count())
                         / g_operators.size() * 100) << "%" << endl;*/
 
-	for (int i = 0; i < g_operators.size(); i++){
-	    if (!required_operators[i]){
+	    for (int i = 0; i < g_operators.size(); i++){
+		if (!required_operators[i]){
 		//	cout << g_operators[i].get_name() << " is dead." << endl;
-		g_operators[i].set_dead();
+		    g_operators[i].set_dead();
+		}
 	    }
-	}
-	
     }
-
 
     /*for (int i = 0; i < g_operators.size(); i++) {
         if (required_operators[i])

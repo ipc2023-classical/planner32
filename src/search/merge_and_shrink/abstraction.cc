@@ -1559,6 +1559,29 @@ int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by
 int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label_no2,
         SimulationRelation & rel) {
     int num = transitions_by_label[label_no].size() + transitions_by_label[label_no2].size();
+    
+    if(label_no == label_no2){
+	//Added special case when the labels are the same. This one
+	//uses remove_copy_if instead of remove_if because its
+	//safer. remove_if still works but may depend on the compiler
+	//or the class definition of the transitions.
+    transitions_by_label[label_no].erase(std::remove_copy_if(begin(transitions_by_label[label_no]),
+            end(transitions_by_label[label_no]), begin(transitions_by_label[label_no]),
+            [&](AbstractTransition & t){
+        return std::find_if(begin(transitions_by_label[label_no2]),
+                end(transitions_by_label[label_no2]),
+                [&](AbstractTransition & t2){
+            /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
+				return t2.src == t.src && rel.simulates(t2.target, t.target) && 
+				    (!rel.simulates(t.target, t2.target) ||  
+				     t.target > t2.target);
+
+        }) != end(transitions_by_label[label_no2]);
+    }),
+    transitions_by_label[label_no].end());
+
+    
+    } else {
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
             end(transitions_by_label[label_no]),
             [&](AbstractTransition & t){
@@ -1568,8 +1591,7 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
             /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
 				return t2.src == t.src && rel.simulates(t2.target, t.target) && 
 				    (!rel.simulates(t.target, t2.target) ||  
-				     label_no > label_no2 || 
-				     (label_no == label_no2 && t.target !=t2.target));
+				     label_no > label_no2/* || (label_no==label_no2 && t.target > t2.target)*/);
 
         }) != end(transitions_by_label[label_no2]);
     }),
@@ -1587,6 +1609,7 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
             }) != end(transitions_by_label[label_no]);
         }),
         transitions_by_label[label_no2].end());
+    }
 
     if (transitions_by_label[label_no].size() + transitions_by_label[label_no2].size() != num)
         clear_distances();
