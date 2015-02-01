@@ -40,6 +40,8 @@ void LandmarkGraph::generate_operators_lookups() {
     }
     for (unsigned i = 0; i < g_operators.size() + g_axioms.size(); i++) {
         const Operator &op = get_operator_for_lookup_index(i);
+	//Dead ops: Skip dead operators from generate_operators_lookups
+	if(op.is_dead()) continue;
         const vector<PrePost> &prepost = op.get_pre_post();
         for (unsigned j = 0; j < prepost.size(); j++) {
             operators_eff_lookup[prepost[j].var][prepost[j].post].push_back(i);

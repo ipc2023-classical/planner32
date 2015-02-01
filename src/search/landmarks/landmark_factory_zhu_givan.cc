@@ -280,6 +280,9 @@ void LandmarkFactoryZhuGivan::compute_triggers() {
         bool has_cond = false;
 
         const Operator &op = lm_graph->get_operator_for_lookup_index(i);
+	//Dead ops: Skip dead operators from generate_operators_lookups
+	if(op.is_dead()) continue;
+
         const vector<Prevail> &prevail = op.get_prevail();
         for (unsigned j = 0; j < prevail.size(); j++) {
             t.insert(make_pair(prevail[j].var, prevail[j].prev));

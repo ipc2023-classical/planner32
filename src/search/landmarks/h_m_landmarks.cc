@@ -471,7 +471,7 @@ void HMLandmarks::build_pm_ops() {
     static int op_count = 0;
     int set_index, noop_index;
 
-    pm_ops_.resize(g_operators.size());
+    pm_ops_.reserve(g_operators.size());
 
     // set unsatisfied precondition counts, used in fixpoint calculation
     unsat_pc_count_.resize(g_operators.size());
@@ -479,6 +479,10 @@ void HMLandmarks::build_pm_ops() {
     // transfer ops from original problem
     // represent noops as "conditional" effects
     for (int i = 0; i < g_operators.size(); i++) {
+	//Dead ops: Skip dead operators from pm ops
+
+	if(g_operators[i].is_dead()) continue;
+	pm_ops_.push_back(PMOp());
         PMOp &op = pm_ops_[i];
         op.index = op_count++;
 

@@ -464,12 +464,14 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 	set<int> dangerous_LTSs;
 	//labels->reduce(make_pair(0, 1), abstractions);
 	labels->reduce(labelMap, label_dominance, dangerous_LTSs);
-	//cout << "Labels reduced. Dangerous for: ";
+	cout << "Labels reduced. Dangerous for: " << dangerous_LTSs.size() << endl;
 	//for (auto v : dangerous_LTSs) cout << v << " ";
 	//cout << endl;
 
 	for (auto abs : abstractions) {
-	    // normalize here is necessary, as otherwise compute_distances might remove more transitions than it should (e.g., in nomystery-opt11:p06)
+	    // normalize here is necessary, as otherwise
+	    // compute_distances might remove more transitions than it
+	    // should (e.g., in nomystery-opt11:p06)
 	    abs->normalize();
 	}
 	if (apply_simulation_shrinking) {

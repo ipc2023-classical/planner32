@@ -43,6 +43,10 @@ void LazySearch::initialize() {
     //TODO children classes should output which kind of search
     cout << "Conducting lazy best first search, (real) bound = " << bound << endl;
 
+    if(prune_heuristic){
+        prune_heuristic->initialize();
+    }
+
     assert(open_list != NULL);
     set<Heuristic *> hset;
     open_list->get_involved_heuristics(hset);
@@ -62,9 +66,6 @@ void LazySearch::initialize() {
     }
     assert(!heuristics.empty());
 
-    if(prune_heuristic){
-        prune_heuristic->initialize();
-    }
 }
 
 void LazySearch::get_successor_operators(vector<const Operator *> &ops) {

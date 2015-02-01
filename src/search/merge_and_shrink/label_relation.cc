@@ -397,7 +397,7 @@ EquivalenceRelation * LabelRelation::get_equivalent_labels_relation(const LabelM
     const {
     list<Block> rel;
     vector<int> captured_labels(num_labels, -1);
-    vector<int> Theta (num_labels, DOMINATES_IN_ALL); //LTS in which we are aggregating each labels
+    vector<int> Theta (num_labels, DOMINATES_IN_ALL); //LTS in which we are aggregating each label
     for (int l1 = 0; l1 < num_labels; l1++){
 	Block eq;
 	if(captured_labels[l1] == -1){
@@ -442,7 +442,6 @@ EquivalenceRelation * LabelRelation::get_equivalent_labels_relation(const LabelM
 		}else{
 		    cout << "Assertion Error: two labels dominate in all but cannot be aggregated?" << endl;
 		    exit_with(EXIT_CRITICAL_ERROR);
-
 		}
 	    }
 	}

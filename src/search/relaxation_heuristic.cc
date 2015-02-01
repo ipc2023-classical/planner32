@@ -42,7 +42,8 @@ void RelaxationHeuristic::initialize() {
 
     // Build unary operators for operators and axioms.
     for (int i = 0; i < g_operators.size(); i++)
-        build_unary_operators(g_operators[i], i);
+	if(!g_operators[i].is_dead())
+	    build_unary_operators(g_operators[i], i);
     for (int i = 0; i < g_axioms.size(); i++)
         build_unary_operators(g_axioms[i], -1);
 

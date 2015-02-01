@@ -129,7 +129,8 @@ bool LandmarkFactory::relaxed_task_solvable(vector<vector<int> > &lvl_var,
     vector<pair<int, int> > exclude_props;
     if (exclude != NULL) {
         for (int op = 0; op < g_operators.size(); op++) {
-            if (achieves_non_conditional(g_operators[op], exclude))
+	    //Dead ops: Exclude dead operators from reachability analysis
+            if (achieves_non_conditional(g_operators[op], exclude) || g_operators[op].is_dead()) 
                 exclude_ops.insert(&g_operators[op]);
         }
         for (int i = 0; i < exclude->vars.size(); i++)
@@ -169,7 +170,8 @@ bool LandmarkFactory::is_causal_landmark(const LandmarkNode &landmark) const {
     hash_set<const Operator *, ex_hash_operator_ptr> exclude_ops;
     vector<pair<int, int> > exclude_props;
     for (int op = 0; op < g_operators.size(); op++) {
-        if (is_landmark_precondition(g_operators[op], &landmark)) {
+	//Dead ops: Exclude dead operators from reachability analysis
+        if (is_landmark_precondition(g_operators[op], &landmark) || g_operators[op].is_dead()) {
             exclude_ops.insert(&g_operators[op]);
         }
     }
