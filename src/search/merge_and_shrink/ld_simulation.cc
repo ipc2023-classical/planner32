@@ -38,10 +38,10 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          incremental_simulations(opts.get<bool>("incremental_simulations")),
 		                          labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
-    if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
+    /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
-    }
+	}*/
     /*if (apply_subsumed_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
         cerr << "Error: can only apply pruning of subsumed transitions if perfect label reduction is applied" << endl;
         exit(1);
@@ -82,10 +82,10 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        use_bisimulation(opts.get<bool>("use_bisimulation")),
     		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")),
                                     incremental_simulations(opts.get<bool>("incremental_simulations")) {
-    if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
+    /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
-    }
+	}*/
     if (incremental_simulations && !intermediate_simulations) {
         cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
         exit(1);
