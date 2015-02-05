@@ -7,6 +7,7 @@
 #include "labels.h"
 #include "shrink_fh.h"
 
+#include "label_relation.h"
 #include "simulation_relation.h"
 #include "../equivalence_relation.h"
 #include "../globals.h"
@@ -1535,8 +1536,12 @@ int Abstraction::prune_transitions_dominated_label_all(int label_no) {
 
 // Prune all the transitions of label_no such that exist a better
 // transition for label_no_by
-int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by,
-        SimulationRelation & rel) {
+int Abstraction::prune_transitions_dominated_label(int lts_id, 
+						   const vector<LabelledTransitionSystem *> & ltss,
+						   const vector<SimulationRelation *> & simulations,
+						   LabelRelation & label_dominance,
+						   int label_no, int label_no_by) {
+    const SimulationRelation & rel = *(simulations[lts_id]);
     int num = transitions_by_label[label_no].size();
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
             end(transitions_by_label[label_no]),
@@ -1544,7 +1549,9 @@ int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by
         return std::find_if(begin(transitions_by_label[label_no_by]),
                 end(transitions_by_label[label_no_by]),
                 [&](AbstractTransition & t2){
-            return t2.src == t.src && rel.simulates(t2.target, t.target);
+            return t2.src == t.src && rel.simulates(t2.target, t.target) && 
+		label_dominance.propagate_transition_pruning(lts_id, ltss, simulations, t.src, 
+							     label_no, t.target);
         }) != end(transitions_by_label[label_no_by]);
     }),
     transitions_by_label[label_no].end());
@@ -1556,8 +1563,13 @@ int Abstraction::prune_transitions_dominated_label(int label_no, int label_no_by
 
 // Prune all the transitions of label_no such that exist a better
 // transition for label_no_by
-int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label_no2,
-        SimulationRelation & rel) {
+int Abstraction::
+prune_transitions_dominated_label_equiv(int lts_id, 
+					const vector<LabelledTransitionSystem *> & ltss,
+					const vector<SimulationRelation *> & simulations,
+					LabelRelation & label_dominance,
+					int label_no, int label_no2) {
+    const SimulationRelation & rel = *(simulations[lts_id]);
     int num = transitions_by_label[label_no].size() + transitions_by_label[label_no2].size();
     
     if(label_no == label_no2){
@@ -1572,11 +1584,18 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
                 end(transitions_by_label[label_no2]),
                 [&](AbstractTransition & t2){
             /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-				return t2.src == t.src && rel.simulates(t2.target, t.target) && 
+				if(t2.src == t.src && rel.simulates(t2.target, t.target) && 
 				    (!rel.simulates(t.target, t2.target) ||  
-				     t.target > t2.target);
-
-        }) != end(transitions_by_label[label_no2]);
+				     t.target > t2.target)){
+				    if( label_dominance.
+					propagate_transition_pruning(lts_id, ltss, 
+								     simulations, 
+								     t.src, label_no, t.target)){
+					return true;
+				    }
+				}
+				return false;
+			    }) != end(transitions_by_label[label_no2]);
     }),
     transitions_by_label[label_no].end());
 
@@ -1589,9 +1608,11 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
                 end(transitions_by_label[label_no2]),
                 [&](AbstractTransition & t2){
             /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-				return t2.src == t.src && rel.simulates(t2.target, t.target) && 
+				return (t2.src == t.src && rel.simulates(t2.target, t.target) && 
 				    (!rel.simulates(t.target, t2.target) ||  
-				     label_no > label_no2/* || (label_no==label_no2 && t.target > t2.target)*/);
+				     label_no > label_no2/* || (label_no==label_no2 && t.target > t2.target)*/)) &&
+				    label_dominance.propagate_transition_pruning(lts_id, ltss, simulations, t.src, label_no, t.target);
+;
 
         }) != end(transitions_by_label[label_no2]);
     }),
@@ -1604,8 +1625,9 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
                     end(transitions_by_label[label_no]),
                     [&](AbstractTransition & t2){
                 /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-                return t2.src == t.src && rel.simulates(t2.target, t.target) &&
-		    (!rel.simulates(t.target, t2.target) || label_no2 > label_no);
+		return (t2.src == t.src && rel.simulates(t2.target, t.target) &&
+			(!rel.simulates(t.target, t2.target) || label_no2 > label_no)) && 
+		    label_dominance.propagate_transition_pruning(lts_id, ltss, simulations, t.src, label_no2, t.target);
             }) != end(transitions_by_label[label_no]);
         }),
         transitions_by_label[label_no2].end());
@@ -1618,14 +1640,20 @@ int Abstraction::prune_transitions_dominated_label_equiv(int label_no, int label
 }
 
 //Prune all the transitions dominated by noop
-int Abstraction::prune_transitions_dominated_label_noop(int label_no,
-        SimulationRelation & rel){
+int Abstraction::prune_transitions_dominated_label_noop(int lts_id, 
+					const vector<LabelledTransitionSystem *> & ltss,
+					const vector<SimulationRelation *> & simulations,
+					LabelRelation & label_dominance, int label_no){
+    const SimulationRelation & rel = *(simulations[lts_id]);
     int num = transitions_by_label[label_no].size();
-
+    
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
             end(transitions_by_label[label_no]),
-            [this, &rel](AbstractTransition & t){
-        return rel.simulates(t.src, t.target);
+            [&](AbstractTransition & t){
+        return rel.simulates(t.src, t.target) && 
+	    label_dominance.propagate_transition_pruning(lts_id, ltss, 
+							 simulations, 
+							 t.src, label_no, t.target);
     }),
     transitions_by_label[label_no].end());
     if (transitions_by_label[label_no].size() != num)

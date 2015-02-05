@@ -454,7 +454,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
         //simulations[i]->dump(ltss_simple[i]->get_names());
 
     if (apply_subsumed_transitions_pruning) {
-        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance);
+        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance, ltss_simple/*TODO: Hack lts_efficient will not work ever */);
         //if(num_pruned_trs){
         std::cout << num_pruned_trs << " transitions in the LTSs were pruned." << std::endl;
         //_labels->prune_irrelevant_labels();
@@ -680,7 +680,8 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 // }
 
 int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
-        LabelRelation & label_dominance){
+					     LabelRelation & label_dominance, 
+					     const vector<LabelledTransitionSystem *> & ltss){
     /*cout << "number of transitions before pruning:" << endl;
     for (auto abs : abstractions) {
         abs->statistics(false);
@@ -692,8 +693,10 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
     vector <int> labels_id;
     label_dominance.get_labels_dominated_in_all(labels_id);
     for (auto abs : abstractions){
-        for (int l : labels_id)
+        for (int l : labels_id){
             num_pruned_transitions += abs->prune_transitions_dominated_label_all(labelMap.get_old_id(l));
+	    label_dominance.kill_label(l);
+	}
     }
 
     //b) prune transitions dominated by noop in a transition system
@@ -702,7 +705,7 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
         if(lts >= 0){
             // the index of the LTS and its corresponding abstraction should always be the same -- be careful about
             // this in the other code!
-            num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(labelMap.get_old_id(l), *(simulations[lts]));
+            num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(lts, ltss, simulations, label_dominance, labelMap.get_old_id(l));
         }
     }
 
@@ -731,16 +734,13 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
                 if (label_dominance.dominates(label_l2, label_l, lts)
                         && label_dominance.dominates(label_l, label_l2, lts)) {
                     num_pruned_transitions +=
-                            abs->prune_transitions_dominated_label_equiv(l, l2,
-                                    *(simulations[lts]));
+			abs->prune_transitions_dominated_label_equiv(lts, ltss, simulations, label_dominance, l, l2);
                 } else if (label_dominance.dominates(label_l2, label_l, lts)) {
                     num_pruned_transitions +=
-                            abs->prune_transitions_dominated_label(l, l2,
-                                    *(simulations[lts]));
+                            abs->prune_transitions_dominated_label(lts, ltss, simulations, label_dominance, l, l2);
                 } else if (label_dominance.dominates(label_l, label_l2, lts)) {
                     num_pruned_transitions +=
-                            abs->prune_transitions_dominated_label(l2, l,
-                                    *(simulations[lts]));
+			abs->prune_transitions_dominated_label(lts, ltss, simulations, label_dominance, l2, l);
                 }
             }
         }

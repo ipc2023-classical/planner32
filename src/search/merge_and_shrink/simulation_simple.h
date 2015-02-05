@@ -26,6 +26,12 @@ class SimulationRelationSimple : public SimulationRelation{
 
     template<typename LTS> void update_sim (int lts_id, const LTS * lts,
 				   const LabelRelation & label_dominance);
+
+
+    bool propagate_label_domination(int lts_id, const LabelledTransitionSystem * lts,
+				    const LabelRelation & label_dominance, 
+				    int l, int l2) const;
+    
 };
 
 #endif

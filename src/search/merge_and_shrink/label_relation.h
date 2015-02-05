@@ -43,6 +43,7 @@ class LabelRelation {
 
     //void update_after_merge(int i, int j, LTS & lts);
 
+
     //Returns true if l1 simulates l2 in lts
     inline bool simulates (int l1, int l2, int lts) const{
         return dominates_in[l1][l2] !=  DOMINATES_IN_NONE &&
@@ -136,6 +137,23 @@ public:
 
     //dangerousLTSs returns the set of LTSs where labels that dominate each other could not be included in the equivalence relation. 
     EquivalenceRelation* get_equivalent_labels_relation(const LabelMap & labelMap, std::set<int> &  dangerous_LTSs) const;
+
+    bool propagate_transition_pruning(int lts_id, 
+				      const std::vector<LabelledTransitionSystem *> & ltss, 
+				      const std::vector<SimulationRelation *> & simulations, 
+				      int src, int l1, int target); 
+
+
+    void kill_label(int l) {
+	dominated_by_noop_in[l] = DOMINATES_IN_NONE;
+ 	fill(begin(simulated_by_irrelevant[l]), end(simulated_by_irrelevant[l]), false);
+ 	fill(begin(simulates_irrelevant[l]), end(simulates_irrelevant[l]), false);
+ 	fill(begin(dominates_in[l]), end(dominates_in[l]), DOMINATES_IN_NONE);
+	for(auto & di : dominates_in) di[l] = DOMINATES_IN_NONE;
+    }
+
 };
+
+    
 
 #endif

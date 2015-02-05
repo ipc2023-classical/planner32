@@ -16,6 +16,13 @@ class SimulationRelationIdentity : public SimulationRelation{
     virtual void update(int , const LTSEfficient * ,
 			const LabelRelation & ){}
 
+
+    virtual bool propagate_label_domination(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
+					    const LabelRelation & /*label_dominance*/, 
+					    int /*l*/, int /*l2*/) const{
+	return true;
+    }
+
 };
 
 #endif

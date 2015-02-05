@@ -4,6 +4,7 @@
 #include <functional>
 #include <vector>
 #include <string>
+#include <algorithm>    // std::find
 
 typedef int AbstractStateRef;
 class Abstraction;
@@ -55,6 +56,13 @@ class LabelledTransitionSystem {
   std::vector<std::vector <LTSTransition> > transitions_src;
   std::vector<std::vector <LTSTransition> > transitions_label;
 
+
+  inline void kill_from_vector(const LTSTransition & t, std::vector <LTSTransition> & v) {
+      auto it = std::find(begin(v), end(v), t);
+      *it = v.back();
+      v.pop_back();
+  }
+
  public:
   LabelledTransitionSystem (Abstraction * abs, const LabelMap & labelMap);
   ~LabelledTransitionSystem(){}
@@ -102,6 +110,8 @@ class LabelledTransitionSystem {
   inline Abstraction * get_abstraction()  {
     return abs;
   }
+
+  void kill_transition(int src, int label, int target); 
 
   //For each transition labelled with l, applya a function. If returns true, applies a break
   bool applyPostSrc(int from,

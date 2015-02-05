@@ -88,6 +88,7 @@ void LabelRelation::prune_operators(){
 void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_dominated_in_all){
     //cout << "We have " << num_labels << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
     for (int l = 0; l < dominates_in.size(); ++l){
+	//cout << "Check: " << l << endl;
         //labels->get_label_by_index(l)->dump();
         if (dominated_by_noop_in[l] == DOMINATES_IN_ALL){
             labels_dominated_in_all.push_back(l);
@@ -95,21 +96,36 @@ void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_domina
         }
 
         // PIET-edit: Here we do not remove either label if they dominate each other in all LTSs.
+        // for (int l2 = 0; l2 < dominates_in.size(); ++l2){
+        //     if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL &&
+        //             !dominates_in[l][l2] == DOMINATES_IN_ALL){
+        //         labels_dominated_in_all.push_back(l);
+        //         break;
+        //     }
+        // }
+
+        // PIET-edit: Here we remove one of the two labels dominating each other in all LTSs.
         for (int l2 = 0; l2 < dominates_in.size(); ++l2){
-            if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL &&
-                    !dominates_in[l][l2] == DOMINATES_IN_ALL){
+	    //cout << " with : " << l2 << " " << dominates_in[l2][l] << "  " << dominates_in[l][l2];
+	    // if ((l == 118 && l2 == 279) || (l2 == 118 && l == 279)) {
+	    // 	cout << "HERE: " << dominates_in[l2][l] << " " << dominates_in[l][l2] << endl;
+	    // 	cout << (l2 < l) << " " << (dominates_in[l2][l] == DOMINATES_IN_ALL) << " " << (dominates_in[l][l2] != DOMINATES_IN_ALL) << endl;
+	    // 	cout <<  (l2 > l) << " " << (dominates_in[l2][l] == DOMINATES_IN_ALL) << endl;
+	    // }
+	
+	    // if ( dominates_in[l2][l] == DOMINATES_IN_ALL && 
+	    // 	 (dominates_in[l][l2] != DOMINATES_IN_ALL || l2 < l)) {
+            if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && 
+	    	 dominates_in[l][l2] != DOMINATES_IN_ALL)
+	    	|| (l2 > l && dominates_in[l2][l] == DOMINATES_IN_ALL)) {
+		//cout << " yes" << endl;
                 labels_dominated_in_all.push_back(l);
                 break;
             }
+	    //cout << " no" << endl;
         }
-        // PIET-edit: Here we remove one of the two labels dominating each other in all LTSs.
-//        for (int l2 = 0; l2 < dominates_in.size(); ++l2){
-//            if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && !dominates_in[l][l2] == DOMINATES_IN_ALL)
-//                    || (l2 > l && dominates_in[l2][l] == DOMINATES_IN_ALL)) {
-//                labels_dominated_in_all.push_back(l);
-//                break;
-//            }
-//        }
+
+
         // PIET-edit: If we take proper care, this both dominating each other cannot ever happen.
 //        for (int l2 = 0; l2 < dominates_in.size(); ++l2) {
 //            if (l != l2 && dominates_in[l][l2] == DOMINATES_IN_ALL && dominates_in[l2][l] == DOMINATES_IN_ALL) {
@@ -450,4 +466,91 @@ EquivalenceRelation * LabelRelation::get_equivalent_labels_relation(const LabelM
     }
 
 return new EquivalenceRelation(rel.size(), rel);
+}
+
+
+
+
+
+
+/* Returns true if we succeeded in propagating the effects of pruning a transition in lts i. */
+bool LabelRelation::propagate_transition_pruning(int lts_id, 
+						 const vector<LabelledTransitionSystem *> & ltss, 
+						 const vector<SimulationRelation *> & simulations, 
+						 int src, int l1, int target){
+    LabelledTransitionSystem * lts = ltss[lts_id];
+    const SimulationRelation * sim = simulations[lts_id];
+    vector<int> labels_not_dominated_anymore; 
+    vector<bool> in_labels_not_dominated_anymore(num_labels, false);
+    bool still_simulates_irrelevant = !simulates_irrelevant[l1][lts_id];
+
+    in_labels_not_dominated_anymore[l1] = true;
+    bool propagation_failed = 
+	lts->applyPostSrc(src, [&](const LTSTransition & tr){
+	    int l2 = tr.label;
+	    if(tr.target == target && tr.label == l1) {
+		return false; //Continue
+	    }
+	    
+	    if(l1 == tr.label && sim->simulates(tr.target, tr.src)){
+		still_simulates_irrelevant = true;
+	    }
+	    
+	    if(!in_labels_not_dominated_anymore[l2] && 
+	       simulates(l1, l2, lts_id) && sim->simulates(target, tr.target)){
+		bool found = lts->applyPostSrc(src, [&](const LTSTransition & tr2){
+			return tr2.label == l1 && tr2.target != target &&
+			sim->simulates(tr2.target, tr.target);
+		    });
+		if(!found){
+		    if (dominates_in[l1][l2] == lts_id || dominates_in[l1][l2] == DOMINATES_IN_NONE ||
+			dominates_in[l1][l2] == DOMINATES_IN_ALL) {
+			cerr << "Assertion error: label not dominated anymore was not dominated previously or it was dominated in all (which should never happen at this point)" << endl;
+			cout << "ASD l1: " << l1 << " l2:" << l2 << " " << dominates_in[l1][l2] << endl;
+
+			exit(-1); 
+		    }
+		    int affected_lts = dominates_in[l1][l2]; 
+		    if(!simulations[affected_lts]->
+		       propagate_label_domination(lts_id, ltss[affected_lts], *this, l1, l2)){
+			return true; //The propagation failed, break
+		    }
+		    labels_not_dominated_anymore.push_back(l2);
+		    in_labels_not_dominated_anymore[l2] = true;
+		}
+	    }
+	    return false; //Propagation suceeded so far, continue
+	});
+
+    if(propagation_failed) return false;
+
+    if(!still_simulates_irrelevant) {
+	for (int l2 : lts->get_irrelevant_labels()){
+	    if(simulates(l1, l2, lts_id)){
+		if (dominates_in[l1][l2] == lts_id || dominates_in[l1][l2] == DOMINATES_IN_NONE ||
+		    dominates_in[l1][l2] == DOMINATES_IN_ALL) {
+		    cerr << "Assertion error2: label not dominated anymore was not dominated previously or it was dominated in all (which should never happen at this point)" << endl;
+		    cout << "ASD l1: " << l1 << " l2:" << l2 << " xxx: " << dominates_in[l1][l2] << endl;
+
+		    exit(-1); 
+		}
+	    
+		int affected_lts = dominates_in[l1][l2]; 
+		if(!simulations[affected_lts]->
+		   propagate_label_domination(lts_id, ltss[affected_lts], *this, l1, l2)){
+		    return false; //The propagation failed
+		}
+		labels_not_dominated_anymore.push_back(l2);
+		in_labels_not_dominated_anymore[l2] = true;
+	    }
+	}
+    }
+
+    for (auto l2 : labels_not_dominated_anymore){
+	    dominates_in[l1][l2] = DOMINATES_IN_NONE;
+    }
+
+    lts->kill_transition (src, l1, target);
+
+    return true;
 }

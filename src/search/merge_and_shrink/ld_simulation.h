@@ -86,7 +86,8 @@ protected:
             bool incremental_step = false);
 
     int prune_subsumed_transitions(const LabelMap & labelMap,
-            LabelRelation & label_dominance);
+				   LabelRelation & label_dominance, 
+				   const std::vector<LabelledTransitionSystem *> & ltss);
 
 
     void remove_dead_labels(std::vector<Abstraction *> & abstractions);

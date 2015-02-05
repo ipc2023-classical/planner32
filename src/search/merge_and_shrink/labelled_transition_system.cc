@@ -42,5 +42,9 @@ LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs, const La
 
 }
 
-
- 
+void LabelledTransitionSystem::kill_transition(int src, int label, int target) {
+    LTSTransition t(src, target, label);
+    kill_from_vector(t, transitions);
+    kill_from_vector(t, transitions_src[src]);
+    kill_from_vector(t, transitions_label[label]);
+}

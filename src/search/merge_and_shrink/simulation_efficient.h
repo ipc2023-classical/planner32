@@ -244,6 +244,13 @@ class SimulationRelationEfficient : public SimulationRelation {
 	return false;
     }
 
+
+    virtual bool propagate_label_domination(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
+					    const LabelRelation & /*label_dominance*/, 
+					    int /*l*/, int /*l2*/) const{
+	return false;
+    }
+
 };
 
 #endif
