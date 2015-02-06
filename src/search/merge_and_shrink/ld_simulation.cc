@@ -705,7 +705,7 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
         if(lts >= 0){
             // the index of the LTS and its corresponding abstraction should always be the same -- be careful about
             // this in the other code!
-            num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(lts, ltss, simulations, label_dominance, labelMap, l);
+            num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(lts, ltss, simulations, label_dominance, labelMap, labelMap.get_old_id(l));
         }
     }
     //c) prune transitions dominated by other transitions
