@@ -476,19 +476,19 @@ return new EquivalenceRelation(rel.size(), rel);
 /* Returns true if we succeeded in propagating the effects of pruning a transition in lts i. */
 bool LabelRelation::propagate_transition_pruning(int lts_id, 
 						 const vector<LabelledTransitionSystem *> & ltss, 
-						 const vector<SimulationRelation *> & simulations, 
+						 const vector<SimulationRelation *> & simulations,
 						 int src, int l1, int target){
     LabelledTransitionSystem * lts = ltss[lts_id];
-    const SimulationRelation * sim = simulations[lts_id];
+    const SimulationRelation * sim = simulations[lts_id]; 
+
     vector<int> labels_not_dominated_anymore; 
     vector<bool> in_labels_not_dominated_anymore(num_labels, false);
     bool still_simulates_irrelevant = !simulates_irrelevant[l1][lts_id];
-
     in_labels_not_dominated_anymore[l1] = true;
     bool propagation_failed = 
 	lts->applyPostSrc(src, [&](const LTSTransition & tr){
 	    int l2 = tr.label;
-	    if(tr.target == target && tr.label == l1) {
+		if(tr.target == target && tr.label == l1) {
 		return false; //Continue
 	    }
 	    
