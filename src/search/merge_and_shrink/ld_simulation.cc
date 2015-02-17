@@ -455,7 +455,8 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 
     if (apply_subsumed_transitions_pruning) {
 	Timer t;
-        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance, ltss_simple/*TODO: Hack lts_efficient will not work ever */);
+	int lts_id = incremental_step ? simulations.size() -1 : -1;
+        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance, ltss_simple, lts_id/*TODO: Hack lts_efficient will not work ever */);
         //if(num_pruned_trs){
         std::cout << num_pruned_trs << " transitions in the LTSs were pruned. " << t() << std::endl;
         //_labels->prune_irrelevant_labels();
@@ -680,9 +681,14 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 //     exit(0);
 // }
 
+
+// If lts_id = -1 (default), then prunes in all ltss. If lts_id > 0,
+// prunes transitions dominated in all in all LTS, but other
+// transitions are only checked for lts_id
 int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
 					     LabelRelation & label_dominance, 
-					     const vector<LabelledTransitionSystem *> & ltss){
+					     const vector<LabelledTransitionSystem *> & ltss, 
+					     int lts_id){ 
     /*cout << "number of transitions before pruning:" << endl;
     for (auto abs : abstractions) {
         abs->statistics(false);
@@ -694,15 +700,16 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
     vector <int> labels_id;
     label_dominance.get_labels_dominated_in_all(labels_id);
     for (auto abs : abstractions){
-        for (int l : labels_id){
-            num_pruned_transitions += abs->prune_transitions_dominated_label_all(labelMap.get_old_id(l));
+	for (int l : labels_id){
+	    num_pruned_transitions += abs->prune_transitions_dominated_label_all(labelMap.get_old_id(l));
 	    label_dominance.kill_label(l);
 	}
     }
+   
     //b) prune transitions dominated by noop in a transition system
     for (int l = 0; l < label_dominance.get_num_labels(); l++){
         int lts = label_dominance.get_dominated_by_noop_in(l);
-        if(lts >= 0){
+        if(lts >= 0 && (lts == lts_id || lts_id == -1)){
             // the index of the LTS and its corresponding abstraction should always be the same -- be careful about
             // this in the other code!
             num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(lts, ltss, simulations, label_dominance, labelMap, labelMap.get_old_id(l));
@@ -710,6 +717,7 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
     }
     //c) prune transitions dominated by other transitions
     for (int lts = 0; lts < abstractions.size(); lts++) {
+	if(lts_id != -1 && lts != lts_id) continue; 
         Abstraction* abs = abstractions[lts];
         const auto & is_rel_label = abs->get_relevant_labels();
         //l : Iterate over relevant labels
@@ -744,10 +752,7 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
             }
         }
     }
-    /*cout << "number of transitions after pruning:" << endl;
-    for (auto abs : abstractions) {
-        abs->statistics(false);
-    }*/
+
     remove_dead_labels(abstractions);
 
     return num_pruned_transitions;

@@ -85,9 +85,13 @@ protected:
             LabelRelation & label_dominance,
             bool incremental_step = false);
 
+    // If lts_id = -1 (default), then prunes in all ltss. If lts_id > 0,
+    // prunes transitions dominated in all in all LTS, but other
+    // transitions are only checked for lts_id
     int prune_subsumed_transitions(const LabelMap & labelMap,
 				   LabelRelation & label_dominance, 
-				   const std::vector<LabelledTransitionSystem *> & ltss);
+				   const std::vector<LabelledTransitionSystem *> & ltss, 
+				   int lts_id);
 
 
     void remove_dead_labels(std::vector<Abstraction *> & abstractions);
