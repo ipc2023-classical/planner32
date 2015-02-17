@@ -469,11 +469,57 @@ return new EquivalenceRelation(rel.size(), rel);
 }
 
 
+/* Returns true if we succeeded in propagating the effects of pruning a transition in lts i. */
+bool LabelRelation::propagate_transition_pruning(int lts_id, 
+						 const vector<LabelledTransitionSystem *> & ltss, 
+						 const vector<SimulationRelation *> & simulations,
+						 int src, int l1, int target){
+    LabelledTransitionSystem * lts = ltss[lts_id];
+    const SimulationRelation * sim = simulations[lts_id]; 
 
+    vector<bool> Tlbool (lts->size(), false), Tlpbool(lts->size(), false);
+    vector<int> Tl, Tlp;
 
+    bool still_simulates_irrelevant = !simulates_irrelevant[l1][lts_id];
+
+    //For each transition from src, check if anything has changed
+    lts->applyPostSrc(src, [&](const LTSTransition & tr){
+	    if (l1 == tr.label && tr.target != target) { //Same label
+		if(!still_simulates_irrelevant && sim->simulates(tr.target, tr.src)){
+		    //There is another transition with the same label which simulates noop
+		    still_simulates_irrelevant = true;
+		}
+		if(!Tlbool[tr.target]){
+		    Tl.push_back(tr.target);
+		    Tlbool[tr.target] = true;
+		}
+	    }else if(simulates(l1, tr.label, lts_id) && sim->simulates(target, tr.target)){	   
+
+		if(!Tlpbool[tr.target]){
+		    Tlp.push_back(tr.target);
+		    Tlpbool[tr.target] = true;
+		}
+	    }
+	    return false;
+	});
+    if(!still_simulates_irrelevant) return true;
+    for(int t : Tlp){
+	if (!Tlbool[t] && 
+	    find_if(begin(Tl), end(Tl), [&] (int t2) {
+		    return sim->simulates(t2, t);}) == end(Tl)) {
+	    return false;
+	}
+    }
+
+    //TODO: This should be moved somewhere else, but it is convinient to place it here. 
+    lts->kill_transition (src, l1, target);
+
+    return true;
+}
 
 
 /* Returns true if we succeeded in propagating the effects of pruning a transition in lts i. */
+/* Old version that prunes slighty more but it is too innefficient.
 bool LabelRelation::propagate_transition_pruning(int lts_id, 
 						 const vector<LabelledTransitionSystem *> & ltss, 
 						 const vector<SimulationRelation *> & simulations,
@@ -502,8 +548,8 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 			return tr2.label == l1 && tr2.target != target &&
 			sim->simulates(tr2.target, tr.target);
 		    });
-		return !found;
-		/*if(!found){
+
+		if(!found){
 		    if (dominates_in[l1][l2] == lts_id || dominates_in[l1][l2] == DOMINATES_IN_NONE ||
 			dominates_in[l1][l2] == DOMINATES_IN_ALL) {
 			cerr << "Assertion error: label not dominated anymore was not dominated previously or it was dominated in all (which should never happen at this point)" << endl;
@@ -518,7 +564,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 		    }
 		    labels_not_dominated_anymore.push_back(l2);
 		    in_labels_not_dominated_anymore[l2] = true;
-		    }*/
+		    }
 	    }
 	    return false; //Propagation suceeded so far, continue
 	});
@@ -555,3 +601,4 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 
     return true;
 }
+*/
