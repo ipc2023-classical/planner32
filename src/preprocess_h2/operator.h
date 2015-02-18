@@ -53,6 +53,9 @@ public:
   PrePost(Variable *v, vector<EffCond> ecs, int pr, int po) : var(v), pre(pr),
       post(po), effect_conds(ecs) {is_conditional_effect = true; }
 
+    bool is_conditional () const{
+	return is_conditional_effect;
+    }
 
     inline void remove_unreachable_facts(){
       if(pre != -1)
@@ -95,6 +98,12 @@ public:
     void generate_cpp_input(ofstream &outfile) const;
     int get_cost() const {return cost; }
     string get_name() const {return name; }
+    bool has_conditional_effects() const {
+	for(int i = 0; i < pre_post.size(); i++)
+	    if(pre_post[i].is_conditional()) return true;
+	
+	return false;
+    }
     inline void set_spurious(){
       spurious = true;
     }

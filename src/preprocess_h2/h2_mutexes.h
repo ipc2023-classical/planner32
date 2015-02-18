@@ -154,7 +154,7 @@ extern void compute_h2_mutexes(const vector <Variable *> &variables,
 			       vector<MutexGroup> & mutexes, 
 			       State & initial_state,
 			       const vector<pair<Variable *, int> > & goal, 
-			       int limit_seconds);
+			       int limit_seconds, bool conditional_effects);
 
 
 

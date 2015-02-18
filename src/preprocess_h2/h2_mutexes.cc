@@ -44,7 +44,7 @@ void compute_h2_mutexes(const vector <Variable *> &variables,
 			vector<MutexGroup> & mutexes,
 			State & initial_state,
 			const vector<pair<Variable *, int> > & goals,
-			int limit_seconds){
+			int limit_seconds, bool conditional_effects){
 
   H2Mutexes h2 (limit_seconds);
 
@@ -66,6 +66,7 @@ void compute_h2_mutexes(const vector <Variable *> &variables,
       } else {
 	update_progression = false;
       }
+      if(regression && conditional_effects) continue;
       cout << "iteration for mutex detection and operator pruning" << endl;
       int mutexes_detected = h2.compute(variables, operators, axioms, initial_state, goals, mutexes, regression);
       if (mutexes_detected == -1) {
@@ -641,8 +642,11 @@ void Op_h2::instantiate_operator_backward(const Operator & op,
     if (pre_post[j].pre != -1) {
       push_add(p_index, pre_post[j].var, pre_post[j].pre);
     }
+   // Revise this part. Currently backward h2 is deactivated with conditional effects
+   if (!pre_post[j].is_conditional_effect) {  // naive support for conditional effects
     push_pre(p_index, pre_post[j].var, pre_post[j].post);
     prepost_var[pre_post[j].var->get_level()] = true;
+   }
 
     if (pre_post[j].is_conditional_effect) {  // naive support for conditional effects
         vector<Operator::EffCond> effect_conds = pre_post[j].effect_conds;
@@ -713,15 +717,37 @@ void Op_h2::instantiate_operator_backward(const Operator & op,
 
   // potential preconditions from the disambiguation
   const vector<pair<int,int> > &potential = op.get_potential_preconditions();
+  //For each variable, the set of potential deletes to add the set of
+  //mutexes with ALL potential preconditions as deletes.
+  map<int, set<pair<int, int> > > potential_deletes; 
   for (unsigned j = 0; j < potential.size(); j++) {
+      int pvar = potential[j].first;
+      int pval = potential[j].second;
     // add the precondition as an add
-    add.push_back(p_index[potential[j].first][potential[j].second]);
-    // add the mutexes as deletes
-    for (unsigned k = 0; k < p_index[potential[j].first].size(); k++)
-      if (k != potential[j].second)
-	del.push_back(p_index[potential[j].first][potential[j].second]);
-    const set<pair<int, int> > potential_mutexes = inconsistent_facts[potential[j].first][potential[j].second];
-    for (set<pair<int, int> >::iterator it = potential_mutexes.begin(); it != potential_mutexes.end(); ++it)
-      del.push_back(p_index[it->first][it->second]);
+      add.push_back(p_index[pvar][pval]);
+
+      //Update the potential deletes
+      set<pair<int, int> > potential_deletes_aux = 
+	  inconsistent_facts[pvar][pval]; //copy
+      for (unsigned k = 0; k < p_index[pvar].size(); k++)
+	 if (k != pval)
+	     potential_deletes_aux.insert(potential[j]);
+
+      if(potential_deletes.count(pvar)){
+	  set<pair<int, int> > intersect;
+	  set_intersection(potential_deletes[pvar].begin(),potential_deletes[pvar].end(),
+			   potential_deletes_aux.begin(),potential_deletes_aux.end(),
+			   std::inserter(intersect,intersect.begin()));
+	  potential_deletes[pvar].swap(intersect);
+      } else {
+	  potential_deletes[pvar].swap(potential_deletes_aux);
+      }
+  }
+  for (map<int, set<pair<int, int> > >::iterator it = potential_deletes.begin();
+       it != potential_deletes.end(); ++it){
+      for (set<pair<int, int> >::iterator it2 = it->second.begin();
+	   it2 != it->second.end(); ++it2){
+	  del.push_back(p_index[it2->first][it2->second]);
+      }
   }
 }
