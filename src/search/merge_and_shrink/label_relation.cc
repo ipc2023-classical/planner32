@@ -484,7 +484,8 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 
     //For each transition from src, check if anything has changed
     lts->applyPostSrc(src, [&](const LTSTransition & tr){
-	    if (l1 == tr.label && tr.target != target) { //Same label
+	    if (l1 == tr.label) { //Same label
+		if(tr.target == target) return false;
 		if(!still_simulates_irrelevant && sim->simulates(tr.target, tr.src)){
 		    //There is another transition with the same label which simulates noop
 		    still_simulates_irrelevant = true;
@@ -493,8 +494,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 		    Tl.push_back(tr.target);
 		    Tlbool[tr.target] = true;
 		}
-	    }else if(simulates(l1, tr.label, lts_id) && sim->simulates(target, tr.target)){	   
-
+	    }else if(simulates(l1, tr.label, lts_id) && sim->simulates(target, tr.target)){   
 		if(!Tlpbool[tr.target]){
 		    Tlp.push_back(tr.target);
 		    Tlpbool[tr.target] = true;
@@ -502,11 +502,15 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 	    }
 	    return false;
 	});
-    if(!still_simulates_irrelevant) return true;
+    if(!still_simulates_irrelevant) {
+        cout << " Not pruning because still simulates irrelevant " << endl;
+	return false;
+    }
     for(int t : Tlp){
 	if (!Tlbool[t] && 
 	    find_if(begin(Tl), end(Tl), [&] (int t2) {
 		    return sim->simulates(t2, t);}) == end(Tl)) {
+	    cout << " Not pruning because label dominance " << endl;
 	    return false;
 	}
     }
@@ -516,6 +520,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 
     return true;
 }
+//*/
 
 
 /* Returns true if we succeeded in propagating the effects of pruning a transition in lts i. */
@@ -601,4 +606,4 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 
     return true;
 }
-*/
+//*/
