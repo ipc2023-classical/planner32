@@ -36,7 +36,10 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          use_bisimulation(opts.get<bool>("use_bisimulation")),
 		                          intermediate_simulations(opts.get<bool>("intermediate_simulations")),
 		                          incremental_simulations(opts.get<bool>("incremental_simulations")),
-		                          labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
+		                          compute_final_abstraction(opts.get<bool>("compute_final_abstraction")),
+    shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
+    shrink_after_merge(opts.get<bool>("shrink_after_merge")) , 
+    labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
     /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
@@ -81,12 +84,15 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
     		                        use_bisimulation(opts.get<bool>("use_bisimulation")),
     		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")),
-                                    incremental_simulations(opts.get<bool>("incremental_simulations")) {
+		incremental_simulations(opts.get<bool>("incremental_simulations")), 
+    compute_final_abstraction(opts.get<bool>("compute_final_abstraction")), 
+    shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
+		shrink_after_merge(opts.get<bool>("shrink_after_merge")){
     /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
-	}*/
-    if (incremental_simulations && !intermediate_simulations) {
+	}*/ 
+   if (incremental_simulations && !intermediate_simulations) {
         cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
         exit(1);
     }
@@ -111,12 +117,10 @@ LDSimulation::LDSimulation(const Options &opts) :
         exit(1);
     }*/
     Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
-
     if (!prune_dead_operators && Abstraction::store_original_operators) {
         cerr << "Error: Why do you want to store operators if you don't prune them?" << endl;
         exit(1);
     }
-
 }
 
 LDSimulation::~LDSimulation(){
@@ -144,9 +148,22 @@ void LDSimulation::build_factored_systems() {
 }
 
 void LDSimulation::remove_dead_labels(vector<Abstraction *> & abstractions){
+    vector<int> new_dead_labels; 
     dead_labels.resize(labels->get_size(), false);
     for (auto abs : abstractions) {
-	if(abs) abs->remove_dead_labels(dead_labels, abstractions);
+	if(abs) abs->get_dead_labels(dead_labels, new_dead_labels);
+    }
+    
+    if(new_dead_labels.size() > 0){
+	for(auto l : new_dead_labels){
+	    for (auto abs : abstractions) {
+		if(abs) abs->prune_transitions_dominated_label_all(l);
+	    }
+	}
+
+	for (auto abs : abstractions) {
+	    if(abs) abs->reset_lts();
+	}
     }
 }
 
@@ -172,6 +189,137 @@ int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractio
     return removed_abstractions;			    
 }
 
+// Just main loop copied from merge_and_shrink heuristic 
+Abstraction * LDSimulation::complete_heuristic() const {
+    cout << "Complete heuristic Initialized with " << abstractions.size() << " abstractions" << endl;
+    //Insert atomic abstractions in the first g_variable_domain
+    //variables, filling with nullptr. Then composite abstractions
+    vector<Abstraction *> all_abstractions(g_variable_domain.size(), nullptr);
+    int index_atomic = 0;
+    for (auto a : abstractions) {
+	if (a->get_varset().size() == 1) {
+	    all_abstractions[index_atomic++] = a;
+	}else{
+	    all_abstractions.push_back(a);
+	}
+    }
+    merge_strategy->set_remaining_merges(abstractions.size() - 1);
+    while (!merge_strategy->done()) {
+        pair<int, int> next_systems = merge_strategy->get_next(all_abstractions);
+        int system_one = next_systems.first;
+        int system_two = next_systems.second;
+	cout << " NEXT SYSTEMS: " << system_one <<  " " << system_two << endl;
+        assert(system_one != system_two);
+
+
+        Abstraction *abstraction = all_abstractions[system_one];
+        assert(abstraction);
+        Abstraction *other_abstraction = all_abstractions[system_two];
+        assert(other_abstraction);
+
+
+	if(!shrink_after_merge){
+	    // Note: we do not reduce labels several times for the same abstraction
+	    bool reduced_labels = false;
+	    if (shrink_strategy->reduce_labels_before_shrinking()) {
+		labels->reduce(make_pair(system_one, system_two), all_abstractions);
+		reduced_labels = true;
+		abstraction->normalize();
+		other_abstraction->normalize();
+		abstraction->statistics(use_expensive_statistics);
+		other_abstraction->statistics(use_expensive_statistics);
+	    }
+
+	    // distances need to be computed before shrinking
+	    abstraction->compute_distances();
+	    other_abstraction->compute_distances();
+	    if (!abstraction->is_solvable())
+		return abstraction;
+	    if (!other_abstraction->is_solvable())
+		return other_abstraction;
+
+	    shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
+	    // TODO: Make shrink_before_merge return a pair of bools
+	    //       that tells us whether they have actually changed,
+	    //       and use that to decide whether to dump statistics?
+	    // (The old code would print statistics on abstraction iff it was
+	    // shrunk. This is not so easy any more since this method is not
+	    // in control, and the shrink strategy doesn't know whether we want
+	    // expensive statistics. As a temporary aid, we just print the
+	    // statistics always now, whether or not we shrunk.)
+	    abstraction->statistics(use_expensive_statistics);
+	    other_abstraction->statistics(use_expensive_statistics);
+
+	    if (!reduced_labels) {
+		labels->reduce(make_pair(system_one, system_two), all_abstractions);
+	    }
+	    abstraction->normalize();
+	    other_abstraction->normalize();
+	    if (!reduced_labels) {
+		// only print statistics if we just possibly reduced labels
+		other_abstraction->statistics(use_expensive_statistics);
+		abstraction->statistics(use_expensive_statistics);
+	    }
+	}else{
+	    abstraction->normalize();
+	    other_abstraction->normalize();
+	}
+
+        Abstraction *new_abstraction = new CompositeAbstraction(labels.get(),
+                                                                abstraction,
+                                                                other_abstraction);
+
+        abstraction->release_memory();
+        other_abstraction->release_memory();
+
+        new_abstraction->statistics(use_expensive_statistics);
+
+        all_abstractions[system_one] = 0;
+        all_abstractions[system_two] = 0;
+        all_abstractions.push_back(new_abstraction);
+
+	/* this can help pruning unreachable/irrelevant states before starting on label reduction
+	 * problem before: label reduction ran out of memory if unreachable/irrelevant states not
+	 * pruned beforehand (at least in some instances)
+	 * possible downside: Too many transitions here
+	 */
+	new_abstraction->compute_distances();
+	if (!new_abstraction->is_solvable())
+	    return new_abstraction;
+
+	if(shrink_after_merge){
+            labels->reduce(make_pair(all_abstractions.size() - 1, 
+				     all_abstractions.size() - 1), all_abstractions);
+	    new_abstraction->normalize();
+	    shrink_strategy->shrink(*new_abstraction, numeric_limits<int>::max(), true);
+	    assert (new_abstraction->is_solvable());
+	}
+    }
+
+    assert(all_abstractions.size() == g_variable_domain.size() * 2 - 1);
+    Abstraction *res_abstraction = 0;
+    for (size_t i = 0; i < all_abstractions.size(); ++i) {
+        if (all_abstractions[i]) {
+            if (res_abstraction) {
+                cerr << "Found more than one remaining abstraction!" << endl;
+                exit_with(EXIT_CRITICAL_ERROR);
+            }
+            res_abstraction = all_abstractions[i];
+            assert(i == all_abstractions.size() - 1);
+        }
+    }
+
+    res_abstraction->compute_distances();
+    if (!res_abstraction->is_solvable())
+        return res_abstraction;
+
+    res_abstraction->statistics(use_expensive_statistics);
+    res_abstraction->release_memory();
+
+    return res_abstraction;
+    
+}
+
 void LDSimulation::build_abstraction() {
     // TODO: We're leaking memory here in various ways. Fix this.
     //       Don't forget that build_atomic_abstractions also
@@ -184,6 +332,7 @@ void LDSimulation::build_abstraction() {
     if (incremental_simulations)
         all_simulations.reserve(g_variable_domain.size() * 2 - 1);
     Abstraction::build_atomic_abstractions(all_abstractions, labels.get());
+
     // compute initial simulations, based on atomic abstractions
 
     unique_ptr<ShrinkStrategy> shrink_strategy;
@@ -323,13 +472,14 @@ void LDSimulation::build_abstraction() {
 	    }else{
 		labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
 	    }
-        }
+	    for(auto a : all_abstractions) if (a) a->normalize(); 
 
-        cout << "Normalize: " << t() << endl;
-        //abstraction->normalize();
-        //other_abstraction->normalize();
-        new_abstraction->normalize();
-
+	}else{	    
+	    cout << "Normalize: " << t() << endl;
+	    //abstraction->normalize();
+	    //other_abstraction->normalize();
+	    new_abstraction->normalize();
+	}
         if (!reduced_labels) {
             // only print statistics if we just possibly reduced labels
             //other_abstraction->statistics(use_expensive_statistics);
@@ -380,9 +530,9 @@ void LDSimulation::build_abstraction() {
 //            abstractions.clear();
 //        }
         if (all_abstractions[i]) {
-            abstractions.push_back(all_abstractions[i]);
             all_abstractions[i]->compute_distances();
             all_abstractions[i]->statistics(use_expensive_statistics);
+            abstractions.push_back(all_abstractions[i]);
             //all_abstractions[i]->release_memory();
         }
     }
@@ -411,11 +561,11 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
         a->compute_distances();
         int lts_size, lts_trs;
         if(efficient_lts){
-            ltss_efficient.push_back(a->get_lts_efficient(labels.get()));
+            ltss_efficient.push_back(a->get_lts_efficient(labelMap));
             lts_size= ltss_efficient.back()->size();
             lts_trs= ltss_efficient.back()->num_transitions();
         }else{
-            ltss_simple.push_back(a->get_lts(labels.get()));
+            ltss_simple.push_back(a->get_lts(labelMap));
             lts_size= ltss_simple.back()->size();
             lts_trs= ltss_simple.back()->num_transitions();
         }
@@ -456,7 +606,9 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
     if (apply_subsumed_transitions_pruning) {
 	Timer t;
 	int lts_id = incremental_step ? simulations.size() -1 : -1;
+
         int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance, ltss_simple, lts_id/*TODO: Hack lts_efficient will not work ever */);
+
         //if(num_pruned_trs){
         std::cout << num_pruned_trs << " transitions in the LTSs were pruned. " << t() << std::endl;
         //_labels->prune_irrelevant_labels();
@@ -689,10 +841,10 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
 					     LabelRelation & label_dominance, 
 					     const vector<LabelledTransitionSystem *> & ltss, 
 					     int lts_id){ 
-    /*cout << "number of transitions before pruning:" << endl;
+    cout << "number of transitions before pruning:" << endl;
     for (auto abs : abstractions) {
         abs->statistics(false);
-    }*/
+    }
     int num_pruned_transitions = 0;
 
     //a) prune transitions of labels that are completely dominated by
@@ -705,16 +857,20 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
 	    label_dominance.kill_label(l);
 	}
     }
-   
+
     //b) prune transitions dominated by noop in a transition system
     for (int l = 0; l < label_dominance.get_num_labels(); l++){
         int lts = label_dominance.get_dominated_by_noop_in(l);
         if(lts >= 0 && (lts == lts_id || lts_id == -1)){
             // the index of the LTS and its corresponding abstraction should always be the same -- be careful about
             // this in the other code!
-            num_pruned_transitions += abstractions[lts]->prune_transitions_dominated_label_noop(lts, ltss, simulations, label_dominance, labelMap, labelMap.get_old_id(l));
+            num_pruned_transitions += abstractions[lts]->
+		prune_transitions_dominated_label_noop(lts, ltss, 
+						       simulations, label_dominance, 
+						       labelMap, labelMap.get_old_id(l));
         }
     }
+
     //c) prune transitions dominated by other transitions
     for (int lts = 0; lts < abstractions.size(); lts++) {
 	if(lts_id != -1 && lts != lts_id) continue; 
@@ -752,7 +908,6 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
             }
         }
     }
-
     remove_dead_labels(abstractions);
 
     return num_pruned_transitions;
@@ -831,6 +986,9 @@ void LDSimulation::initialize() {
         }
         compute_ld_simulation();
     }
+
+
+
     cout << endl;
     cout << "Done initializing simulation heuristic [" << timer << "]"
             << endl;
@@ -932,6 +1090,16 @@ void LDSimulation::initialize() {
 	    }
     }
 
+
+    if(compute_final_abstraction) {
+	final_abstraction = unique_ptr<Abstraction> (complete_heuristic());
+
+	cout << "Done initializing merge and shrink heuristic [" << timer << "]"
+	     << endl;
+    }
+
+
+
     /*for (int i = 0; i < g_operators.size(); i++) {
         if (required_operators[i])
             cout << g_operators[i].get_name() << endl;
@@ -984,10 +1152,14 @@ bool LDSimulation::pruned_state(const State &state) const {
 
 int LDSimulation::get_cost(const State &state) const {
     int cost = 0;
-    for(auto sim : simulations) {
-        int new_cost = sim->get_cost(state);
-        if (new_cost == -1) return -1;
-        cost = max (cost, new_cost);
+    if(final_abstraction) {
+	cost = final_abstraction->get_cost(state);
+    }else{
+	for(auto sim : simulations) {
+	    int new_cost = sim->get_cost(state);
+	    if (new_cost == -1) return -1;
+	    cost = max (cost, new_cost);
+	}
     }
     return cost;
 }
@@ -1166,6 +1338,18 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
             "Store the original operators for each transition in an abstraction",
             "false");
 
+    parser.add_option<bool>("compute_final_abstraction",
+            "Continue the mas process after having computing the simulation relations in order to compute a MaS heuristic",
+            "false");
+
+
+    parser.add_option<bool>("shrink_after_merge",
+                            "If true, performs the shrinking after merge instead of before",
+                            "false");
+
+    parser.add_option<ShrinkStrategy *>("shrink_strategy",
+					"shrink strategy; ", 
+	"shrink_bisimulation");
 }
 
 

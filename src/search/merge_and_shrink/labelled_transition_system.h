@@ -111,6 +111,8 @@ class LabelledTransitionSystem {
     return abs;
   }
 
+  void kill_label(int l);
+
   void kill_transition(int src, int label, int target); 
 
   //For each transition labelled with l, applya a function. If returns true, applies a break

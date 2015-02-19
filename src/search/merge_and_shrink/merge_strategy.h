@@ -19,6 +19,10 @@ public:
     bool done() const {
         return remaining_merges == 0;
     }
+
+    void set_remaining_merges(int rm) {	
+	remaining_merges = rm;
+    }
     // implementations of get_next should decrease remaining_merges by one
     // every time they return a pair of abstractions which are merged next.
     // Alvaro: Merge strategies have now a limit on the size of the

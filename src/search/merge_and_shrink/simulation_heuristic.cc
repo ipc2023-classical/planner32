@@ -241,8 +241,14 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     }
 }
 
-static Plugin<PruneHeuristic> _plugin("simulation", _parse);
 
+static Heuristic *_parse_h(OptionParser &parser) {
+    return static_cast<Heuristic *> (_parse(parser));
+}
+
+
+static Plugin<PruneHeuristic> _plugin("simulation", _parse);
+static Plugin<Heuristic> _plugin_h("simulation", _parse_h);
 
 
 std::ostream & operator<<(std::ostream &os, const PruningDD & pt){

@@ -49,7 +49,6 @@ size_t MergeDFP::get_corrected_index(int index) const {
 pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstractions, 
 				  int limit_abstract_states_merge, int limit_transitions_merge) {
     assert(!done());
-
     vector<Abstraction *> sorted_abstractions;
     vector<int> indices_mapping;
     vector<vector<int> > abstraction_label_ranks;

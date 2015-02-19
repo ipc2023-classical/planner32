@@ -44,10 +44,17 @@ protected:
     const bool incremental_simulations;
 
 
+    /* Parameters for constructing a final abstraction after the simulation */
+    const bool compute_final_abstraction; 
+    ShrinkStrategy *const shrink_strategy;
+    const bool shrink_after_merge;
+
     //TODO: Use unique_ptr here
     std::unique_ptr<Labels> labels;
     std::vector<Abstraction *> abstractions;
     std::vector<SimulationRelation *> simulations;
+    std::unique_ptr<Abstraction> final_abstraction;
+
 
     std::vector<int> useless_vars;
     std::vector<bool> dead_labels;
@@ -98,6 +105,8 @@ protected:
 
     int remove_useless_abstractions(std::vector<Abstraction *> & abstractions, 
 				    std::vector<SimulationRelation *> & simulations) ;
+
+    Abstraction * complete_heuristic() const;
 public:
     LDSimulation(const Options &options);
     LDSimulation(bool unit_cost, const Options &options, OperatorCost cost_type);

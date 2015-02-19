@@ -256,6 +256,7 @@ public:
     
     bool is_own_label(int label_no);
 
+    void reset_lts() ;
 
     // Methods to prune irrelevant transitions Prune all the
     // transitions of a given label (it is completely dominated by
@@ -286,8 +287,8 @@ public:
 
     int estimate_transitions(const Abstraction * other) const;
 
-    void remove_dead_labels(std::vector<bool> & dead_labels, 
-			    std::vector<Abstraction *> & abstractions);
+    void get_dead_labels(std::vector<bool> & dead_labels, 
+			 std::vector<int> & new_dead_labels);
 
     bool check_dead_operators(std::vector<bool> & dead_labels, std::vector<bool> & dead_operators) const;
 

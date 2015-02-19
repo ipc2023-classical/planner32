@@ -48,3 +48,22 @@ void LabelledTransitionSystem::kill_transition(int src, int label, int target) {
     kill_from_vector(t, transitions_src[src]);
     kill_from_vector(t, transitions_label[label]);
 }
+
+
+void LabelledTransitionSystem::kill_label(int l) {
+    std::vector <LTSTransition>().swap(transitions_label[l]);
+
+    transitions.erase(std::remove_if(begin(transitions),
+				     end(transitions),
+				     [&](LTSTransition & t){
+					 return t.label == l;
+				     }), end(transitions));
+    
+    for (auto & trs : transitions_src){
+    	trs.erase(std::remove_if(begin(trs),
+    				 end(trs),
+    				 [&](LTSTransition & t){
+    				     return t.label == l;
+    				 }), end(trs));
+    }
+}

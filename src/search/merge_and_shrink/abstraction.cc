@@ -1525,13 +1525,15 @@ void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars,
 // Methods to prune irrelevant transitions Prune all the
 // transitions of a given label (it is completely dominated by
 // some other label or by noop)
-int Abstraction::prune_transitions_dominated_label_all(int label_no) {
+int Abstraction::prune_transitions_dominated_label_all(int label_no/*, const LabelMap & label_map*/) {
     // PIET-edit: num should only be the number of pruned transitions, i.e., those with the correct label, right?
     //int num = transitions_by_label.size();
     int num = transitions_by_label[label_no].size();
-    vector<AbstractTransition> ().swap(transitions_by_label[label_no]);
-    if (num != 0)
+    if (num > 0){    
+	vector<AbstractTransition> ().swap(transitions_by_label[label_no]);
         clear_distances();
+	 //->kill_label(label_map.get_id(label_no));
+    }
     return num;
 }
 
@@ -1560,7 +1562,6 @@ int Abstraction::prune_transitions_dominated_label(int lts_id,
     if (transitions_by_label[label_no].size() != num)
         clear_distances();
     return num - transitions_by_label[label_no].size();
-
 }
 
 // Prune all the transitions of label_no such that exist a better
@@ -1596,9 +1597,7 @@ prune_transitions_dominated_label_equiv(int lts_id,
 														       simulations, 
 														       t.src, label_id, t.target);
 							     }),
-    transitions_by_label[label_no].end());
-
-    
+					 transitions_by_label[label_no].end());
     } else {
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
             end(transitions_by_label[label_no]),
@@ -1646,7 +1645,6 @@ int Abstraction::prune_transitions_dominated_label_noop(int lts_id,
     int label_id = labelMap.get_id(label_no);
     const SimulationRelation & rel = *(simulations[lts_id]);
     int num = transitions_by_label[label_no].size();
-
 
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
             end(transitions_by_label[label_no]),
@@ -1871,9 +1869,8 @@ int Abstraction::estimate_transitions(const Abstraction * other) const{
 }
 
 
-void Abstraction::remove_dead_labels(vector<bool> & dead_labels, 
-				      vector<Abstraction *> & abstractions) {
-
+void Abstraction::get_dead_labels(vector<bool> & dead_labels, 
+				      vector<int> & new_dead_labels) {
     for (int i = 0; i < labels->get_size(); i++) {
         if (dead_labels[i])
             continue; // corresponding operators must already have been extracted somewhere else
@@ -1881,12 +1878,9 @@ void Abstraction::remove_dead_labels(vector<bool> & dead_labels,
             continue;
         if (relevant_labels[i] && transitions_by_label[i].empty()) {
 	    dead_labels[i] = true;
-	    for (auto abs : abstractions) {
-		if(abs) abs->prune_transitions_dominated_label_all(i);
-	    }
+	    new_dead_labels.push_back(i);
         }
     }
-
 }
 
 
@@ -1912,4 +1906,9 @@ bool Abstraction::check_dead_operators(vector<bool> & dead_labels, vector<bool> 
         }
     }
     return ret;
+}
+
+
+void Abstraction::reset_lts() {
+    lts.reset();
 }

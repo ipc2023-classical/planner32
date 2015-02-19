@@ -85,8 +85,57 @@ void LabelRelation::prune_operators(){
     }
 }
 
+
+// void check_transitivity() {
+//     //Check transitivity
+//     for (int l = 0; l < dominates_in.size(); ++l){
+// 	for (int l2 = 0; l2 < dominates_in.size(); ++l2){
+// 	    if(dominates_in[l2][l] == DOMINATES_IN_ALL) {
+// 		for (int l3 = 0; l3 < dominates_in.size(); ++l3){
+// 		    if (dominates_in[l][l3] == DOMINATES_IN_ALL && 
+// 			dominates_in[l2][l3] != DOMINATES_IN_ALL ){
+// 			cerr << "Assertion error: label dominance in all is not transitive" << endl;
+// 			exit(0);
+// 		    }
+// 		    if (dominates_in[l][l3] != DOMINATES_IN_NONE && 
+// 			dominates_in[l2][l3] != DOMINATES_IN_ALL && 
+// 			dominates_in[l2][l3] != dominates_in[l][l3]){
+// 			cerr << "Assertion error: label dominance in all is not transitive 2" << endl;
+// 			exit(0);
+// 		    }
+// 		}		
+// 	    }
+// 	}
+	
+//     }
+
+//     for (int l = 0; l < dominates_in.size(); ++l){
+// 	if(dominated_by_noop_in[l] == DOMINATES_IN_ALL) {
+// 	    for (int l3 = 0; l3 < dominates_in.size(); ++l3){
+// 		if (dominates_in[l][l3] == DOMINATES_IN_ALL && 
+// 		    dominated_by_noop_in[l3] != DOMINATES_IN_ALL ){
+// 		    cerr << "Assertion error: label dominance in all is not transitive for noops" << endl;
+// 		    exit(0);
+// 		}
+// 		if (dominates_in[l][l3] != DOMINATES_IN_NONE && 
+// 		    dominated_by_noop_in[l3] != DOMINATES_IN_ALL && 
+// 		    dominated_by_noop_in[l3] != dominates_in[l][l3]){
+// 		    cerr << "Assertion error: label dominance in all is not transitive for noops" << endl;
+// 		    exit(0);
+// 		}
+// 	    }		
+// 	}
+//     }
+    
+//     cerr << "Transitivity checked" << endl;
+// }
+
 void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_dominated_in_all){
     //cout << "We have " << num_labels << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
+
+
+
+
     for (int l = 0; l < dominates_in.size(); ++l){
 	//cout << "Check: " << l << endl;
         //labels->get_label_by_index(l)->dump();
@@ -118,7 +167,7 @@ void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_domina
             if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && 
 	    	 dominates_in[l][l2] != DOMINATES_IN_ALL)
 	    	|| (l2 > l && dominates_in[l2][l] == DOMINATES_IN_ALL)) {
-		//cout << " yes" << endl;
+		//cout << " yes" << endl;			       
                 labels_dominated_in_all.push_back(l);
                 break;
             }
@@ -503,21 +552,18 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 	    return false;
 	});
     if(!still_simulates_irrelevant) {
-        cout << " Not pruning because still simulates irrelevant " << endl;
 	return false;
     }
     for(int t : Tlp){
 	if (!Tlbool[t] && 
 	    find_if(begin(Tl), end(Tl), [&] (int t2) {
 		    return sim->simulates(t2, t);}) == end(Tl)) {
-	    cout << " Not pruning because label dominance " << endl;
 	    return false;
 	}
     }
 
     //TODO: This should be moved somewhere else, but it is convinient to place it here. 
     lts->kill_transition (src, l1, target);
-
     return true;
 }
 //*/
