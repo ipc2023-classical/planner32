@@ -28,6 +28,7 @@ protected:
     const bool apply_subsumed_transitions_pruning;
     const bool apply_label_dominance_reduction;
     const bool prune_dead_operators;
+    const bool forbid_lr;
 
     const bool efficient_simulation;
     const bool efficient_lts;

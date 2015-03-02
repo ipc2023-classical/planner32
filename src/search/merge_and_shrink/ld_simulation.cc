@@ -25,7 +25,8 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
 		                          apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
 		                          prune_dead_operators(opts.get<bool>("prune_dead_operators")),
-		                          efficient_simulation(opts.get<bool>("efficient_simulation")),
+					  forbid_lr(opts.get<bool>("forbid_lr")),	                          
+                                          efficient_simulation(opts.get<bool>("efficient_simulation")),
 		                          efficient_lts(opts.get<bool>("efficient_lts")),
 		                          use_expensive_statistics(opts.get<bool>("expensive_statistics")),
 		                          limit_absstates_merge(opts.get<int>("limit_merge")),
@@ -74,7 +75,8 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
                                     apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
                                     prune_dead_operators(opts.get<bool>("prune_dead_operators")),
-    		                        efficient_simulation(opts.get<bool>("efficient_simulation")),
+    		                     forbid_lr(opts.get<bool>("forbid_lr")),	                          
+		                        efficient_simulation(opts.get<bool>("efficient_simulation")),
     		                        efficient_lts(opts.get<bool>("efficient_lts")),
     		                        use_expensive_statistics(opts.get<bool>("expensive_statistics")),
     		                        limit_absstates_merge(opts.get<int>("limit_merge")),
@@ -204,6 +206,10 @@ Abstraction * LDSimulation::complete_heuristic() const {
 	}
     }
     merge_strategy->set_remaining_merges(abstractions.size() - 1);
+    if(abstractions.size() > 1){
+	labels->reduce(make_pair(0, 1), all_abstractions); 
+// With the reduction methods we use here, this should just apply label reduction on all abstractions
+    }
     while (!merge_strategy->done()) {
         pair<int, int> next_systems = merge_strategy->get_next(all_abstractions);
         int system_one = next_systems.first;
@@ -341,15 +347,17 @@ void LDSimulation::build_abstraction() {
     }
 
     if (intermediate_simulations) {
-        cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
-        labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
-        cout << "Normalize: " << t() << endl;
-        for (auto abs : all_abstractions) {
-	    if(abs){
-		abs->normalize();
-		abs->statistics(use_expensive_statistics);
+	if(!forbid_lr){
+	    cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
+	    labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    cout << "Normalize: " << t() << endl;
+	    for (auto abs : all_abstractions) {
+		if(abs){
+		    abs->normalize();
+		    abs->statistics(use_expensive_statistics);
+		}
 	    }
-        }
+	}
         cout << "Simulation-shrinking atomic abstractions..." << endl;
         for (size_t i = 0; i < all_abstractions.size(); ++i) {
             if (all_abstractions[i]) {
@@ -364,15 +372,17 @@ void LDSimulation::build_abstraction() {
             }
         }
     } else if (use_bisimulation) {
-        cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
-        labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
-        cout << "Normalize: " << t() << endl;
-        for (auto abs : all_abstractions) {
-	    if(abs){
-		abs->normalize();
-		abs->statistics(use_expensive_statistics);
+	if(!forbid_lr){
+	    cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
+	    labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    cout << "Normalize: " << t() << endl;
+	    for (auto abs : all_abstractions) {
+		if(abs){
+		    abs->normalize();
+		    abs->statistics(use_expensive_statistics);
+		}
 	    }
-        }
+	}
         // do not use bisimulation shrinking on atomic abstractions if simulations are used
         cout << "Bisimulation-shrinking atomic abstractions..." << endl;
         for (size_t i = 0; i < all_abstractions.size(); ++i) {
@@ -427,14 +437,16 @@ void LDSimulation::build_abstraction() {
         bool reduced_labels = false;
         if (shrink_strategy && shrink_strategy->reduce_labels_before_shrinking()) {
 	    remove_dead_labels(all_abstractions);
-            cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
-            //labels->reduce(make_pair(system_one, system_two), all_abstractions);
-	    if(remaining_abstractions == 1){
-		labels->reduce_to_cost();
-	    }else{
-		labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    if(!forbid_lr){
+		cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
+		//labels->reduce(make_pair(system_one, system_two), all_abstractions);
+		if(remaining_abstractions == 1){
+		    labels->reduce_to_cost();
+		}else{
+		    labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+		}
+		reduced_labels = true;
 	    }
-            reduced_labels = true;
             cout << "Normalize: " << t() << endl;
             /*abstraction->normalize();
             other_abstraction->normalize();
@@ -466,14 +478,16 @@ void LDSimulation::build_abstraction() {
 
         if ((shrink_strategy || intermediate_simulations || apply_subsumed_transitions_pruning) && !reduced_labels) {
 	    remove_dead_labels(all_abstractions);
-            //labels->reduce(make_pair(system_one, system_two), all_abstractions);
-	    if(remaining_abstractions == 1){
-		labels->reduce_to_cost();
-	    }else{
-		labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    if(!forbid_lr){	
+		//labels->reduce(make_pair(system_one, system_two), all_abstractions);
+		if(remaining_abstractions == 1){
+		    labels->reduce_to_cost();
+		}else{
+		    labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+		}
 	    }
 	    for(auto a : all_abstractions) if (a) a->normalize(); 
-
+	    
 	}else{	    
 	    cout << "Normalize: " << t() << endl;
 	    //abstraction->normalize();
@@ -617,6 +631,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
     if (apply_label_dominance_reduction) {
 	set<int> dangerous_LTSs;
 	//labels->reduce(make_pair(0, 1), abstractions);
+
 	labels->reduce(labelMap, label_dominance, dangerous_LTSs);
 	cout << "Labels reduced. Dangerous for: " << dangerous_LTSs.size() << endl;
 	//for (auto v : dangerous_LTSs) cout << v << " ";
@@ -1332,6 +1347,11 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 
     parser.add_option<bool>("prune_dead_operators",
             "Prune all operators that are dead in some abstraction. Note: not yet implemented; so far, only the number of dead operators is returned!",
+            "false");
+
+
+    parser.add_option<bool>("forbid_lr",
+            "Disable lr from the first part",
             "false");
 
     parser.add_option<bool>("store_original_operators",
