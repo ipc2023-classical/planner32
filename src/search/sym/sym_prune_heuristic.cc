@@ -32,7 +32,6 @@ void SymPruneHeuristic::initialize(SymManager * mgr) {
       mgr->addDeadEndStates(false, irrelevantStates);
       */
   }
-
 }
 
 BDD SymPruneHeuristic::simulatedBy(const BDD & bdd) {

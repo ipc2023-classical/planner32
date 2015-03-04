@@ -25,14 +25,16 @@ SymManager::SymManager(SymVariables * v,
 						      prune_heuristic(nullptr)  {
 
   for(const auto & op : g_operators){
-    if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
-      min_transition_cost = op.get_cost();      
-    }
-    if(op.get_cost() == 0){
-      hasTR0 = true;
-    }
+      if (op.is_dead()) continue;       
+      
+      if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
+	  min_transition_cost = op.get_cost();      
+      }
+      if(op.get_cost() == 0){
+	  hasTR0 = true;
+      }
   }
-}
+						      }
 
 SymManager::SymManager(SymManager * mgr,
 		       SymAbstraction * abs,
@@ -47,6 +49,8 @@ SymManager::SymManager(SymManager * mgr,
     hasTR0 = mgr->hasTransitions0();
   }else{
     for(const auto & op : g_operators){
+      if (op.is_dead()) continue; 
+
       if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
 	min_transition_cost = op.get_cost();      
       }
@@ -372,11 +376,10 @@ const map<int, vector <SymTransition> > & SymManager::getIndividualTRs(){
       DEBUG_MSG(cout << "Initialize individual TRs of original state space" << endl;);
       for(int i = 0; i < g_operators.size(); i++){
 	const Operator * op = &(g_operators[i]);
-	// Skip spurious operators 
-	// There are no more spurious operators anymore (removed in preprocess) 
-	/*if (op->spurious){ 
+	// Skip irrelevant operators 
+	if (op->is_dead()){ 
 	  continue;
-	}*/
+	}
 	int cost = op->get_cost(); 
 	DEBUG_MSG(cout << "Creating TR of op " << i << " of cost " << cost << endl;);
 	indTRs[cost].push_back(move(SymTransition(vars, op, cost)));
