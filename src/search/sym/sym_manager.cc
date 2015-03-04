@@ -555,7 +555,7 @@ int SymManager::filterMutexBucket(vector<BDD> & bucket, bool fw,
 }
 
 BDD SymManager::simulatedBy(const BDD & bdd, bool fw) {
-  if(prune_heuristic && fw){
+    if(prune_heuristic && fw && prune_heuristic->use_dominance_pruning()){
     setTimeLimit(p.max_mutex_time);
     try{
       BDD res = prune_heuristic->simulatedBy(bdd); 

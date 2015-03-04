@@ -25,7 +25,7 @@
 using namespace std;
 
 SimulationHeuristic::SimulationHeuristic(const Options &opts)
-: PruneHeuristic(opts),
+: PruneHeuristic(opts), 
   mgrParams(opts), initialized(false),
   remove_spurious_dominated_states(opts.get<bool>("remove_spurious")),
   insert_dominated(opts.get<bool>("insert_dominated")),

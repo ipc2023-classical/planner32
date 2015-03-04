@@ -111,7 +111,7 @@ void SymEngine::add_options_to_parser(OptionParser &parser) {
   parser.add_enum_option("search_dir", DirValues,
 			 "search direction", "BIDIR");
   parser.add_list_option<SymPH *>("ph", "policies to generate abstractions. None by default.", "[]");  
-  parser.add_option<PruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
+  parser.add_option<SymPruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
 }
 
 void SymEngine::set_default_options(Options & opts){

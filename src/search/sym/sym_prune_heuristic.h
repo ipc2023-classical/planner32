@@ -8,6 +8,9 @@ class LDSimulation;
 class SymTransition;
 
 class SymPruneHeuristic {
+  const bool prune_irrelevant; 
+  const bool dominance_pruning; 
+    
   std::unique_ptr<LDSimulation> ldSimulation;
   std::unique_ptr<SymTransition> tr; //TR that computes dominated states
   
@@ -16,7 +19,12 @@ class SymPruneHeuristic {
   BDD simulatedBy(const BDD & bdd);
 
   SymPruneHeuristic(const Options &opts);
+
   ~SymPruneHeuristic();
+
+  bool use_dominance_pruning() const{
+      return dominance_pruning;
+  }
 };
 
 #endif
