@@ -2,8 +2,39 @@
 
 #include <ostream>
 #include "../globals.h"
+#include "../causal_graph.h"
 
 using namespace std;
+
+
+//Returns a optimized variable ordering that reorders the variables
+//according to the standard causal graph criterion
+void InfluenceGraph::compute_gamer_ordering(std::vector <int> & var_order){
+    if(var_order.empty()){
+	for(int v = 0; v < g_variable_domain.size(); v++){
+	    var_order.push_back(v);
+	}  
+    }
+
+    InfluenceGraph ig_partitions (g_variable_domain.size());
+    for(int v = 0; v < g_variable_domain.size(); v++){
+        for (int v2 : g_causal_graph->get_successors(v)){
+            if(v != v2){
+                ig_partitions.set_influence(v, v2);
+            }
+        }
+    }
+
+    ig_partitions.get_ordering(var_order);
+
+
+    cout << "Var ordering: ";
+    for(int v : var_order) cout << v << " ";
+    cout  << endl;    
+}
+
+
+
 
 void InfluenceGraph::get_ordering(vector <int> & ordering) const{
     long value_optimization_function = optimize_variable_ordering_gamer(ordering, 50000);

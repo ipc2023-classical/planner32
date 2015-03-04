@@ -31,7 +31,11 @@ class InfluenceGraph {
 	influence_graph[v1][v2] = val;
 	influence_graph[v2][v1] = val;
     }
+
+    static void compute_gamer_ordering(std::vector <int> & ordering);
 };
+
+
 
 
 #endif

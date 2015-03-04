@@ -28,6 +28,8 @@ class SymController {
   SymParamsMgr mgrParams; //Parameters for SymManager configuration.
   SymParamsSearch searchParams; //Parameters to search the original state space 
       
+  const bool gamer_ordering;
+
   // List of abstract state spaces. We store a list with the unique
   // pointer so that if we want ever to delete some hNode we just
   // remove it from this list. TODO: maybe we could use
