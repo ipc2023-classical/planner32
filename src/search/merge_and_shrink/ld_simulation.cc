@@ -1205,6 +1205,17 @@ BDD LDSimulation::getSimulatingBDD(SymVariables * vars, const State &state ) con
     return res;
 }
 
+BDD LDSimulation::getIrrelevantStates(SymVariables * vars) const{
+    BDD res = vars->zeroBDD();
+    try{
+        for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+            res += (*it)->getIrrelevantStates(vars);
+        }
+    }catch(BDDError e){
+        return vars->zeroBDD();
+    }
+    return res;
+}
 
 double LDSimulation::get_percentage_simulations(bool ignore_equivalences) const {
     double percentage = 1;

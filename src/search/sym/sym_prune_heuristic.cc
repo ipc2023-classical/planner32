@@ -5,6 +5,7 @@
 
 #include "../option_parser.h"
 #include "../plugin.h"
+#include "sym_manager.h"
 
 using namespace std;
 
@@ -26,11 +27,12 @@ void SymPruneHeuristic::initialize(SymManager * mgr) {
   }
 
   if(prune_irrelevant){
-      /*BDD irrelevantStates = ldSimulation->getIrrelevantStates();
+      cout << "Computing irrelevant states BDD " << g_timer() << endl;
+      BDD irrelevantStates = ldSimulation->getIrrelevantStates(mgr->getVars());
+      cout << "Irrelevant states BDD: " << irrelevantStates.nodeCount() << " " << g_timer() << endl;
       //Prune irrelevant states in both directions
       mgr->addDeadEndStates(true, irrelevantStates);
       mgr->addDeadEndStates(false, irrelevantStates);
-      */
   }
 }
 

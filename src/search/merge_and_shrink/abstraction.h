@@ -234,6 +234,7 @@ public:
 
     virtual AbstractStateRef get_abstract_state(const State &state) const = 0;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
+    virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
 
     LabelledTransitionSystem * get_lts(const LabelMap & labelMap);
     LTSEfficient * get_lts_efficient(const LabelMap & labelMap);
@@ -316,6 +317,8 @@ public:
 
     virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
+    virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
+
 };
 
 class CompositeAbstraction : public Abstraction {
@@ -332,6 +335,7 @@ public:
     virtual ~CompositeAbstraction();
 
     virtual AbstractStateRef get_abstract_state(const State &state) const;
+    virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     const Abstraction* get_component(const int id) const {
         assert(id == 0 || id == 1);
@@ -379,6 +383,7 @@ public:
 
     virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
+    virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
 };
 
 #endif

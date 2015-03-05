@@ -1521,6 +1521,57 @@ void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars,
     }
 }
 
+BDD CompositeAbstraction::getIrrelevantStateBDD(SymVariables * vars,
+						std::vector<BDD> & abs_bdds) const{
+    vector<BDD> bdds1, bdds2;
+    BDD res = components[0]->getIrrelevantStateBDD(vars, bdds1);
+    res += components[1]->getIrrelevantStateBDD(vars, bdds2);
+    for (int i = 0; i < num_states; i++){
+        abs_bdds.push_back(vars->zeroBDD());
+    }
+    
+    for (int i = 0; i < lookup_table.size(); i++){
+        for (int j = 0; j < lookup_table[i].size(); j++){
+	    int absstate = lookup_table[i][j];
+            if(absstate != -1){
+                abs_bdds[absstate] += bdds1[i]*bdds2[j];
+            } else {
+		res += bdds1[i]*bdds2[j];
+	    }
+        }
+    }
+    for(int i = 0; i < num_states; i++) {
+	if(goal_distances[i] == Abstraction::PRUNED_STATE ||
+	   init_distances[i] == Abstraction::PRUNED_STATE){
+	    res += abs_bdds[i];
+	}
+    }
+    return res;
+}
+
+BDD AtomicAbstraction::getIrrelevantStateBDD(SymVariables * vars, 
+					     std::vector<BDD> & abs_bdds) const{
+    for (int i = 0; i < num_states; i++){
+        abs_bdds.push_back(vars->zeroBDD());
+    }
+    BDD res = vars->zeroBDD();
+    for (int i = 0; i < lookup_table.size(); i++){
+        if (lookup_table[i] != -1){
+            abs_bdds[lookup_table[i]] += vars->preBDD(variable, i);
+        } else {
+	    res += vars->preBDD(variable, i);
+	}
+    }
+    for(int i = 0; i < num_states; i++) {
+	if(goal_distances[i] == Abstraction::PRUNED_STATE ||
+	   init_distances[i] == Abstraction::PRUNED_STATE){
+	    res += abs_bdds[i];
+	}
+    }
+
+    return res;
+}
+
 
 // Methods to prune irrelevant transitions Prune all the
 // transitions of a given label (it is completely dominated by
@@ -1823,6 +1874,30 @@ void PDBAbstraction::getAbsStateBDDs(SymVariables * vars,
             abs_bdds[lookup_table[i]] += unrankBDD(vars, i);
         }
     }
+}
+
+
+BDD PDBAbstraction::getIrrelevantStateBDD(SymVariables * vars, 
+					  std::vector<BDD> & abs_bdds) const{
+    for (int i = 0; i < num_states; i++){
+        abs_bdds.push_back(vars->zeroBDD());
+    }
+    BDD res = vars->zeroBDD();
+    for (int i = 0; i < num_states; i++){  
+        if (lookup_table[i] != -1){
+            abs_bdds[lookup_table[i]] += unrankBDD(vars, i);
+        } else {
+	    res += unrankBDD(vars, i);
+	}
+    }
+    for(int i = 0; i < num_states; i++) {
+	if(goal_distances[i] == Abstraction::PRUNED_STATE ||
+	   init_distances[i] == Abstraction::PRUNED_STATE){
+	    res += abs_bdds[i];
+	}
+    }
+
+    return res;   
 }
 
 BDD PDBAbstraction::unrankBDD(SymVariables * vars, int id) const {

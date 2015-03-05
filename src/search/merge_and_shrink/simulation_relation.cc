@@ -120,6 +120,10 @@ BDD SimulationRelation::getSimulatingBDD(const State & state) const{
     else return dominating_bdds[absstate];
 }
 
+BDD SimulationRelation::getIrrelevantStates(SymVariables * vars) {
+    vector<BDD> tmp;
+    return abs->getIrrelevantStateBDD(vars, tmp);
+}
 
 void SimulationRelation::precompute_absstate_bdds(SymVariables * vars){
     abs->getAbsStateBDDs(vars, abs_bdds);
@@ -127,7 +131,6 @@ void SimulationRelation::precompute_absstate_bdds(SymVariables * vars){
 }
 
 void SimulationRelation::precompute_dominated_bdds(){
-
     for (int i = 0; i < abs->size(); i++){
         dominated_bdds.push_back(zeroBDD);
     }

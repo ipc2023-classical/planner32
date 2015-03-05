@@ -75,6 +75,7 @@ public:
 
     BDD getSimulatedBDD(const State & state) const;
     BDD getSimulatingBDD(const State & state) const;
+    BDD getIrrelevantStates(SymVariables * vars);
 
     void precompute_absstate_bdds(SymVariables * vars);
     void precompute_dominated_bdds();

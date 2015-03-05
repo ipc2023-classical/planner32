@@ -123,6 +123,8 @@ public:
     BDD getSimulatedBDD(SymVariables * vars, const State &state) const;
     BDD getSimulatingBDD(SymVariables * vars, const State &state) const;
 
+    BDD getIrrelevantStates(SymVariables * vars) const;
+
     inline std::vector<SimulationRelation *> get_simulations(){
         return simulations;
     }
