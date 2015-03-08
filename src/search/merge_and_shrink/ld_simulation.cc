@@ -39,7 +39,8 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          incremental_simulations(opts.get<bool>("incremental_simulations")),
 		                          compute_final_abstraction(opts.get<bool>("compute_final_abstraction")),
     shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
-    shrink_after_merge(opts.get<bool>("shrink_after_merge")) , 
+    shrink_after_merge(opts.get<bool>("shrink_after_merge")),
+    original_merge(opts.get<bool>("original_merge")), 
     labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
     /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
@@ -73,9 +74,9 @@ LDSimulation::LDSimulation(const Options &opts) :
     		                        nold_simulation(opts.get<bool>("nold_simulation")),
     		                        apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
     		                        apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
-                                    apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
-                                    prune_dead_operators(opts.get<bool>("prune_dead_operators")),
-    		                     forbid_lr(opts.get<bool>("forbid_lr")),	                          
+					apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
+					prune_dead_operators(opts.get<bool>("prune_dead_operators")),
+					forbid_lr(opts.get<bool>("forbid_lr")),	                          
 		                        efficient_simulation(opts.get<bool>("efficient_simulation")),
     		                        efficient_lts(opts.get<bool>("efficient_lts")),
     		                        use_expensive_statistics(opts.get<bool>("expensive_statistics")),
@@ -89,7 +90,9 @@ LDSimulation::LDSimulation(const Options &opts) :
 		incremental_simulations(opts.get<bool>("incremental_simulations")), 
     compute_final_abstraction(opts.get<bool>("compute_final_abstraction")), 
     shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
-		shrink_after_merge(opts.get<bool>("shrink_after_merge")){
+		shrink_after_merge(opts.get<bool>("shrink_after_merge")),
+		original_merge(opts.get<bool>("original_merge"))
+    {
     /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
@@ -402,9 +405,9 @@ void LDSimulation::build_abstraction() {
 
     while (!merge_strategy->done() && t() <= limit_seconds_mas && remaining_abstractions > 1) {
 
-        pair<int, int> next_systems = merge_strategy->get_next(all_abstractions,
-                limit_absstates_merge,
-                limit_transitions_merge);
+	
+        pair<int, int> next_systems = original_merge ? merge_strategy->get_next(all_abstractions) : 
+	    merge_strategy->get_next(all_abstractions, limit_absstates_merge, limit_transitions_merge);
         int system_one = next_systems.first;
         if(system_one == -1){
             break; //No pairs to be merged under the limit
@@ -416,6 +419,13 @@ void LDSimulation::build_abstraction() {
         Abstraction *other_abstraction = all_abstractions[system_two];
         assert(other_abstraction);
 
+	if(original_merge){
+	    if((!limit_absstates_merge || 
+		abstraction->size() * other_abstraction->size() <= limit_absstates_merge) && 
+	       (!limit_transitions_merge || abstraction->estimate_transitions(other_abstraction) <= limit_transitions_merge)) {
+		break;
+	    }
+	}
         cout << "Merge: " << t() << endl;
 
         //TODO: UPDATE SIMULATION WHEN DOING INCREMENTAL COMPUTATION
@@ -1375,6 +1385,10 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
 
 
     parser.add_option<bool>("shrink_after_merge",
+                            "If true, performs the shrinking after merge instead of before",
+                            "false");
+
+    parser.add_option<bool>("original_merge",
                             "If true, performs the shrinking after merge instead of before",
                             "false");
 

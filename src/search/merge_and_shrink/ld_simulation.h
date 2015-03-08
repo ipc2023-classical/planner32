@@ -49,6 +49,9 @@ protected:
     const bool compute_final_abstraction; 
     ShrinkStrategy *const shrink_strategy;
     const bool shrink_after_merge;
+    const bool original_merge; //Forces the ld simulation to use the
+			       //original merge,
+
 
     //TODO: Use unique_ptr here
     std::unique_ptr<Labels> labels;
