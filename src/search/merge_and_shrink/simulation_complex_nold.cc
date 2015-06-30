@@ -1,17 +1,17 @@
-#include "simulation_efficient_nold.h"
+#include "simulation_complex_nold.h"
 
 #include <queue> 
 #include "../debug.h" 
 
 using namespace std;
 
-SimulationRelationEfficientNoLD::SimulationRelationEfficientNoLD (Abstraction * _abs)
-    : SimulationRelationEfficient (_abs){
+SimulationRelationComplexNoLD::SimulationRelationComplexNoLD (Abstraction * _abs)
+    : SimulationRelationComplex (_abs){
 }
 
 
 template <typename LTS> 
-void SimulationRelationEfficientNoLD::init(int /*lts_id*/, const LTS * lts,
+void SimulationRelationComplexNoLD::init(int /*lts_id*/, const LTS * lts,
         const LabelRelation &label_dominance,
         queue <Block *> & blocksToUpdate) {
 
@@ -74,7 +74,7 @@ void SimulationRelationEfficientNoLD::init(int /*lts_id*/, const LTS * lts,
 	cout << endl;*/
     }
 
-    /*cout << "Init efficient relation, done." << endl;
+    /*cout << "Init complex relation, done." << endl;
     lts->dump_names();
     cout << "Qp: "; for (auto q : Qp) cout << " " << q; cout << endl;
     cout << "Qp_block: "; for (auto q : Qp) cout << " " << Qp_block[q]; cout << endl;
@@ -87,11 +87,11 @@ void SimulationRelationEfficientNoLD::init(int /*lts_id*/, const LTS * lts,
 
 
 template <typename LTS> 
-void  SimulationRelationEfficientNoLD::update_sim(int lts_id, const LTS * lts,
+void  SimulationRelationComplexNoLD::update_sim(int lts_id, const LTS * lts,
         const LabelRelation & label_dominance){
 
     Timer t;
-    //cout << "Update efficient relation" << endl;
+    //cout << "Update complex relation" << endl;
     //label_dominance.dump();
     LabelData label_data (label_dominance.get_num_labels());
     set<int> alph; //TODO: Not using the data structure suggested in the paper
@@ -234,7 +234,7 @@ void  SimulationRelationEfficientNoLD::update_sim(int lts_id, const LTS * lts,
         alph.clear();
     }
 
-    //cout << "Done update efficient relation: " << t() << endl;
+    //cout << "Done update complex relation: " << t() << endl;
     for(int s = 0; s < relation.size(); s++){
         Block * bs = partition[Qp_block[s]].get();
         for(int t = 0; t < relation.size(); t++){

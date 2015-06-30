@@ -4,8 +4,8 @@
 #include "shrink_bisimulation.h"
 #include "simulation_simple.h"
 #include "simulation_identity.h"
-#include "simulation_efficient.h"
-#include "simulation_efficient_nold.h"
+#include "simulation_complex.h"
+#include "simulation_complex_nold.h"
 #include "merge_strategy.h"
 #include "labelled_transition_system.h"
 #include "opt_order.h"
@@ -26,8 +26,8 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 		                          apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
 		                          prune_dead_operators(opts.get<bool>("prune_dead_operators")),
 					  forbid_lr(opts.get<bool>("forbid_lr")),	                          
-                                          efficient_simulation(opts.get<bool>("efficient_simulation")),
-		                          efficient_lts(opts.get<bool>("efficient_lts")),
+                                          complex_simulation(opts.get<bool>("complex_simulation")),
+		                          complex_lts(opts.get<bool>("complex_lts")),
 		                          use_expensive_statistics(opts.get<bool>("expensive_statistics")),
 		                          limit_absstates_merge(opts.get<int>("limit_merge")),
 		                          limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
@@ -55,8 +55,8 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
         cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
         exit(1);
     }
-    if (incremental_simulations && efficient_simulation) {
-        cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) efficient simulation relation!" << endl;
+    if (incremental_simulations && complex_simulation) {
+        cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) complex simulation relation!" << endl;
         exit(1);
     }
 
@@ -77,8 +77,8 @@ LDSimulation::LDSimulation(const Options &opts) :
 					apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
 					prune_dead_operators(opts.get<bool>("prune_dead_operators")),
 					forbid_lr(opts.get<bool>("forbid_lr")),	                          
-		                        efficient_simulation(opts.get<bool>("efficient_simulation")),
-    		                        efficient_lts(opts.get<bool>("efficient_lts")),
+		                        complex_simulation(opts.get<bool>("complex_simulation")),
+    		                        complex_lts(opts.get<bool>("complex_lts")),
     		                        use_expensive_statistics(opts.get<bool>("expensive_statistics")),
     		                        limit_absstates_merge(opts.get<int>("limit_merge")),
     		                        limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
@@ -101,8 +101,8 @@ LDSimulation::LDSimulation(const Options &opts) :
         cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
         exit(1);
     }
-    if (incremental_simulations && efficient_simulation) {
-        cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) efficient simulation relation!" << endl;
+    if (incremental_simulations && complex_simulation) {
+        cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) complex simulation relation!" << endl;
         exit(1);
     }
 
@@ -580,14 +580,14 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 
     cout << "Building LTSs and Simulation Relations" << endl;
     vector<LabelledTransitionSystem *> ltss_simple;
-    vector<LTSEfficient *> ltss_efficient;
+    vector<LTSComplex *> ltss_complex;
     for (auto a : abstractions){
         a->compute_distances();
         int lts_size, lts_trs;
-        if(efficient_lts){
-            ltss_efficient.push_back(a->get_lts_efficient(labelMap));
-            lts_size= ltss_efficient.back()->size();
-            lts_trs= ltss_efficient.back()->num_transitions();
+        if(complex_lts){
+            ltss_complex.push_back(a->get_lts_complex(labelMap));
+            lts_size= ltss_complex.back()->size();
+            lts_trs= ltss_complex.back()->num_transitions();
         }else{
             ltss_simple.push_back(a->get_lts(labelMap));
             lts_size= ltss_simple.back()->size();
@@ -598,12 +598,12 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
                 << labelMap.get_num_labels() << " num_labels"  << endl;
 
         if (!incremental_step) {
-            if (efficient_simulation) {
+            if (complex_simulation) {
                 if (nold_simulation) {
                     simulations.push_back(
-                            new SimulationRelationEfficientNoLD(a));
+                            new SimulationRelationComplexNoLD(a));
                 } else {
-                    simulations.push_back(new SimulationRelationEfficient(a));
+                    simulations.push_back(new SimulationRelationComplex(a));
                 }
             } else {
                 //Create initial goal-respecting relation
@@ -618,8 +618,8 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
     }
 
     LabelRelation label_dominance (labels.get());
-    if(efficient_lts){
-        compute_ld_simulation(ltss_efficient, labelMap, label_dominance, incremental_step);
+    if(complex_lts){
+        compute_ld_simulation(ltss_complex, labelMap, label_dominance, incremental_step);
     }else{
         compute_ld_simulation(ltss_simple, labelMap, label_dominance, incremental_step);
     }
@@ -631,7 +631,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 	Timer t;
 	int lts_id = incremental_step ? simulations.size() -1 : -1;
 
-        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance, ltss_simple, lts_id/*TODO: Hack lts_efficient will not work ever */);
+        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance, ltss_simple, lts_id/*TODO: Hack lts_complex will not work ever */);
 
         //if(num_pruned_trs){
         std::cout << num_pruned_trs << " transitions in the LTSs were pruned. " << t() << std::endl;
@@ -715,9 +715,9 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 //        std::vector<SimulationRelation *> & _simulations,
 //        const LabelMap & labelMap, bool no_ld);
 //
-//template void LDSimulation::compute_ld_simulation <LTSEfficient>
+//template void LDSimulation::compute_ld_simulation <LTSComplex>
 //(Labels * _labels,
-//        std::vector<LTSEfficient *> & _ltss,
+//        std::vector<LTSComplex *> & _ltss,
 //        std::vector<SimulationRelation *> & _simulations,
 //        const LabelMap & labelMap, bool no_ld);
 
@@ -746,7 +746,7 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
             }
         }
         std::cout << " took " << t() << "s" << std::endl;
-        //return; //PIET-edit: remove this for actual runs; just here for debugging the efficient stuff
+        //return; //PIET-edit: remove this for actual runs; just here for debugging the complex stuff
     }while(label_dominance.update(_ltss, simulations));
     //for(int i = 0; i < _ltss.size(); i++){
     //_ltss[i]->dump();
@@ -758,20 +758,20 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
     //}
 }
 
-// void LDSimulation::compute_ld_simulation_efficient(Labels * _labels, 
+// void LDSimulation::compute_ld_simulation_complex(Labels * _labels, 
 //         vector<Abstraction *> & _abstractions,
 //         vector<SimulationRelation *> & _simulations, bool no_ld) {
 //     cout << "Building LTSs and Simulation Relations" << endl;
-//     vector<LTSEfficient *> ltss;
+//     vector<LTSComplex *> ltss;
 //     LabelMap labelMap(_labels);
 //     for (auto a : _abstractions){
-//         ltss.push_back(a->get_lts_efficient(labelMap));
+//         ltss.push_back(a->get_lts_complex(labelMap));
 //         cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
 //         //Create initial goal-respecting relation
 // 	if(no_ld){
-// 	    _simulations.push_back(new SimulationRelationEfficientNoLD(a));
+// 	    _simulations.push_back(new SimulationRelationComplexNoLD(a));
 // 	}else{
-// 	    _simulations.push_back(new SimulationRelationEfficient(a));
+// 	    _simulations.push_back(new SimulationRelationComplex(a));
 // 	}
 //     }
 
@@ -842,7 +842,7 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 
 
 //     // for (int i = 0; i < ltss.size(); i++){
-//     // 	 SimulationRelationEfficient s1 (_abstractions[i]);
+//     // 	 SimulationRelationComplex s1 (_abstractions[i]);
 //     // 	 SimulationRelationSimple s2 (_abstractions[i]);
 //     // 	 for(int s = 0; s < ltss[i]->size(); s++){
 //     // 	     for(int t = 0; t < ltss[i]->size(); t++){
@@ -1337,12 +1337,12 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
             "merge_linear");
 
 
-    parser.add_option<bool>("efficient_simulation",
-            "Use the efficient method for simulation",
+    parser.add_option<bool>("complex_simulation",
+            "Use the complex method for simulation",
             "false");
 
-    parser.add_option<bool>("efficient_lts",
-            "Use the efficient method for LTS representation",
+    parser.add_option<bool>("complex_lts",
+            "Use the complex method for LTS representation",
             "false");
 
 

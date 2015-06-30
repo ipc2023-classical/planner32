@@ -1,7 +1,7 @@
 #include "abstraction.h"
 
 #include "labelled_transition_system.h"
-#include "lts_efficient.h"
+#include "lts_complex.h"
 
 #include "label.h"
 #include "labels.h"
@@ -1919,12 +1919,12 @@ LabelledTransitionSystem * Abstraction::get_lts(const LabelMap & labelMap){
     return lts.get();
 }
 
-LTSEfficient * Abstraction::get_lts_efficient(const LabelMap & labelMap){
-    if(!lts_efficient){
-        lts_efficient = std::unique_ptr<LTSEfficient>
-        (new LTSEfficient(this, labelMap));
+LTSComplex * Abstraction::get_lts_complex(const LabelMap & labelMap){
+    if(!lts_complex){
+        lts_complex = std::unique_ptr<LTSComplex>
+        (new LTSComplex(this, labelMap));
     }
-    return lts_efficient.get();
+    return lts_complex.get();
 }
 
 

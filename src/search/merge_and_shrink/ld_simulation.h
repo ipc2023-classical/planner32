@@ -16,7 +16,7 @@ class MergeStrategy;
 class Abstraction;
 class SymManager;
 class LabelledTransitionSystem;
-class LTSEfficient;
+class LTSComplex;
 
 // Label dominance simulation
 class LDSimulation {  
@@ -30,8 +30,8 @@ protected:
     const bool prune_dead_operators;
     const bool forbid_lr;
 
-    const bool efficient_simulation;
-    const bool efficient_lts;
+    const bool complex_simulation;
+    const bool complex_lts;
 
     const bool use_expensive_statistics;
     const int limit_absstates_merge;
@@ -84,7 +84,7 @@ protected:
     /* static void compute_ld_simulation(Labels * _labels, std::vector<Abstraction *> & _abstractions, */
     /*         std::vector<SimulationRelation *> & _simulations, bool no_ld = false); */
 
-    /* static void compute_ld_simulation_efficient(Labels * _labels, */
+    /* static void compute_ld_simulation_complex(Labels * _labels, */
     /*         std::vector<Abstraction *> & _abstractions, */
     /*         std::vector<SimulationRelation *> & _simulations, bool no_ld = false); */
 

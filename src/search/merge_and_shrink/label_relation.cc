@@ -3,7 +3,7 @@
 #include "labels.h"
 #include "simulation_relation.h"
 #include "labelled_transition_system.h"
-#include "lts_efficient.h"
+#include "lts_complex.h"
 #include "../equivalence_relation.h"
 #include "../globals.h"
 
@@ -244,7 +244,7 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
 
 }
 
-void LabelRelation::init(const std::vector<LTSEfficient *> & lts,
+void LabelRelation::init(const std::vector<LTSComplex *> & lts,
         const std::vector<SimulationRelation*> & sim,
         const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
@@ -288,7 +288,7 @@ bool LabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
     return changes;
 }
 
-bool LabelRelation::update(const std::vector<LTSEfficient*> & lts,
+bool LabelRelation::update(const std::vector<LTSComplex*> & lts,
         const std::vector<SimulationRelation*> & sim){
     bool changes = false;
     for (int i = 0; i < lts.size(); ++i){
@@ -297,7 +297,9 @@ bool LabelRelation::update(const std::vector<LTSEfficient*> & lts,
     return changes;
 }
 
-/* TODO: REALLY INEFFICIENT VERSION THAT SHOULD BE IMPROVED */
+/* TODO: This version is inefficient. It could be improved by
+ * iterating only the right transitions (see TODO inside the loop)
+ */
 bool LabelRelation::update(int i, const LabelledTransitionSystem * lts, 
         const SimulationRelation * sim){
     bool changes = false;
@@ -370,7 +372,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
     return changes;
 }
 
-bool LabelRelation::update(int i, const LTSEfficient * lts, 
+bool LabelRelation::update(int i, const LTSComplex * lts, 
         const SimulationRelation * sim){
     bool changes = false;
     for(int l2 : lts->get_relevant_labels()) {

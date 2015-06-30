@@ -1,11 +1,11 @@
-#include "lts_efficient.h"
+#include "lts_complex.h"
 
 #include "abstraction.h"
 #include "labels.h"
 
 using namespace std;
 
-LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) : 
+LTSComplex::LTSComplex (Abstraction * _abs, const LabelMap & labelMap) : 
     abs(_abs),  num_states(_abs->size()),goal_states(_abs->get_goal_states()){
 
     int num_labels = labelMap.get_num_labels();
@@ -57,7 +57,7 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
 	    return t.src;
 	});
     
-    // cout << "Generated lts efficient. Pre: " << endl;
+    // cout << "Generated lts complex. Pre: " << endl;
     // for(const auto & t : transitionsPre){
     // 	cout << t << endl;
     // }
@@ -67,7 +67,7 @@ LTSEfficient::LTSEfficient (Abstraction * _abs, const LabelMap & labelMap) :
     // }
 }
 
-void LTSEfficient::set_sl(vector <LTSTransition> & transitions,
+void LTSComplex::set_sl(vector <LTSTransition> & transitions,
 			  vector <Qa> & qa, std::vector<std::map<int, int> > & qaMap,
 			  vector<pair<int, int> > & rangeStates,
 			  function<int (const LTSTransition &)> fget) {
@@ -102,7 +102,7 @@ void LTSEfficient::set_sl(vector <LTSTransition> & transitions,
     }
 }
 
-void LTSEfficient::dump_names() const {
+void LTSComplex::dump_names() const {
     cout << "LTS Names: "; 
     for (const auto & n : name_states) cout << " " << n; 
     cout << endl;

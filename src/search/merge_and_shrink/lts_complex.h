@@ -1,5 +1,5 @@
-#ifndef LTS_EFFICIENT_H
-#define LTS_EFFICIENT_H
+#ifndef LTS_COMPLEX_H
+#define LTS_COMPLEX_H
 
 #include "labelled_transition_system.h"//For getting LTSTransition
 
@@ -35,7 +35,7 @@ public:
 };
 
 //Alvaro: Class added to implement the simple simulation
-class LTSEfficient {
+class LTSComplex {
     Abstraction * abs;
 
     //Duplicated from abstraction
@@ -59,8 +59,8 @@ class LTSEfficient {
 		std::function<int (const LTSTransition &)> fget);
 
 public:
-    LTSEfficient (Abstraction * abs, const LabelMap & labelMap);
-    ~LTSEfficient(){}
+    LTSComplex (Abstraction * abs, const LabelMap & labelMap);
+    ~LTSComplex(){}
 
     const std::vector<bool> & get_goal_states() const {
         return goal_states;

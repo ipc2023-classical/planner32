@@ -41,7 +41,7 @@ public:
     virtual void update(int lts_id, const LabelledTransitionSystem * lts,
             const LabelRelation & label_dominance) = 0;
 
-    virtual void update(int lts_id, const LTSEfficient * lts,
+    virtual void update(int lts_id, const LTSComplex * lts,
             const LabelRelation & label_dominance) = 0;
 
     inline bool simulates (int s, int t) const {

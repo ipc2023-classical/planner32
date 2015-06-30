@@ -1,7 +1,7 @@
 #include "simulation_simple.h"
 
 #include "labelled_transition_system.h"
-#include "lts_efficient.h"
+#include "lts_complex.h"
 
 #include "label_relation.h"
 

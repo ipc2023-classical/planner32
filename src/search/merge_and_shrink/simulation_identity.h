@@ -13,7 +13,7 @@ class SimulationRelationIdentity : public SimulationRelation{
 		const LabelledTransitionSystem * , 
 		const LabelRelation & ){}
 
-    virtual void update(int , const LTSEfficient * ,
+    virtual void update(int , const LTSComplex * ,
 			const LabelRelation & ){}
 
 

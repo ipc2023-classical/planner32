@@ -1,17 +1,17 @@
-#ifndef MERGE_AND_SHRINK_SIMULATION_RELATION_EFFICIENT_NOLD_H
-#define MERGE_AND_SHRINK_SIMULATION_RELATION_EFFICIENT_NOLD_H
+#ifndef MERGE_AND_SHRINK_SIMULATION_RELATION_COMPLEX_NOLD_H
+#define MERGE_AND_SHRINK_SIMULATION_RELATION_COMPLEX_NOLD_H
 
 #include <queue>
-#include "simulation_efficient.h"
+#include "simulation_complex.h"
 
-class SimulationRelationEfficientNoLD : public SimulationRelationEfficient{
+class SimulationRelationComplexNoLD : public SimulationRelationComplex{
 
     template<typename LTS> void init (int lts_id, const LTS * lts,
 				      const LabelRelation & label_dominance, 
 		   std::queue <Block *> & blocksToUpdate);
     
  public:
-    SimulationRelationEfficientNoLD(Abstraction * _abs);
+    SimulationRelationComplexNoLD(Abstraction * _abs);
 
     
 
@@ -19,7 +19,7 @@ class SimulationRelationEfficientNoLD : public SimulationRelationEfficient{
 			const LabelRelation & /*label_dominance*/){
 	//update_sim(lts_id, lts, label_dominance);
     }
-    virtual void update(int lts_id, const LTSEfficient * lts,
+    virtual void update(int lts_id, const LTSComplex * lts,
 			const LabelRelation & label_dominance){
 	update_sim(lts_id, lts, label_dominance);
     }

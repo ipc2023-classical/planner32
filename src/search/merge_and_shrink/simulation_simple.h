@@ -19,7 +19,7 @@ class SimulationRelationSimple : public SimulationRelation{
 			const LabelRelation & label_dominance){
 	update_sim(lts_id, lts, label_dominance);
     }
-    virtual void update(int lts_id, const LTSEfficient * lts,
+    virtual void update(int lts_id, const LTSComplex * lts,
 			const LabelRelation & label_dominance){
 	update_sim(lts_id, lts, label_dominance);
     }

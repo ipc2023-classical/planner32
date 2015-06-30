@@ -1,10 +1,10 @@
-#include "simulation_efficient.h"
+#include "simulation_complex.h"
 
 #include <queue> 
 #include "../debug.h" 
 
 #include "labelled_transition_system.h" 
-#include "lts_efficient.h" 
+#include "lts_complex.h" 
 
 using namespace std;
 
@@ -32,9 +32,9 @@ unique_ptr<Block> Block::split(int index) {
     return newb;
 }
 
-SimulationRelationEfficient::SimulationRelationEfficient(Abstraction * _abs)
+SimulationRelationComplex::SimulationRelationComplex(Abstraction * _abs)
 : SimulationRelation (_abs){
-    //cout << "Generate efficient relation" << endl;
+    //cout << "Generate complex relation" << endl;
     int num_states = abs->size();
     //Generate a partition with two blocks, goal and non-goal (or N, based on computed_distances)
     Qp.resize(num_states, 0);
@@ -61,7 +61,7 @@ SimulationRelationEfficient::SimulationRelationEfficient(Abstraction * _abs)
         partition.push_back(unique_ptr<Block> (ngoalBlock));
         ngoalBlock->add_rel(goalBlock);
     }
-    //cout << "Generated efficient relation" << endl;
+    //cout << "Generated complex relation" << endl;
 }
 
 
@@ -83,11 +83,11 @@ void LabelData::add_to_remove_init(const Qa & qa,
 
 
 template <typename LTS>
-void SimulationRelationEfficient::init(int lts_id, const LTS * lts,
+void SimulationRelationComplex::init(int lts_id, const LTS * lts,
         const LabelRelation &label_dominance,
         queue <Block *> & blocksToUpdate) {
 
-    // cout << "Init efficient relation" << endl;
+    // cout << "Init complex relation" << endl;
     // cout << "Qp: "; for (auto q : Qp) cout << " " << q; cout << endl;
     // cout << "Qp_block: "; for (auto q : Qp) cout << " " << Qp_block[q]; cout << endl;
     // cout << "Qp_pos: "; for (auto q : Qp_pos) cout << " " << q; cout << endl;
@@ -163,7 +163,7 @@ void SimulationRelationEfficient::init(int lts_id, const LTS * lts,
 
     }
 
-    /*cout << "Init efficient relation, done." << endl;
+    /*cout << "Init complex relation, done." << endl;
     lts->dump_names();
     cout << "Qp: "; for (auto q : Qp) cout << " " << q; cout << endl;
     cout << "Qp_block: "; for (auto q : Qp) cout << " " << Qp_block[q]; cout << endl;
@@ -176,10 +176,10 @@ void SimulationRelationEfficient::init(int lts_id, const LTS * lts,
 
 
 template <typename LTS> 
-void  SimulationRelationEfficient::update_sim(int lts_id, const LTS * lts,
+void  SimulationRelationComplex::update_sim(int lts_id, const LTS * lts,
 					  const LabelRelation & label_dominance){    
     Timer t;
-    //cout << "Update efficient relation" << endl;
+    //cout << "Update complex relation" << endl;
     //label_dominance.dump();
     LabelData label_data (label_dominance.get_num_labels());
     set<int> alph; //TODO: Not using the data structure suggested in the paper
@@ -367,7 +367,7 @@ void  SimulationRelationEfficient::update_sim(int lts_id, const LTS * lts,
         alph.clear();
     }
 
-    //cout << "Done update efficient relation: " << t() << endl;
+    //cout << "Done update complex relation: " << t() << endl;
     for(int s = 0; s < relation.size(); s++){
         Block * bs = partition[Qp_block[s]].get();
         for(int t = 0; t < relation.size(); t++){
@@ -379,7 +379,7 @@ void  SimulationRelationEfficient::update_sim(int lts_id, const LTS * lts,
     //cout << "Updated relation" << endl;
 }
 
-void SimulationRelationEfficient::split_block(const set<int> & set_remove,
+void SimulationRelationComplex::split_block(const set<int> & set_remove,
         vector<pair<Block *, Block *> > & splitCouples,
         vector<Block *> & blocksInRemove){
     // cout << "SplitBlock" << endl;
@@ -451,7 +451,7 @@ void Block::dump  (const std::vector<int> & Qp){
 //s - l -> t' with l >= tl and t' in rel(B), i. e., if for any block C
 //in rel(B), and label l, C.relCount(sl) > 0
 template <typename LTS>
-bool SimulationRelationEfficient::get_in_pre_rel(Block * b, int src, int label, int lts_id,
+bool SimulationRelationComplex::get_in_pre_rel(Block * b, int src, int label, int lts_id,
         const LTS * lts,
         const LabelRelation & label_dominance) const {
     //cout << "Check whether " << src << " is in preRel" << b->index << " l" << label  << endl;

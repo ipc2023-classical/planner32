@@ -1,10 +1,18 @@
-#ifndef MERGE_AND_SHRINK_SIMULATION_RELATION_EFFICIENT_H
-#define MERGE_AND_SHRINK_SIMULATION_RELATION_EFFICIENT_H
+#ifndef MERGE_AND_SHRINK_SIMULATION_RELATION_COMPLEX_H
+#define MERGE_AND_SHRINK_SIMULATION_RELATION_COMPLEX_H
+
+/* Complex algorithm to compute a simulation relation.  It is based on
+ * (Cece 2013): "Three Simulation Algorithms for Labelled Transition
+ * Systems". NOT RECOMENDED: in practice is much slower than
+ * simulation_simple.
+ */
+
+
 
 #include <queue>
 #include "simulation_relation.h"
 
-#include "lts_efficient.h"
+#include "lts_complex.h"
 
 class Qa;
 class LabelRelation;
@@ -181,7 +189,7 @@ class LabelData {
 };
 
 
-class SimulationRelationEfficient : public SimulationRelation {
+class SimulationRelationComplex : public SimulationRelation {
  protected:
     //By now we assume that the partition is unitary... we can improve
     //this later with EquivalenceRelation
@@ -206,14 +214,14 @@ class SimulationRelationEfficient : public SimulationRelation {
 			     std::queue <Block *> & blocksToUpdate);
     
  public:
-    SimulationRelationEfficient(Abstraction * _abs);
+    SimulationRelationComplex(Abstraction * _abs);
 
 
     virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
 			const LabelRelation & /*label_dominance*/){
 	//update_sim(lts_id, lts, label_dominance);
     }
-    virtual void update(int lts_id, const LTSEfficient * lts,
+    virtual void update(int lts_id, const LTSComplex * lts,
 			const LabelRelation & label_dominance){
 	update_sim(lts_id, lts, label_dominance);
     }
