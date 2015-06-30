@@ -188,7 +188,7 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
     parser.add_option<bool>("remove_spurious",
             "If activated, remove spurious states from the sets of simulated/simulating states",
-            "false");
+            "true");
 
     Heuristic::add_options_to_parser(parser);
     SymParamsMgr::add_options_to_parser_simulation(parser);
@@ -199,7 +199,7 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "Implementation of the simulation pruning: "
             "Expansion: prunes states when they are simulated by an expanded state"
             "Generation: prunes states when they are simulated by a generated state ",
-            "generation");
+            "expansion");
 
     parser.add_enum_option
     ("pruning_dd", PruningDDValues,
@@ -220,7 +220,7 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
     parser.add_option<int>("min_insertions",
             "States are inserted and pruning until this limit. Afterwards, depends on the ratios",
-            "100000000");
+            "1000");
 
     Options opts = parser.parse();
 

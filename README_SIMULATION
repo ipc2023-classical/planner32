@@ -1,0 +1,27 @@
+Instructions on how to use the simulation-based dominance and irrelevance pruning: 
+
+BASIC CONFIGURATIONS: 
+
+Dominance pruning: "astar(lmcut(), prune=simulation())"
+
+This is the same as "astar(blind(), prune=simulation(remove_spurious=true,pruning_type=expansion,pruning_dd=BDD_map,insert_dominated=true,min_desactivation_ratio=0,min_insertions=1000, <parameters_ld_simulation>, <parameters_bdds>))". Some parameters that you might want to change: 
+   - pruning_type=generation => More pruning but in general does not compensate the additional overhead
+   - pruning_dd. In combination with the blind heuristic use pruning_dd=bdd (this is more efficient but it is not safe with other heuristics)
+   - min_insertions=infinity => If you want to force dominance pruning even in those cases where it is not helping
+
+For <parameters_bdds> you can use the default parameters. For <parameters_ld_simulation> see below. 
+
+Irrelevance pruning: "astar (lmcut(), prune=simulation(pruning_type=none, apply_subsumed_transitions_pruning=true, store_original_operators=true, prune_dead_operators=true, <parameters_ld_simulation>))"
+  - pruning_type=none disables dominance pruning 
+  - store_original_operators: important if you set label reduction
+
+<parameters_ld_simulation> that are relevant to both dominance and irrelevance pruning: 
+The two main configurations are: 
+<incremental simulations without label reduction nor shrinking>: intermediate_simulations=true, incremental_simulations=true, merge_strategy=merge_dfp(), limit_merge=infinity, limit_transitions_merge=100000, limit_seconds=300, use_bisimulation=false, apply_simulation_shrinking=false, apply_label_dominance_reduction=false, label_reduction_method=none, apply_subsumed_transitions_pruning=true))"
+
+<standard M&S (without intermediate simulations) with label reduction and bisimulation>: intermediate_simulations=false, incremental_simulations=false, merge_strategy=merge_dfp(), limit_merge=infinity, limit_transitions_merge=100000, limit_seconds=300, use_bisimulation=true, apply_simulation_shrinking=false, apply_label_dominance_reduction=false))"
+
+Parameters that you might want to adapt are: 
+  - limit_transitions_merge: lower means less pruning but faster preprocessing
+  - merge_strategy
+
