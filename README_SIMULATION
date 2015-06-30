@@ -1,8 +1,7 @@
 Instructions on how to use the simulation-based dominance and irrelevance pruning: 
 
-BASIC CONFIGURATIONS: 
-
-Dominance pruning: "astar(lmcut(), prune=simulation(<parameters_ld_simulation>))"
+DOMINANCE PRUNING: 
+       "astar(lmcut(), prune=simulation(<parameters_ld_simulation>))"
 
 This is the same as "astar(blind(), prune=simulation(remove_spurious=true,pruning_type=expansion,pruning_dd=BDD_map,insert_dominated=true,min_desactivation_ratio=0,min_insertions=1000, <parameters_ld_simulation>, <parameters_bdds>))". Some parameters that you might want to change: 
    - pruning_type=generation => More pruning but in general does not compensate the additional overhead
@@ -11,9 +10,18 @@ This is the same as "astar(blind(), prune=simulation(remove_spurious=true,prunin
 
 For <parameters_bdds> you can use the default parameters. For <parameters_ld_simulation> see below. 
 
-Irrelevance pruning: "astar (lmcut(), prune=simulation(pruning_type=none, apply_subsumed_transitions_pruning=true, store_original_operators=true, prune_dead_operators=true, <parameters_ld_simulation>))"
+
+IRRELEVANCE PRUNING:
+         "astar (lmcut(), prune=simulation(pruning_type=none, apply_subsumed_transitions_pruning=true, store_original_operators=true, prune_dead_operators=true, <parameters_ld_simulation>))"
   - pruning_type=none disables dominance pruning 
   - store_original_operators: important if you set label reduction
+
+Note: the operators are not completely removed, but just marked as
+useless. If used with other heuristics except LM-cut, the heuristic
+must be modified in order to ignore the marked operators.
+
+
+LD_SIMULATION PARAMETERS: 
 
 <parameters_ld_simulation> that are relevant to both dominance and irrelevance pruning: 
 The two main configurations are: 
