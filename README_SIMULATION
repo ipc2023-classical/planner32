@@ -2,7 +2,7 @@ Instructions on how to use the simulation-based dominance and irrelevance prunin
 
 BASIC CONFIGURATIONS: 
 
-Dominance pruning: "astar(lmcut(), prune=simulation())"
+Dominance pruning: "astar(lmcut(), prune=simulation(<parameters_ld_simulation>))"
 
 This is the same as "astar(blind(), prune=simulation(remove_spurious=true,pruning_type=expansion,pruning_dd=BDD_map,insert_dominated=true,min_desactivation_ratio=0,min_insertions=1000, <parameters_ld_simulation>, <parameters_bdds>))". Some parameters that you might want to change: 
    - pruning_type=generation => More pruning but in general does not compensate the additional overhead
