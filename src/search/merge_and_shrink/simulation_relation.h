@@ -31,6 +31,10 @@ protected:
     std::vector<BDD> abs_bdds;
     BDD zeroBDD;
 
+    //Vectors of states dominated/dominating by each state. Lazily
+    // computed when needed.
+    std::vector<std::vector<int>> dominated_states, dominating_states;
+
 public:
     SimulationRelation(Abstraction * _abs);
 
@@ -52,7 +56,6 @@ public:
         return relation[s][t] && relation[t][s];
     }
 
-
     inline void remove (int s, int t) {
         relation[s][t] = false;
     }
@@ -60,7 +63,6 @@ public:
     inline const std::vector<std::vector<bool> > & get_relation () {
         return relation;
     }
-
 
     int num_equivalences() const;
     int num_simulations(bool ignore_equivalences) const;
@@ -121,6 +123,26 @@ public:
     virtual bool propagate_label_domination(int lts_id, const LabelledTransitionSystem * lts,
 					    const LabelRelation & label_dominance, 
 					    int l, int l2) const = 0;
+
+    int get_index (const State & state) const {
+	return abs->get_abstract_state(state);
+    }
+    
+    void compute_list_dominated_states();
+
+    const std::vector<int> & get_dominated_states(const State & state) {
+	if(dominated_states.empty()) {
+	    compute_list_dominated_states();
+	}
+	return dominated_states[abs->get_abstract_state(state)];
+    }
+
+    const std::vector<int> & get_dominating_states(const State & state) {
+	if(dominated_states.empty()) {
+	    compute_list_dominated_states();
+	}
+	return dominating_states[abs->get_abstract_state(state)];
+    }
 };
 
 #endif

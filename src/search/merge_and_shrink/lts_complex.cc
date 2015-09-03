@@ -71,7 +71,8 @@ void LTSComplex::set_sl(vector <LTSTransition> & transitions,
 			  vector <Qa> & qa, std::vector<std::map<int, int> > & qaMap,
 			  vector<pair<int, int> > & rangeStates,
 			  function<int (const LTSTransition &)> fget) {
-    int s, l, index = 0, qaindex= 0;
+    int s = 0, l = 0; /* set to 0 only to avoid warning */
+    int index = 0, qaindex= 0;
     int indexS = 0;
     for(int i = 0; i < transitions.size(); i++){
 	//cout << "Introducing t: " << transitions[i] << endl;

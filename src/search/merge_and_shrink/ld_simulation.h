@@ -59,7 +59,6 @@ protected:
     std::vector<SimulationRelation *> simulations;
     std::unique_ptr<Abstraction> final_abstraction;
 
-
     std::vector<int> useless_vars;
     std::vector<bool> dead_labels;
 

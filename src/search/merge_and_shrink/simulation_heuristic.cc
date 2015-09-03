@@ -67,7 +67,6 @@ void SimulationHeuristic::initialize() {
         }
         cout << "Completed preprocessing: " << g_timer() << endl;
     }
-    //exit(0);
 }
 
 /*SymTransition * SimulationHeuristic::getTR(SymManager * mgr){
@@ -207,7 +206,9 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "BDD_MAP: (default) inserts in a map of BDDs all the dominated states "
             "ADD: inserts in an ADD all the dominated states "
             "BDD: inserts in a BDD all the dominated states (does"
-            "not consider the g-value so it is not safe to use it with A* search)",
+            "not consider the g-value so it is not safe to use it with A* search)"
+            "BDD_MAP_DISJ: allows a disjunctive partitioning of BDDs in BDD_MAP "
+            "SKYLINE_BDD_MAP, SKYLINE_BDD: inserts the real states instead of dominated states"
             "BDD_MAP");
 
     parser.add_option<bool>("insert_dominated",
@@ -232,6 +233,8 @@ static PruneHeuristic *_parse(OptionParser &parser) {
         //case PruningType::ADD_DOMINATED: return new SimulationHeuristicADD (opts, true);
         case PruningDD::BDD: return new SimulationHeuristicBDD (opts);
         case PruningDD::BDD_MAP_DISJ: return new SimulationHeuristicBDDMapDisj (opts);
+        case PruningDD::SKYLINE_BDD_MAP: return new SimulationHeuristicSkylineBDDMap (opts);
+        case PruningDD::SKYLINE_BDD: return new SimulationHeuristicSkylineBDD (opts);
         default:
             std::cerr << "Name of PruningTypeStrategy not known";
             exit(-1);
@@ -257,7 +260,8 @@ std::ostream & operator<<(std::ostream &os, const PruningDD & pt){
     case PruningDD::ADD: return os << "ADD";
     case PruningDD::BDD: return os << "BDD";
     case PruningDD::BDD_MAP_DISJ: return os << "BDDmapDisj";
-
+    case PruningDD::SKYLINE_BDD_MAP: return os << "SkylineBDDmap";
+    case PruningDD::SKYLINE_BDD: return os << "SkylineBDD";
     default:
         std::cerr << "Name of PruningTypeStrategy not known";
         exit(-1);
@@ -277,7 +281,7 @@ std::ostream & operator<<(std::ostream &os, const PruningType & pt){
 
 
 const std::vector<std::string> PruningDDValues {
-    "BDD_MAP", "ADD",   "BDD", "BDD_MAP_DISJ"
+    "BDD_MAP", "ADD", "BDD", "BDD_MAP_DISJ", "SKYLINE_BDD_MAP", "SKYLINE_BDD"
 };
 
 const std::vector<std::string> PruningTypeValues {
@@ -454,4 +458,138 @@ bool SimulationHeuristicBDDMapDisj::check (const State & state, int g){
     time_check += t();
 
     return false;
+}
+
+
+
+bool SimulationHeuristicSkylineBDDMap::check (const State & state, int g){
+    auto sims = ldSimulation->get_simulations();
+
+    if(closed.empty()){
+        closed.resize(sims.size());
+	for(int part = 0; part < sims.size(); part++) {
+	    closed[part].resize(sims[part]->num_states());
+	}
+    }
+
+    for (int gval : g_values){
+	if(gval > g){
+	    return false;
+	}
+        
+	BDD res = vars->oneBDD();
+
+	for(int part = 0; !res.IsZero() && part < sims.size(); part++) {
+	    if(insert_dominated){
+		int val = sims[part]->get_index(state);
+		if (closed[part][val].count(gval)){		    
+		    res *= closed[part][val][gval];
+		}else{
+		    return false;
+		}
+	    } else {
+		BDD dom = vars->zeroBDD(); 
+		for (int valp : sims[part]->get_dominating_states (state)){
+		    if (closed[part][valp].count(gval)){
+			dom += closed[part][valp][gval];
+		    }
+		}
+		res *= dom;
+	    }
+	}
+
+	if (!res.IsZero()){
+	    return true;
+	}
+    }
+    return false;
+}
+
+void SimulationHeuristicSkylineBDDMap::insert (const State & state, int g){
+    g_values.insert(g);
+    auto sims = ldSimulation->get_simulations();
+
+    if(closed.empty()){
+        closed.resize(sims.size());
+	for(int part = 0; part < sims.size(); part++) {
+	    closed[part].resize(sims[part]->num_states());
+	}
+    }
+
+    BDD bdd = vars->getStateBDD(state);
+    
+    for(int part = 0; part < sims.size(); part++){
+	if (insert_dominated){
+	    for (int valp : sims[part]->get_dominated_states (state)){
+		if (!closed[part][valp].count(g)){
+		    closed[part][valp][g] = bdd;
+		}else{
+		    closed[part][valp][g] += bdd;
+		}
+	    }
+	} else {
+	    int val = sims[part]->get_index(state);
+	    if (!closed[part][val].count(g)){
+		closed[part][val][g] = bdd;
+	    }else{
+		closed[part][val][g] += bdd;
+	    }
+	}
+    }
+}
+
+
+
+
+
+
+bool SimulationHeuristicSkylineBDD::check (const State & state, int /*g*/){
+    auto sims = ldSimulation->get_simulations();
+
+    if(closed.empty()){
+        closed.resize(sims.size());
+	for(int part = 0; part < sims.size(); part++) {
+	    closed[part].resize(sims[part]->num_states(), vars->zeroBDD());
+	}
+    }
+      
+    BDD res = vars->oneBDD();
+
+    for(int part = 0; !res.IsZero() && part < sims.size(); part++) {
+	if(insert_dominated){		     
+	    int val = sims[part]->get_index(state);
+	    res *= closed[part][val];
+	} else {
+	    BDD dom = vars->zeroBDD();
+	    for (int valp : sims[part]->get_dominating_states (state)){
+		dom += closed[part][valp];
+	    }
+	    res *= dom;
+	}
+    }
+
+    return !res.IsZero();
+}
+
+    void SimulationHeuristicSkylineBDD::insert (const State & state, int /*g*/) {
+    auto sims = ldSimulation->get_simulations();
+
+    if(closed.empty()){
+        closed.resize(sims.size());
+	for(int part = 0; part < sims.size(); part++) {
+	    closed[part].resize(sims[part]->num_states(), vars->zeroBDD());
+	}
+    }
+
+    BDD bdd = vars->getStateBDD(state);
+    for(int part = 0; part < sims.size(); part++){
+	if (insert_dominated){
+	    for (int valp : sims[part]->get_dominated_states (state)){
+		closed[part][valp] += bdd;
+	    }
+	} else {
+	    int val = sims[part]->get_index(state);
+	    closed[part][val] += bdd;
+	}
+    }
 }

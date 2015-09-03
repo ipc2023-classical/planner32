@@ -15,7 +15,7 @@ function usage {
 
 # Paths to planner components
 TRANSLATE="$BASEDIR/translate/translate.py"
-PREPROCESS="$BASEDIR/preprocess_h2/preprocess"
+PREPROCESS="$BASEDIR/preprocess/preprocess"
 SEARCH="$BASEDIR/search/downward"
 
 # Need to explicitly ask for GNU time (from MacPorts) on Mac OS X.

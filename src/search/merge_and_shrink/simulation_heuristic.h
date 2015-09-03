@@ -9,7 +9,7 @@ class LDSimulation;
 class SymVariables;
 class SymManager;
 
-enum class PruningDD {BDD_MAP, ADD, BDD, BDD_MAP_DISJ};
+enum class PruningDD {BDD_MAP, ADD, BDD, BDD_MAP_DISJ, SKYLINE_BDD_MAP, SKYLINE_BDD};
 std::ostream & operator<<(std::ostream &os, const PruningDD & m);
 extern const std::vector<std::string> PruningDDValues;
 
@@ -154,6 +154,36 @@ class SimulationHeuristicBDD : public SimulationHeuristic {
   virtual bool check (const State & state, int g);
   virtual void insert (const State & state, int g);
 };
+
+class SimulationHeuristicSkylineBDDMap : public SimulationHeuristic {
+    // We have the set of states inserted with each g-value that could
+    // dominate each fluent
+    std::vector<std::vector<std::map<int, BDD> > > closed;
+    std::set<int> g_values;
+public:
+    SimulationHeuristicSkylineBDDMap (const Options &opts) : 
+    SimulationHeuristic(opts)
+    {}
+    virtual ~SimulationHeuristicSkylineBDDMap (){}
+    
+    //Methods to keep dominated states in explicit search
+    virtual bool check (const State & state, int g);
+    virtual void insert (const State & state, int g);
+};
+
+class SimulationHeuristicSkylineBDD : public SimulationHeuristic {
+    std::vector<std::vector<BDD> > closed;
+public:
+    SimulationHeuristicSkylineBDD (const Options &opts) : 
+    SimulationHeuristic(opts)
+    {}
+    virtual ~SimulationHeuristicSkylineBDD (){}
+    
+    //Methods to keep dominated states in explicit search
+    virtual bool check (const State & state, int g);
+    virtual void insert (const State & state, int g);
+};
+
 
 /* class SimulationHeuristicADD : public SimulationHeuristic { */
 /*   ADD closed; */

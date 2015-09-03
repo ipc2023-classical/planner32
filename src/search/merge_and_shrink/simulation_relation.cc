@@ -298,3 +298,18 @@ void SimulationRelation::shrink() {
         cout << "Simulation shrinking did not shrink anything" << endl;
     }
 }
+
+
+void SimulationRelation::compute_list_dominated_states() {
+    dominated_states.resize(relation.size());
+    dominating_states.resize(relation.size());
+    
+    for(int s = 0; s < relation.size(); ++s){
+	for(int t = 0; t < relation.size(); ++t) {
+	    if (simulates(t, s)){
+		dominated_states[t].push_back(s);
+		dominating_states[s].push_back(t);
+	    }
+	}
+    }
+}
