@@ -18,6 +18,30 @@
 
 using namespace std;
 
+/* 
+ * TODO: Right now this class has too much responsability and
+ * parameters.  We should refactor it at some point (possibly when
+ * integrating it in the new version of M&S). The different parts that
+ * we have are:
+ * 
+ * Parameters controlling the construction of the LTS : 
+ *   use_mas, forbid_lr
+ *   limit_absstates_merge, limit_transitions_merge, limit_seconds_mas
+ *   merge_strategy, original_merge, 
+ *   use_bisimulation, shrink_after_merge, label_reduction_options
+ * 
+ * Parameters to continue to get a final heuristic: 
+ *   compute_final_abstraction, shrink_strategy
+ * 
+ * Parameters for the interaction of M&S and LDS: 
+ *   apply_simulation_shrinking, apply_label_dominance_reduction
+ *   apply_subsumed_transitions_pruning, prune_dead_operators
+ * 
+ * Parameters for LDS: 
+ *   skip_simulation, nold_simulation, 
+ *   complex_lts, complex_simulation
+ */ 
+
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
 		                          skip_simulation(opts.get<bool>("skip_simulation")),
 		                          nold_simulation(opts.get<bool>("nold_simulation")),
@@ -1389,7 +1413,7 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
                             "false");
 
     parser.add_option<bool>("original_merge",
-                            "If true, performs the shrinking after merge instead of before",
+                            "Whether it continues merging variables after the next recommended merge has exceeded size",
                             "false");
 
     parser.add_option<ShrinkStrategy *>("shrink_strategy",
