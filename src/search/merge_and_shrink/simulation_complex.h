@@ -7,15 +7,17 @@
  * simulation_simple.
  */
 
-
-
+#include <set>
 #include <queue>
-#include "simulation_relation.h"
+#include <memory>
+#include <iostream>
+#include "compute_simulation.h"
+#include "lts_complex.h" 
 
-#include "lts_complex.h"
+class LTSComplex;
 
 class Qa;
-class LabelRelation;
+
 //Implementation of a list with constant time to check 
 //class SetBits { 
 //    std::vector<bool> bits;
@@ -189,7 +191,7 @@ class LabelData {
 };
 
 
-class SimulationRelationComplex : public SimulationRelation {
+class ComputeSimulationRelationComplex : public ComputeSimulationRelation {
  protected:
     //By now we assume that the partition is unitary... we can improve
     //this later with EquivalenceRelation
@@ -198,7 +200,6 @@ class SimulationRelationComplex : public SimulationRelation {
     std::vector<int> Qp;   //List of abstract states sorted according to the partition 
     std::vector<int> Qp_block; //Assigns each state to the corresponding block 
     std::vector<int> Qp_pos; // Dual of Qp (to reorder Qp in the split)
-
 
     void split_block(const std::set<int> & set_remove, 
 		     std::vector<std::pair<Block *, Block *> > & splitCouples, 
@@ -212,24 +213,7 @@ class SimulationRelationComplex : public SimulationRelation {
     template<typename LTS> void init (int lts_id, const LTS * lts,
 			     const LabelRelation & label_dominance, 
 			     std::queue <Block *> & blocksToUpdate);
-    
- public:
-    SimulationRelationComplex(Abstraction * _abs);
 
-
-    virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
-			const LabelRelation & /*label_dominance*/){
-	//update_sim(lts_id, lts, label_dominance);
-    }
-    virtual void update(int lts_id, const LTSComplex * lts,
-			const LabelRelation & label_dominance){
-	update_sim(lts_id, lts, label_dominance);
-    }
-
-    template<typename LTS> void update_sim (int lts_id, const LTS * lts,
-				   const LabelRelation & label_dominance);
-  
-   
     bool unmarked(bool & mark) const {
 	if(!mark){
 	    mark = true;
@@ -251,14 +235,45 @@ class SimulationRelationComplex : public SimulationRelation {
 	}
 	return false;
     }
+    
+ public:
+    ComputeSimulationRelationComplex() : ComputeSimulationRelation() {}
 
+    virtual std::unique_ptr<SimulationRelation> init_simulation (Abstraction * _abs);
 
-    virtual bool propagate_label_domination(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
-					    const LabelRelation & /*label_dominance*/, 
-					    int /*l*/, int /*l2*/) const{
+    virtual std::unique_ptr<SimulationRelation> 
+	init_simulation_incremental (CompositeAbstraction * /*_abs*/, 
+				     const SimulationRelation & /*simrel_one*/, 
+				     const SimulationRelation & /*simrel_two*/) {
+	std::cerr << "Error: ComputeSimulationRelationComplex::init_simulation_incremental not implemented yet" << std::endl;
+	std::exit(-1);
 	return false;
     }
 
+    virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
+			const LabelRelation & /*label_dominance*/, 
+			SimulationRelation & /*simrel*/){
+	//update_sim(lts_id, lts, label_dominance);
+    }
+
+    virtual void update(int lts_id, const LTSComplex * lts,
+			const LabelRelation & label_dominance, 
+			SimulationRelation & simrel){
+	update_sim(lts_id, lts, label_dominance, simrel);
+    }
+
+    template<typename LTS> void update_sim (int lts_id, const LTS * lts,
+					    const LabelRelation & label_dominance, 
+					    SimulationRelation & simrel);
+
+    virtual bool propagate_label_domination(int /*lts_id*/, 
+					    const LabelledTransitionSystem * /*lts*/,
+					    const LabelRelation & /*label_dominance*/, 
+					    int /*l*/, int /*l2*/, SimulationRelation & /*simrel*/) const {
+	std::cerr << "Error: ComputeSimulationRelationComplex::propagate_label_domination not implemented yet" << std::endl;
+	std::exit(-1);
+	return false;
+    }
 };
 
 #endif

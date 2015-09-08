@@ -2,16 +2,13 @@
 
 #include <queue> 
 #include "../debug.h" 
+#include "label_relation.h" 
+#include "simulation_relation.h" 
 
 using namespace std;
 
-SimulationRelationComplexNoLD::SimulationRelationComplexNoLD (Abstraction * _abs)
-    : SimulationRelationComplex (_abs){
-}
-
-
 template <typename LTS> 
-void SimulationRelationComplexNoLD::init(int /*lts_id*/, const LTS * lts,
+void ComputeSimulationRelationComplexNoLD::init(int /*lts_id*/, const LTS * lts,
         const LabelRelation &label_dominance,
         queue <Block *> & blocksToUpdate) {
 
@@ -86,10 +83,9 @@ void SimulationRelationComplexNoLD::init(int /*lts_id*/, const LTS * lts,
 }
 
 
-template <typename LTS> 
-void  SimulationRelationComplexNoLD::update_sim(int lts_id, const LTS * lts,
-        const LabelRelation & label_dominance){
-
+void ComputeSimulationRelationComplexNoLD::update_sim_nold (int lts_id, const LTSComplex * lts,
+							    const LabelRelation & label_dominance, 
+							    SimulationRelation & simrel) {
     Timer t;
     //cout << "Update complex relation" << endl;
     //label_dominance.dump();
@@ -235,11 +231,11 @@ void  SimulationRelationComplexNoLD::update_sim(int lts_id, const LTS * lts,
     }
 
     //cout << "Done update complex relation: " << t() << endl;
-    for(int s = 0; s < relation.size(); s++){
+    for(int s = 0; s < simrel.num_states(); s++){
         Block * bs = partition[Qp_block[s]].get();
-        for(int t = 0; t < relation.size(); t++){
+        for(int t = 0; t < simrel.num_states(); t++){
             if(s != t && !bs->in_rel(Qp_block[t])){//t does not simulate s
-                relation[t][s] = false;
+                simrel.remove(t, s);
             }
         }
     }

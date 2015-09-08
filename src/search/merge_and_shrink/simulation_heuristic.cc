@@ -59,11 +59,10 @@ void SimulationHeuristic::initialize() {
         }
         mgrParams.print_options();
 
-
         if(insert_dominated){
-            ldSimulation->precompute_dominated_bdds(vars.get());
+            ldSimulation->get_simulations().precompute_dominated_bdds(vars.get());
         }else{
-            ldSimulation->precompute_dominating_bdds(vars.get());
+            ldSimulation->get_simulations().precompute_dominating_bdds(vars.get());
         }
         cout << "Completed preprocessing: " << g_timer() << endl;
     }
@@ -150,7 +149,7 @@ bool SimulationHeuristic::prune_expansion (const State &state, int g){
 
 BDD SimulationHeuristic::getBDDToInsert(const State &state){
     if(insert_dominated){
-        BDD res = ldSimulation->getSimulatedBDD(vars.get(), state);
+        BDD res = ldSimulation->get_simulations().getSimulatedBDD(vars.get(), state);
         if(remove_spurious_dominated_states){
             res = mgr->filter_mutex(res, true, 1000000, true);
             res = mgr->filter_mutex(res, false, 1000000, true);
@@ -336,7 +335,7 @@ bool SimulationHeuristicBDDMap::check (const State & state, int g){
             }
         }
     }else{
-        BDD simulatingBDD = ldSimulation->getSimulatingBDD(vars.get(), state);
+        BDD simulatingBDD = ldSimulation->get_simulations().getSimulatingBDD(vars.get(), state);
         for(auto & entry : closed){
             if(entry.first > g) break;
             if(!((entry.second*simulatingBDD).IsZero())){
@@ -374,7 +373,7 @@ bool SimulationHeuristicBDD::check (const State & state, int /*g*/){
         auto sb = vars->getBinaryDescription(state);
         return !(closed.Eval(sb).IsZero());
     } else{
-        BDD simulatingBDD = ldSimulation->getSimulatingBDD(vars.get(), state);
+        BDD simulatingBDD = ldSimulation->get_simulations().getSimulatingBDD(vars.get(), state);
         return !((closed*simulatingBDD).IsZero());
     }
 }
@@ -445,7 +444,7 @@ bool SimulationHeuristicBDDMapDisj::check (const State & state, int g){
             }
         }
     }else{
-        BDD simulatingBDD = ldSimulation->getSimulatingBDD(vars.get(), state);
+        BDD simulatingBDD = ldSimulation->get_simulations().getSimulatingBDD(vars.get(), state);
         for(auto & entry : closed){
             if(entry.first > g) break;
             for(auto & bdd : entry.second) {
@@ -463,12 +462,12 @@ bool SimulationHeuristicBDDMapDisj::check (const State & state, int g){
 
 
 bool SimulationHeuristicSkylineBDDMap::check (const State & state, int g){
-    auto sims = ldSimulation->get_simulations();
+    auto & sims = ldSimulation->get_simulations();
 
     if(closed.empty()){
         closed.resize(sims.size());
 	for(int part = 0; part < sims.size(); part++) {
-	    closed[part].resize(sims[part]->num_states());
+	    closed[part].resize(sims[part].num_states());
 	}
     }
 
@@ -481,7 +480,7 @@ bool SimulationHeuristicSkylineBDDMap::check (const State & state, int g){
 
 	for(int part = 0; !res.IsZero() && part < sims.size(); part++) {
 	    if(insert_dominated){
-		int val = sims[part]->get_index(state);
+		int val = sims[part].get_index(state);
 		if (closed[part][val].count(gval)){		    
 		    res *= closed[part][val][gval];
 		}else{
@@ -489,7 +488,7 @@ bool SimulationHeuristicSkylineBDDMap::check (const State & state, int g){
 		}
 	    } else {
 		BDD dom = vars->zeroBDD(); 
-		for (int valp : sims[part]->get_dominating_states (state)){
+		for (int valp : sims[part].get_dominating_states (state)){
 		    if (closed[part][valp].count(gval)){
 			dom += closed[part][valp][gval];
 		    }
@@ -507,12 +506,12 @@ bool SimulationHeuristicSkylineBDDMap::check (const State & state, int g){
 
 void SimulationHeuristicSkylineBDDMap::insert (const State & state, int g){
     g_values.insert(g);
-    auto sims = ldSimulation->get_simulations();
+    auto & sims = ldSimulation->get_simulations();
 
     if(closed.empty()){
         closed.resize(sims.size());
 	for(int part = 0; part < sims.size(); part++) {
-	    closed[part].resize(sims[part]->num_states());
+	    closed[part].resize(sims[part].num_states());
 	}
     }
 
@@ -520,7 +519,7 @@ void SimulationHeuristicSkylineBDDMap::insert (const State & state, int g){
     
     for(int part = 0; part < sims.size(); part++){
 	if (insert_dominated){
-	    for (int valp : sims[part]->get_dominated_states (state)){
+	    for (int valp : sims[part].get_dominated_states (state)){
 		if (!closed[part][valp].count(g)){
 		    closed[part][valp][g] = bdd;
 		}else{
@@ -528,7 +527,7 @@ void SimulationHeuristicSkylineBDDMap::insert (const State & state, int g){
 		}
 	    }
 	} else {
-	    int val = sims[part]->get_index(state);
+	    int val = sims[part].get_index(state);
 	    if (!closed[part][val].count(g)){
 		closed[part][val][g] = bdd;
 	    }else{
@@ -544,12 +543,12 @@ void SimulationHeuristicSkylineBDDMap::insert (const State & state, int g){
 
 
 bool SimulationHeuristicSkylineBDD::check (const State & state, int /*g*/){
-    auto sims = ldSimulation->get_simulations();
+    auto & sims = ldSimulation->get_simulations();
 
     if(closed.empty()){
         closed.resize(sims.size());
 	for(int part = 0; part < sims.size(); part++) {
-	    closed[part].resize(sims[part]->num_states(), vars->zeroBDD());
+	    closed[part].resize(sims[part].num_states(), vars->zeroBDD());
 	}
     }
       
@@ -557,11 +556,11 @@ bool SimulationHeuristicSkylineBDD::check (const State & state, int /*g*/){
 
     for(int part = 0; !res.IsZero() && part < sims.size(); part++) {
 	if(insert_dominated){		     
-	    int val = sims[part]->get_index(state);
+	    int val = sims[part].get_index(state);
 	    res *= closed[part][val];
 	} else {
 	    BDD dom = vars->zeroBDD();
-	    for (int valp : sims[part]->get_dominating_states (state)){
+	    for (int valp : sims[part].get_dominating_states (state)){
 		dom += closed[part][valp];
 	    }
 	    res *= dom;
@@ -572,23 +571,23 @@ bool SimulationHeuristicSkylineBDD::check (const State & state, int /*g*/){
 }
 
     void SimulationHeuristicSkylineBDD::insert (const State & state, int /*g*/) {
-    auto sims = ldSimulation->get_simulations();
+    auto & sims = ldSimulation->get_simulations();
 
     if(closed.empty()){
         closed.resize(sims.size());
 	for(int part = 0; part < sims.size(); part++) {
-	    closed[part].resize(sims[part]->num_states(), vars->zeroBDD());
+	    closed[part].resize(sims[part].num_states(), vars->zeroBDD());
 	}
     }
 
     BDD bdd = vars->getStateBDD(state);
     for(int part = 0; part < sims.size(); part++){
 	if (insert_dominated){
-	    for (int valp : sims[part]->get_dominated_states (state)){
+	    for (int valp : sims[part].get_dominated_states (state)){
 		closed[part][valp] += bdd;
 	    }
 	} else {
-	    int val = sims[part]->get_index(state);
+	    int val = sims[part].get_index(state);
 	    closed[part][val] += bdd;
 	}
     }

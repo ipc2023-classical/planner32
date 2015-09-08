@@ -264,7 +264,7 @@ public:
         return relevant_labels;
     }
 
-    inline Abstraction * get_abstraction()  {
+    inline const Abstraction * get_abstraction() const {
         return abs;
     }
 

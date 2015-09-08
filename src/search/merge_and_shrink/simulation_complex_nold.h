@@ -2,30 +2,45 @@
 #define MERGE_AND_SHRINK_SIMULATION_RELATION_COMPLEX_NOLD_H
 
 #include <queue>
+#include <iostream>
 #include "simulation_complex.h"
 
-class SimulationRelationComplexNoLD : public SimulationRelationComplex{
+class ComputeSimulationRelationComplexNoLD : public ComputeSimulationRelationComplex {
 
     template<typename LTS> void init (int lts_id, const LTS * lts,
 				      const LabelRelation & label_dominance, 
-		   std::queue <Block *> & blocksToUpdate);
+				      std::queue <Block *> & blocksToUpdate);
+
+    /* template<typename LTS> void update_sim_nold (int lts_id, const LTS * lts, */
+    /* 					    const LabelRelation & label_dominance,  */
+    /* 					    SimulationRelation & simrel); */
+    
+    void update_sim_nold (int lts_id, const LTSComplex * lts,
+			  const LabelRelation & label_dominance, 
+			  SimulationRelation & simrel);
     
  public:
-    SimulationRelationComplexNoLD(Abstraction * _abs);
-
-    
+    ComputeSimulationRelationComplexNoLD() : ComputeSimulationRelationComplex() {}
+  
 
     virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
-			const LabelRelation & /*label_dominance*/){
+			const LabelRelation & /*label_dominance*/, SimulationRelation & ){
 	//update_sim(lts_id, lts, label_dominance);
     }
     virtual void update(int lts_id, const LTSComplex * lts,
-			const LabelRelation & label_dominance){
-	update_sim(lts_id, lts, label_dominance);
+			const LabelRelation & label_dominance,
+			SimulationRelation & simrel){
+	update_sim_nold(lts_id, lts, label_dominance, simrel);
     }
 
-    template<typename LTS> void update_sim (int lts_id, const LTS * lts,
-				   const LabelRelation & label_dominance);
+    virtual bool propagate_label_domination(int /*lts_id*/, 
+					    const LabelledTransitionSystem * /*lts*/,
+					    const LabelRelation & /*label_dominance*/, 
+					    int /*l*/, int /*l2*/, SimulationRelation & /*simrel*/) const{
+	std::cerr << "Error: ComputeSimulationRelationComplexNoLD::propagate_label_domination not implemented yet" << std::endl;
+	std::exit(-1);
+	return false;
+    }
 };
 
 #endif

@@ -9,7 +9,13 @@
 
 using namespace std;
 
-SimulationRelation::SimulationRelation(Abstraction * _abs) : abs(_abs){
+SimulationRelation::SimulationRelation(Abstraction * _abs) : abs(_abs) { 
+    // set a pointer in the abstraction to this simulation relation
+    abs->set_simulation_relation(this);
+}
+
+
+void SimulationRelation::init_goal_respecting() {
     int num_states = abs->size();
     const std::vector <bool> & goal_states = abs->get_goal_states();
     if (!abs->are_distances_computed()) {
@@ -41,13 +47,87 @@ SimulationRelation::SimulationRelation(Abstraction * _abs) : abs(_abs){
     //         }
     //     }
     // }
-    // set a pointer in the abstraction to this simulation relation
-    abs->set_simulation_relation(this);
+}
+
+
+void SimulationRelation::init_identity () {
+    for(int i = 0; i < relation.size(); i++){
+	for(int j = 0; j < relation[i].size(); j++){
+	    relation[i][j] = (i==j);
+	}
+    }
+}
+
+
+void SimulationRelation::init_incremental(CompositeAbstraction * _abs, 
+				       const SimulationRelation & simrel_one, 
+				       const SimulationRelation & simrel_two) {
+    int num_states = abs->size();
+    const std::vector <bool> & goal_states = abs->get_goal_states();
+    if (!abs->are_distances_computed()) {
+        cerr << "Error: Distances must have been computed before creating the simulation relation!" << endl;
+	exit(-1);
+    }
+    const std::vector <int> & goal_distances = abs->get_goal_distances();
+    relation.resize(num_states);
+    for(int i = 0; i < num_states; i++){
+        relation[i].resize(num_states, true);
+        if(!goal_states[i]){
+            for (int j = 0; j < num_states; j++){
+                if (goal_states[j] || goal_distances[i] > goal_distances[j]){
+                    relation[i][j] = false;
+                }
+            }
+        }
+    }
+
+    fixed_relation.resize(num_states);
+    for (int i = 0; i < num_states; i++) {
+	fixed_relation[i].resize(num_states, false);
+    }
+
+    int num_one = simrel_one.num_states();
+    int num_two = simrel_two.num_states();
+
+    for (int i = 0; i < num_one; i++) {
+	for (int j = i + 1; j < num_one; j++) {
+	    if (simrel_one.simulates(i, j)) {
+		for (int x = 0; x < num_two; x++) {
+		    int ip = _abs->get_abstract_state(i, x);
+		    if (ip == Abstraction::PRUNED_STATE) continue;
+		    for (int y = 0; y < num_two; y++) {
+			if (simrel_two.simulates(x, y)) {
+			    int jp = _abs->get_abstract_state(j, y);
+			    if (jp == Abstraction::PRUNED_STATE) continue;
+			    relation[ip][jp] = true;
+			    fixed_relation[ip][jp] = true;
+			}
+		    }
+		}
+	    }
+	    if (simrel_one.simulates(j, i)) {
+		for (int x = 0; x < num_two; x++) {
+		    int ip = _abs->get_abstract_state(i, x);		    
+		    if (ip == Abstraction::PRUNED_STATE) continue;
+
+		    for (int y = 0; y < num_two; y++) {
+			if (simrel_two.simulates(x, y)) {
+			    int jp = _abs->get_abstract_state(j, y);
+			    if (jp == Abstraction::PRUNED_STATE) continue;
+
+			    relation[jp][ip] = true;
+			    fixed_relation[jp][ip] = true;
+			}
+		    }
+		}
+	    }
+	}
+    }
 }
 
 SimulationRelation::~SimulationRelation() {
     // make sure that the abstraction still works fine, even when this simulation relation is deleted
-    abs->set_simulation_relation(0);
+    abs->set_simulation_relation(nullptr);
 }
 
 void SimulationRelation::apply_shrinking_to_table(const vector<int> & abstraction_mapping) {
@@ -312,4 +392,52 @@ void SimulationRelation::compute_list_dominated_states() {
 	    }
 	}
     }
+}
+
+
+
+
+
+const std::vector<BDD> & SimulationRelation::get_dominated_bdds () {
+    if(dominated_bdds.empty()) precompute_dominated_bdds();
+    return dominated_bdds;
+}
+
+const std::vector<BDD> & SimulationRelation::get_dominating_bdds () {
+    if(dominating_bdds.empty()) precompute_dominating_bdds();
+    return dominating_bdds;
+}
+
+const std::vector<BDD> & SimulationRelation::get_abs_bdds() const{
+    return abs_bdds;
+}
+
+const std::vector <int> & SimulationRelation::get_varset() const {
+    return abs->get_varset();
+}
+
+bool SimulationRelation::pruned(const State & state) const {
+    return abs->get_abstract_state(state) == -1;
+}
+
+int SimulationRelation::get_cost(const State & state) const {
+    return abs->get_cost(state);
+}
+
+int SimulationRelation::get_index (const State & state) const {
+    return abs->get_abstract_state(state);
+}
+
+const std::vector<int> & SimulationRelation::get_dominated_states(const State & state) {
+    if(dominated_states.empty()) {
+	compute_list_dominated_states();
+    }
+    return dominated_states[abs->get_abstract_state(state)];
+}
+
+const std::vector<int> & SimulationRelation::get_dominating_states(const State & state) {
+    if(dominated_states.empty()) {
+	compute_list_dominated_states();
+    }
+    return dominating_states[abs->get_abstract_state(state)];
 }

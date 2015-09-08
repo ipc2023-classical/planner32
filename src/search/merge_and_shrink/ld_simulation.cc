@@ -91,6 +91,16 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
         exit(1);
     }
 
+
+    if (complex_simulation) {
+	if (nold_simulation) {
+	    alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationComplexNoLD());
+	} else {
+	    alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationComplex());
+	}
+    } else {
+	alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationSimple());
+    }
 }
 
 LDSimulation::LDSimulation(const Options &opts) : 
@@ -150,15 +160,26 @@ LDSimulation::LDSimulation(const Options &opts) :
         cerr << "Error: Why do you want to store operators if you don't prune them?" << endl;
         exit(1);
     }
+
+    if (complex_simulation) {
+	if (nold_simulation) {
+	    alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationComplexNoLD());
+	} else {
+	    alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationComplex());
+	}
+    } else {
+	alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationSimple());
+    }
+
 }
 
 LDSimulation::~LDSimulation(){
     for(auto abs : abstractions){
         delete abs;
     }
-    for(auto sim : simulations){
-        delete sim;
-    }
+    // for(auto sim : simulations){
+    //     delete sim;
+    // }
 }
 
 void LDSimulation::build_factored_systems() {
@@ -196,18 +217,14 @@ void LDSimulation::remove_dead_labels(vector<Abstraction *> & abstractions){
     }
 }
 
-int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractions, 
-					      vector<SimulationRelation *> & simulations) {
+int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractions) {
     remove_dead_labels(abstractions);
+    simulations.remove_useless();
     int removed_abstractions = 0;
     for(int i =0; i < abstractions.size(); ++i){
 	if(abstractions[i] && abstractions[i]->is_useless()){
 	    useless_vars.insert(end(useless_vars), begin(abstractions[i]->get_varset()), 
 				end(abstractions[i]->get_varset()));
-	    if (i < simulations.size() && simulations[i]){
-		delete simulations[i];
-		simulations[i] = nullptr;
-	    }
 	    abstractions[i]->release_memory();
 	    delete abstractions[i];
 	    abstractions[i] = nullptr;
@@ -361,9 +378,6 @@ void LDSimulation::build_abstraction() {
     // vector of all abstractions. entries with 0 have been merged.
     vector<Abstraction *> all_abstractions;
     all_abstractions.reserve(g_variable_domain.size() * 2 - 1);
-    vector<SimulationRelation *> all_simulations;
-    if (incremental_simulations)
-        all_simulations.reserve(g_variable_domain.size() * 2 - 1);
     Abstraction::build_atomic_abstractions(all_abstractions, labels.get());
 
     // compute initial simulations, based on atomic abstractions
@@ -393,11 +407,7 @@ void LDSimulation::build_abstraction() {
         }
         // initialize simulations
         compute_ld_simulation();
-        if (incremental_simulations) {
-            for (int i = 0; i < simulations.size(); i++) {
-                all_simulations.push_back(simulations[i]);
-            }
-        }
+
     } else if (use_bisimulation) {
 	if(!forbid_lr){
 	    cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
@@ -423,7 +433,7 @@ void LDSimulation::build_abstraction() {
     }
 
     int remaining_abstractions = all_abstractions.size();
-    remaining_abstractions -= remove_useless_abstractions(all_abstractions, all_simulations);
+    remaining_abstractions -= remove_useless_abstractions(all_abstractions);
 
     cout << "Merging abstractions..." << endl;
 
@@ -453,7 +463,7 @@ void LDSimulation::build_abstraction() {
         cout << "Merge: " << t() << endl;
 
         //TODO: UPDATE SIMULATION WHEN DOING INCREMENTAL COMPUTATION
-        Abstraction *new_abstraction = new CompositeAbstraction(labels.get(),
+        CompositeAbstraction *new_abstraction = new CompositeAbstraction(labels.get(),
                 abstraction,
                 other_abstraction);
 
@@ -495,12 +505,12 @@ void LDSimulation::build_abstraction() {
         //abstraction->compute_distances();
         //other_abstraction->compute_distances();
         new_abstraction->compute_distances();
-        // if (!abstraction->is_solvable())
-        //     return abstraction;
-        // if (!other_abstraction->is_solvable())
-        //     return other_abstraction;
-
-        if(shrink_strategy){
+	if (!new_abstraction->is_solvable()){
+	    final_abstraction = unique_ptr<Abstraction>(new_abstraction);
+	    return;
+	}
+	 
+	 if(shrink_strategy){
             /* PIET-edit: Well, we actually want to have bisim shrinking AFTER merge */
             cout << "Shrink: " << t() << endl;
             //shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
@@ -547,27 +557,21 @@ void LDSimulation::build_abstraction() {
                     abstractions.push_back(all_abstractions[i]);
                 }
             }
-            vector<SimulationRelation *>().swap(simulations);
+            
             if (incremental_simulations) {
-                for (size_t i = 0; i < all_simulations.size(); ++i) {
-                    if (all_abstractions[i]) {
-                        // There should be one simulation for each abstraction (plus the two simulations for the just merged abstractions)
-                        simulations.push_back(all_simulations[i]);
-                    }
-                }
+		alg_compute_simulation->
+		    init_simulation_incremental(simulations, new_abstraction, 
+						abstraction->get_simulation_relation(),
+						other_abstraction->get_simulation_relation());
+		
                 compute_ld_simulation(true);
-                // Now we can also free the memory of the simulations corresponding to the two just merged abstractions
-                delete all_simulations[system_one];
-                all_simulations[system_one] = 0;
-                delete all_simulations[system_two];
-                all_simulations[system_two] = 0;
-                all_simulations.push_back(simulations.back());
+
             } else {
                 compute_ld_simulation();
             }
         }
 
-	remaining_abstractions -= remove_useless_abstractions(all_abstractions, all_simulations);
+	remaining_abstractions -= remove_useless_abstractions(all_abstractions);
     }
 
     if (intermediate_simulations) {
@@ -598,6 +602,7 @@ void LDSimulation::build_abstraction() {
     cout << endl;
 }
 
+
 void LDSimulation::compute_ld_simulation(bool incremental_step) {
 
     LabelMap labelMap (labels.get());
@@ -605,8 +610,12 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
     cout << "Building LTSs and Simulation Relations" << endl;
     vector<LabelledTransitionSystem *> ltss_simple;
     vector<LTSComplex *> ltss_complex;
+    // Generate LTSs and initialize simulation relations
     for (auto a : abstractions){
         a->compute_distances();
+	if (!a->is_solvable()){
+	    return;
+	}
         int lts_size, lts_trs;
         if(complex_lts){
             ltss_complex.push_back(a->get_lts_complex(labelMap));
@@ -620,36 +629,21 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
         cout << "LTS built: " << lts_size << " states " 
                 << lts_trs << " transitions "
                 << labelMap.get_num_labels() << " num_labels"  << endl;
-
-        if (!incremental_step) {
-            if (complex_simulation) {
-                if (nold_simulation) {
-                    simulations.push_back(
-                            new SimulationRelationComplexNoLD(a));
-                } else {
-                    simulations.push_back(new SimulationRelationComplex(a));
-                }
-            } else {
-                //Create initial goal-respecting relation
-                simulations.push_back(new SimulationRelationSimple(a));
-            }
-        }
-    }
-    if (incremental_step) {
-        // We only allow for incremental calculation with the simple simulation relation so far.
-        // Enough to add the new simulation relation to the end of the vector.
-        simulations.push_back(new SimulationRelationSimple(abstractions.back()));
     }
 
+    if (!incremental_step) {
+	alg_compute_simulation->init(simulations, abstractions);
+    }
+
+    //Initialize label dominance relation
     LabelRelation label_dominance (labels.get());
+
+    // Algorithm to compute LD simulation 
     if(complex_lts){
         compute_ld_simulation(ltss_complex, labelMap, label_dominance, incremental_step);
     }else{
         compute_ld_simulation(ltss_simple, labelMap, label_dominance, incremental_step);
     }
-
-    //for(int i = 0; i < simulations.size(); i++)
-        //simulations[i]->dump(ltss_simple[i]->get_names());
 
     if (apply_subsumed_transitions_pruning) {
 	Timer t;
@@ -677,6 +671,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 	    // should (e.g., in nomystery-opt11:p06)
 	    abs->normalize();
 	}
+
 	if (apply_simulation_shrinking) {
 	    if (incremental_step) {
 		// Should be enough to just shrink the new abstraction (using the new simulation relation).
@@ -687,7 +682,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 		//cout << "Shrink all" << endl;
 		for (int i = 0; i < simulations.size(); i++) {
 		    if(!dangerous_LTSs.count(i)){
-			simulations[i]->shrink();
+			simulations[i].shrink();
 		    }
 		}
 	    }       
@@ -705,7 +700,8 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 
     for (auto abs : abstractions) {
         abs->normalize();
-        std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " << abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
+        std::cout << "Final LTS: " << abs->size() << " states " << abs->total_transitions() << " transitions " <<
+	    abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
     }
 }
 
@@ -713,7 +709,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 //Compute a simulation from 0
 // void LDSimulation::compute_ld_simulation(Labels * _labels, 
 // 					 vector<Abstraction *> & _abstractions, 
-// 					 vector<SimulationRelation *> & _simulations, bool no_ld) {
+// 					 FactoredSimulation & _simulations, bool no_ld) {
 
 //     LabelMap labelMap (_labels);
 
@@ -736,13 +732,13 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 //template void LDSimulation::compute_ld_simulation<LabelledTransitionSystem>
 //(Labels * _labels,
 //        std::vector<LabelledTransitionSystem *> & _ltss,
-//        std::vector<SimulationRelation *> & _simulations,
+//        FactoredSimulation & _simulations,
 //        const LabelMap & labelMap, bool no_ld);
 //
 //template void LDSimulation::compute_ld_simulation <LTSComplex>
 //(Labels * _labels,
 //        std::vector<LTSComplex *> & _ltss,
-//        std::vector<SimulationRelation *> & _simulations,
+//        FactoredSimulation & _simulations,
 //        const LabelMap & labelMap, bool no_ld);
 
 template<typename LTS>
@@ -762,10 +758,11 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
         //label_dominance.dump();
         if (incremental_step) {
             // Should be enough to just update the last (i.e., the new) simulation here.
-            simulations.back()->update(simulations.size() - 1, _ltss.back(), label_dominance);
+	    alg_compute_simulation->update(simulations.size() - 1,
+					   _ltss.back(), label_dominance, *(simulations.back()));
         } else {
             for (int i = 0; i < simulations.size(); i++){
-                simulations[i]->update(i, _ltss[i], label_dominance);
+                alg_compute_simulation->update(i, _ltss[i], label_dominance, simulations[i]);
                 //_simulations[i]->dump(_ltss[i]->get_names());
             }
         }
@@ -784,7 +781,7 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 
 // void LDSimulation::compute_ld_simulation_complex(Labels * _labels, 
 //         vector<Abstraction *> & _abstractions,
-//         vector<SimulationRelation *> & _simulations, bool no_ld) {
+//         FactoredSimulation & _simulations, bool no_ld) {
 //     cout << "Building LTSs and Simulation Relations" << endl;
 //     vector<LTSComplex *> ltss;
 //     LabelMap labelMap(_labels);
@@ -813,7 +810,7 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 //         copy.push_back(_simulations[i]->get_relation());
 //     }
 
-//     vector<SimulationRelation *> sim2;
+//     FactoredSimulation sim2;
 //     cout << "Building LTSs and Simulation Relations" << endl;
 //     vector<LabelledTransitionSystem *> ltss2;
 //     for (auto a : _abstractions){
@@ -962,28 +959,6 @@ int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
     return num_pruned_transitions;
 }
 
-//void LDSimulation::compute_ld_simulation_after_merge(vector<Abstraction *> & all_abstractions,
-//        vector<SimulationRelation *> & all_simulations,
-//        const pair<int, int> & next_systems) {
-//    Abstraction *new_abstraction = all_abstractions.back();
-//    vector <Abstraction *> _abstractions; //vector with only the non-null pointers
-//    vector <Abstraction *> _simulations;  //vector with only the non-null simulations
-//    for (auto a : all_abstractions) if(a) _abstractions.push_back(a);
-//    for (auto s : all_simulations) if(s) _simulations.push_back(s);
-//
-//    //b) Reset simulations
-//    //for(auto & sim :_ simulations){
-//    //sim->reset();
-//    //}
-//    //c) Initialize simulation from previous simulations
-//    SimulationRelation * new_sim = new SimulationRelation(new_abstraction,
-//            simulations[next_systems.first],
-//            simulations[next_systems.second]);
-//    all_simulations.push_back(new_sim);
-//    _simulations.push_back(new_sim);
-//}
-
-
 void LDSimulation::dump_options() const {
     merge_strategy->dump_options();
     labels->dump_options();
@@ -1022,21 +997,22 @@ void LDSimulation::initialize() {
         Abstraction::build_atomic_abstractions(abstractions, labels.get());
     }
 
+    //If we have already proven the problem unsolvable we can skip this
+    if(final_abstraction && !final_abstraction->is_solvable()) return;
+
 
     cout << "Computing simulation..." << endl;
-    if(skip_simulation){
-        for (auto a : abstractions){
-            simulations.push_back(new SimulationRelationIdentity(a));
-        }
-    }else{
-        if (intermediate_simulations) {
-            // remove the intermediately built simulations, and create the final ones from scratch
-            vector<SimulationRelation *>().swap(simulations);
-        }
-        compute_ld_simulation();
+    if (intermediate_simulations) {
+	// remove the intermediately built simulations, and create the final ones from scratch
+	simulations.clear();
     }
+    compute_ld_simulation();
 
-
+    //If we have already proven the problem unsolvable we can skip
+    //this (check again because compute_ld_simulation may prune
+    //transitions and prove unsolvability by unreachability analysis)
+    if(final_abstraction && !final_abstraction->is_solvable()) return;
+    
 
     cout << endl;
     cout << "Done initializing simulation heuristic [" << timer << "]"
@@ -1054,18 +1030,8 @@ void LDSimulation::initialize() {
         cout << endl;
     }
 
-    int num_equi = num_equivalences();
-    int num_sims = num_simulations();
-    cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
-    cout << "Similarity equivalences: " << num_equi  << endl;
-    cout << "Only Simulations: " << num_sims << endl;
+    simulations.dump_statistics();   
     cout << "Useless vars: " << useless_vars.size() << endl;
-    /*for(int i = 0; i < simulations.size(); i++){
-    cout << "States after simulation: " << simulations[i]->num_states() << " " 
-	 << simulations[i]->num_different_states() << endl;
-	 }*/
-
-    
 
     if (prune_dead_operators) {
 	vector<bool> dead_labels_ops (labels->get_size(), false);
@@ -1146,9 +1112,6 @@ void LDSimulation::initialize() {
 	cout << "Done initializing merge and shrink heuristic [" << timer << "]"
 	     << endl;
     }
-
-
-
     /*for (int i = 0; i < g_operators.size(); i++) {
         if (required_operators[i])
             cout << g_operators[i].get_name() << endl;
@@ -1158,40 +1121,8 @@ void LDSimulation::initialize() {
     }*/
 }
 
-int LDSimulation::num_equivalences() const {
-    int res = 0;
-    for(int i = 0; i < simulations.size(); i++){
-        res += simulations[i]->num_equivalences();
-    }
-    return res;
-}
-
-
-int LDSimulation::num_simulations() const {
-    int res = 0;
-    for(int i = 0; i < simulations.size(); i++){
-        res += simulations[i]->num_simulations(true);
-    }
-    return res;
-}
-
-void LDSimulation::precompute_dominated_bdds(SymVariables * vars){
-    for(auto & sim : simulations){
-        sim->precompute_absstate_bdds(vars);
-        sim->precompute_dominated_bdds();
-    }
-}
-
-void LDSimulation::precompute_dominating_bdds(SymVariables * vars){
-    for(auto & sim : simulations){
-        sim->precompute_absstate_bdds(vars);
-        sim->precompute_dominating_bdds();
-    }
-}
-
-
 bool LDSimulation::pruned_state(const State &state) const {
-    for(auto sim : simulations) {
+    for(auto & sim : simulations) {
         if(sim->pruned(state)){
             return true;
         }
@@ -1204,7 +1135,7 @@ int LDSimulation::get_cost(const State &state) const {
     if(final_abstraction) {
 	cost = final_abstraction->get_cost(state);
     }else{
-	for(auto sim : simulations) {
+	for(auto & sim : simulations) {
 	    int new_cost = sim->get_cost(state);
 	    if (new_cost == -1) return -1;
 	    cost = max (cost, new_cost);
@@ -1212,76 +1143,6 @@ int LDSimulation::get_cost(const State &state) const {
     }
     return cost;
 }
-
-
-BDD LDSimulation::getSimulatedBDD(SymVariables * vars, const State &state ) const{
-    BDD res = vars->oneBDD();
-    try{
-        for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-            res *= (*it)->getSimulatedBDD(state);
-        }
-    }catch(BDDError e){
-        return vars->zeroBDD();
-    }
-    return res;
-}
-
-BDD LDSimulation::getSimulatingBDD(SymVariables * vars, const State &state ) const{
-    BDD res = vars->oneBDD();
-    try{
-        for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-            res *= (*it)->getSimulatingBDD(state);
-        }
-    }catch(BDDError e){
-        return vars->zeroBDD();
-    }
-
-    return res;
-}
-
-BDD LDSimulation::getIrrelevantStates(SymVariables * vars) const{
-    BDD res = vars->zeroBDD();
-    try{
-        for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-            res += (*it)->getIrrelevantStates(vars);
-        }
-    }catch(BDDError e){
-        return vars->zeroBDD();
-    }
-    return res;
-}
-
-double LDSimulation::get_percentage_simulations(bool ignore_equivalences) const {
-    double percentage = 1;
-    for (auto sim : simulations){
-        percentage *= sim->get_percentage_simulations(false);
-    }
-    if(ignore_equivalences){
-        percentage -= get_percentage_equivalences();
-    } else {
-        percentage -= get_percentage_equal();
-    }
-    return percentage;
-}
-
-
-double LDSimulation::get_percentage_equal() const {
-    double percentage = 1;
-    for (auto sim : simulations){
-        percentage *= 1/(sim->num_states()*sim->num_states());
-    }
-    return percentage;
-}
-
-
-double LDSimulation::get_percentage_equivalences() const {
-    double percentage = 1;
-    for (auto sim : simulations){
-        percentage *= sim->get_percentage_equivalences();
-    }
-    return percentage;
-}
-
 
 void LDSimulation::add_options_to_parser(OptionParser &parser){
     vector<string> label_reduction_method;

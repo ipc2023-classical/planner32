@@ -4,11 +4,12 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include "abstraction.h"
 #include "label_relation.h"
 #include "../sym/sym_variables.h"
 
 class Labels;
+class Abstraction;
+class CompositeAbstraction;
 
 // First implementation of a simulation relation. 
 class SimulationRelation {
@@ -38,15 +39,19 @@ protected:
 public:
     SimulationRelation(Abstraction * _abs);
 
+    void init_goal_respecting (); 
+    void init_identity (); 
+    void init_incremental(CompositeAbstraction * _abs, 
+			  const SimulationRelation & simrel_one, 
+			  const SimulationRelation & simrel_two); 
+
+    SimulationRelation(CompositeAbstraction * _abs, 
+		       const SimulationRelation & simrel_one, 
+		       const SimulationRelation & simrel_two);
+
     virtual ~SimulationRelation();
 
     void apply_shrinking_to_table(const std::vector<int> & abstraction_mapping);
-
-    virtual void update(int lts_id, const LabelledTransitionSystem * lts,
-            const LabelRelation & label_dominance) = 0;
-
-    virtual void update(int lts_id, const LTSComplex * lts,
-            const LabelRelation & label_dominance) = 0;
 
     inline bool simulates (int s, int t) const {
         return relation[s][t];
@@ -56,6 +61,9 @@ public:
         return relation[s][t] && relation[t][s];
     }
 
+    inline bool fixed_simulates(int s, int t) const {
+	return !fixed_relation.empty() && fixed_relation[s][t];
+     }
     inline void remove (int s, int t) {
         relation[s][t] = false;
     }
@@ -66,8 +74,8 @@ public:
 
     int num_equivalences() const;
     int num_simulations(bool ignore_equivalences) const;
-    int num_states() const{
-        return abs_bdds.size();
+    int num_states() const { 
+        return relation.size();
     }
 
     int num_different_states() const;
@@ -83,32 +91,19 @@ public:
     void precompute_dominated_bdds();
     void precompute_dominating_bdds();
 
-    inline const std::vector<BDD> & get_dominated_bdds () {
-        if(dominated_bdds.empty()) precompute_dominated_bdds();
-        return dominated_bdds;
+    inline const Abstraction * get_abstraction() {
+	return abs;
     }
 
-    inline const std::vector<BDD> & get_dominating_bdds () {
-        if(dominating_bdds.empty()) precompute_dominating_bdds();
-        return dominating_bdds;
-    }
-
-
-    inline const std::vector<BDD> & get_abs_bdds() const{
-        return abs_bdds;
-    }
-
-    inline const std::vector <int> & get_varset() const {
-        return abs->get_varset();
-    }
-
-    inline bool pruned(const State & state) const {
-        return abs->get_abstract_state(state) == -1;
-    }
-
-    inline int get_cost(const State & state) const {
-        return abs->get_cost(state);
-    }
+    const std::vector<BDD> & get_dominated_bdds ();
+    const std::vector<BDD> & get_dominating_bdds ();
+    const std::vector<BDD> & get_abs_bdds() const;
+    const std::vector <int> & get_varset() const;
+    bool pruned(const State & state) const;
+    int get_cost(const State & state) const;
+    int get_index (const State & state) const;
+    const std::vector<int> & get_dominated_states(const State & state);
+    const std::vector<int> & get_dominating_states(const State & state);
 
     //Computes the probability of selecting a random pair s, s' such
     //that s simulates s'.
@@ -120,29 +115,9 @@ public:
 
     void shrink();
 
-    virtual bool propagate_label_domination(int lts_id, const LabelledTransitionSystem * lts,
-					    const LabelRelation & label_dominance, 
-					    int l, int l2) const = 0;
-
-    int get_index (const State & state) const {
-	return abs->get_abstract_state(state);
-    }
     
     void compute_list_dominated_states();
 
-    const std::vector<int> & get_dominated_states(const State & state) {
-	if(dominated_states.empty()) {
-	    compute_list_dominated_states();
-	}
-	return dominated_states[abs->get_abstract_state(state)];
-    }
-
-    const std::vector<int> & get_dominating_states(const State & state) {
-	if(dominated_states.empty()) {
-	    compute_list_dominated_states();
-	}
-	return dominating_states[abs->get_abstract_state(state)];
-    }
 };
 
 #endif

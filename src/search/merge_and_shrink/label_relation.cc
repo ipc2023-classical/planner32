@@ -2,10 +2,12 @@
 
 #include "labels.h"
 #include "simulation_relation.h"
+#include "factored_simulation.h"
 #include "labelled_transition_system.h"
 #include "lts_complex.h"
 #include "../equivalence_relation.h"
 #include "../globals.h"
+#include "../utilities.h"
 
 using namespace std;
 
@@ -211,7 +213,7 @@ void LabelRelation::reset(){
 }
 
 void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
-        const std::vector<SimulationRelation*> & sim,
+        const FactoredSimulation & sim,
         const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
     simulates_irrelevant.resize(num_labels);
@@ -245,7 +247,7 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
 }
 
 void LabelRelation::init(const std::vector<LTSComplex *> & lts,
-        const std::vector<SimulationRelation*> & sim,
+        const FactoredSimulation & sim,
         const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
 
@@ -280,7 +282,7 @@ void LabelRelation::init(const std::vector<LTSComplex *> & lts,
 
 
 bool LabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
-        const std::vector<SimulationRelation*> & sim){
+        const FactoredSimulation & sim){
     bool changes = false;
     for (int i = 0; i < lts.size(); ++i){
         changes |= update(i, lts[i], sim[i]);
@@ -289,7 +291,7 @@ bool LabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
 }
 
 bool LabelRelation::update(const std::vector<LTSComplex*> & lts,
-        const std::vector<SimulationRelation*> & sim){
+        const FactoredSimulation & sim){
     bool changes = false;
     for (int i = 0; i < lts.size(); ++i){
         changes |= update(i, lts[i], sim[i]);
@@ -301,7 +303,7 @@ bool LabelRelation::update(const std::vector<LTSComplex*> & lts,
  * iterating only the right transitions (see TODO inside the loop)
  */
 bool LabelRelation::update(int i, const LabelledTransitionSystem * lts, 
-        const SimulationRelation * sim){
+        const SimulationRelation & sim){
     bool changes = false;
     for(int l2 : lts->get_relevant_labels()) {
         for(int l1 : lts->get_relevant_labels()){
@@ -317,7 +319,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
                     //TODO: for(auto tr2 : lts->get_transitions_for_label_src(l1, tr.src)){
                     for(const auto & tr2 : lts->get_transitions_label(l1)){
                         if(tr2.src == tr.src &&
-                                sim->simulates(tr2.target, tr.target)){
+                                sim.simulates(tr2.target, tr.target)){
                             found = true;
                             break; //Stop checking this tr
                         }
@@ -335,7 +337,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
         //Is l2 simulated by irrelevant_labels in lts?
         for(auto tr : lts->get_transitions_label(l2)){
             if (simulated_by_irrelevant[l2][i] &&
-                    !sim->simulates(tr.src, tr.target)) {
+                    !sim.simulates(tr.src, tr.target)) {
                 changes |= set_not_simulated_by_irrelevant(l2, i);
                 for (int l : lts->get_irrelevant_labels()){
                     if(simulates(l, l2, i)){
@@ -351,7 +353,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
             for(int s = 0; s < lts->size(); s++){
                 bool found = false;
                 for(const auto & tr : lts->get_transitions_label(l2)){
-                    if(tr.src == s && sim->simulates(tr.target, tr.src)) {
+                    if(tr.src == s && sim.simulates(tr.target, tr.src)) {
                         found = true;
                         break;
                     }
@@ -373,7 +375,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
 }
 
 bool LabelRelation::update(int i, const LTSComplex * lts, 
-        const SimulationRelation * sim){
+        const SimulationRelation & sim){
     bool changes = false;
     for(int l2 : lts->get_relevant_labels()) {
         for(int l1 : lts->get_relevant_labels()){
@@ -388,7 +390,7 @@ bool LabelRelation::update(int i, const LTSComplex * lts,
                         [&](const LTSTransition & tr){
                     if(!lts->applyPost(l1, tr.src,
                             [&](const LTSTransition & tr2){
-                        return sim->simulates(tr2.target, tr.target);
+                        return sim.simulates(tr2.target, tr.target);
                     })){
                         //std::cout << "Not sim " << l1 << " " << l2 << " " << i << std::endl;
                         set_not_simulates(l1, l2, i);
@@ -405,7 +407,7 @@ bool LabelRelation::update(int i, const LTSComplex * lts,
                 lts->applyPost(l2,
                         //Exists s-l2-> y s.t. s is not simulated by t
                         [&](const LTSTransition & tr){
-            return !sim->simulates(tr.src, tr.target);
+            return !sim.simulates(tr.src, tr.target);
         })){
             changes |= set_not_simulated_by_irrelevant(l2, i);
             for (int l : lts->get_irrelevant_labels()){
@@ -421,7 +423,7 @@ bool LabelRelation::update(int i, const LTSComplex * lts,
             for(int s = 0; s < lts->size(); s++){
                 if(!lts->applyPost(l2,
                         [&](const LTSTransition & tr){
-                    return tr.src == s && sim->simulates(tr.target, tr.src);
+                    return tr.src == s && sim.simulates(tr.target, tr.src);
                 })){
                     simulates_irrelevant[l2][i] = false;
                     for (int l : lts->get_irrelevant_labels()){
@@ -523,10 +525,10 @@ return new EquivalenceRelation(rel.size(), rel);
 /* Returns true if we succeeded in propagating the effects of pruning a transition in lts i. */
 bool LabelRelation::propagate_transition_pruning(int lts_id, 
 						 const vector<LabelledTransitionSystem *> & ltss, 
-						 const vector<SimulationRelation *> & simulations,
+						 const FactoredSimulation & simulations,
 						 int src, int l1, int target){
     LabelledTransitionSystem * lts = ltss[lts_id];
-    const SimulationRelation * sim = simulations[lts_id]; 
+    const SimulationRelation & sim = simulations[lts_id]; 
 
     vector<bool> Tlbool (lts->size(), false), Tlpbool(lts->size(), false);
     vector<int> Tl, Tlp;
@@ -537,7 +539,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
     lts->applyPostSrc(src, [&](const LTSTransition & tr){
 	    if (l1 == tr.label) { //Same label
 		if(tr.target == target) return false;
-		if(!still_simulates_irrelevant && sim->simulates(tr.target, tr.src)){
+		if(!still_simulates_irrelevant && sim.simulates(tr.target, tr.src)){
 		    //There is another transition with the same label which simulates noop
 		    still_simulates_irrelevant = true;
 		}
@@ -545,7 +547,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 		    Tl.push_back(tr.target);
 		    Tlbool[tr.target] = true;
 		}
-	    }else if(simulates(l1, tr.label, lts_id) && sim->simulates(target, tr.target)){   
+	    }else if(simulates(l1, tr.label, lts_id) && sim.simulates(target, tr.target)){   
 		if(!Tlpbool[tr.target]){
 		    Tlp.push_back(tr.target);
 		    Tlpbool[tr.target] = true;
@@ -559,7 +561,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
     for(int t : Tlp){
 	if (!Tlbool[t] && 
 	    find_if(begin(Tl), end(Tl), [&] (int t2) {
-		    return sim->simulates(t2, t);}) == end(Tl)) {
+		    return sim.simulates(t2, t);}) == end(Tl)) {
 	    return false;
 	}
     }
@@ -575,7 +577,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 /* Old version that prunes slighty more but it is too innefficient.
 bool LabelRelation::propagate_transition_pruning(int lts_id, 
 						 const vector<LabelledTransitionSystem *> & ltss, 
-						 const vector<SimulationRelation *> & simulations,
+						 const FactoredSimulation & simulations,
 						 int src, int l1, int target){
     LabelledTransitionSystem * lts = ltss[lts_id];
     const SimulationRelation * sim = simulations[lts_id]; 
@@ -591,21 +593,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 		    return false; //Continue
 		}
 	    
-	    if(l1 == tr.label && sim->simulates(tr.target, tr.src)){
-		still_simulates_irrelevant = true;
-	    }
-	    
-	    if(!in_labels_not_dominated_anymore[l2] && 
-	       simulates(l1, l2, lts_id) && sim->simulates(target, tr.target)){
-		bool found = lts->applyPostSrc(src, [&](const LTSTransition & tr2){
-			return tr2.label == l1 && tr2.target != target &&
-			sim->simulates(tr2.target, tr.target);
-		    });
-
-		if(!found){
-		    if (dominates_in[l1][l2] == lts_id || dominates_in[l1][l2] == DOMINATES_IN_NONE ||
-			dominates_in[l1][l2] == DOMINATES_IN_ALL) {
-			cerr << "Assertion error: label not dominated anymore was not dominated previously or it was dominated in all (which should never happen at this point)" << endl;
+	    if(l1 == tr.label && sim->
 			cout << "ASD l1: " << l1 << " l2:" << l2 << " " << dominates_in[l1][l2] << endl;
 
 			exit(-1); 

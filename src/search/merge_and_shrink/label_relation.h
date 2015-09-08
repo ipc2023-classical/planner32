@@ -10,6 +10,7 @@ class EquivalenceRelation;
 class LTSComplex;
 class LabelledTransitionSystem;
 class SimulationRelation;
+class FactoredSimulation;
 
 const int DOMINATES_IN_ALL = -2;
 const int DOMINATES_IN_NONE = -1;
@@ -35,8 +36,8 @@ class LabelRelation {
 
     std::vector<int> dominated_by_noop_in;
 
-    bool update(int i, const LabelledTransitionSystem * lts, const SimulationRelation * sim);
-    bool update(int i, const LTSComplex  * lts, const SimulationRelation * sim);
+    bool update(int i, const LabelledTransitionSystem * lts, const SimulationRelation & sim);
+    bool update(int i, const LTSComplex  * lts, const SimulationRelation & sim);
 
     void merge_systems(int system_one, int system_two);
     void merge_labels();
@@ -81,12 +82,12 @@ public:
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
     void init(const std::vector<LabelledTransitionSystem *> & lts,
-            const std::vector<SimulationRelation*> & sim,
+            const FactoredSimulation & sim,
             const LabelMap & labelMap);
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
     void init(const std::vector<LTSComplex *> & lts,
-            const std::vector<SimulationRelation*> & sim,
+            const FactoredSimulation & sim,
             const LabelMap & labelMap);
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
@@ -95,9 +96,9 @@ public:
 
     void reset();
     bool update(const std::vector<LabelledTransitionSystem*> & lts,
-            const std::vector<SimulationRelation*> & sim);
+            const FactoredSimulation & sim);
     bool update(const std::vector<LTSComplex*> & lts,
-            const std::vector<SimulationRelation*> & sim);
+            const FactoredSimulation & sim);
 
 
     void dump() const;
@@ -140,7 +141,7 @@ public:
 
     bool propagate_transition_pruning(int lts_id, 
 				      const std::vector<LabelledTransitionSystem *> & ltss, 
-				      const std::vector<SimulationRelation *> & simulations, 
+				      const FactoredSimulation & simulations, 
 				      int src, int l1, int target); 
 
 

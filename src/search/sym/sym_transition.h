@@ -14,6 +14,8 @@ class SymManager;
 class SymPDB;
 class SymSMAS;
 class SimulationRelation;
+class FactoredSimulation;
+
 /*
  * Represents a symbolic transition.
  * It has two differentiated parts: label and abstract state transitions
@@ -36,7 +38,7 @@ class SymTransition{
  public:
   //Constructor for abstraction transitions
  SymTransition(SymManager * mgr, 
-	       const std::vector<SimulationRelation*> & sim_relations);
+	       const FactoredSimulation & sim_relations);
 
   //Constructor for transitions irrelevant for the abstraction
   SymTransition(SymVariables * sVars, 

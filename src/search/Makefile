@@ -103,10 +103,12 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/shrink_strategy.h \
            merge_and_shrink/variable_order_finder.h \
            merge_and_shrink/simulation_relation.h \
+           merge_and_shrink/factored_simulation.h \
            merge_and_shrink/simulation_heuristic.h \
            merge_and_shrink/label_relation.h \
            merge_and_shrink/labelled_transition_system.h \
            merge_and_shrink/lts_complex.h \
+           merge_and_shrink/compute_simulation.h \
            merge_and_shrink/simulation_simple.h \
            merge_and_shrink/simulation_identity.h \
            merge_and_shrink/simulation_complex.h \

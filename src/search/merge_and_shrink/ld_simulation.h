@@ -5,7 +5,8 @@
 
 #include "label_relation.h"
 #include "simulation_relation.h"
-#include "../sym/sym_variables.h"
+#include "factored_simulation.h"
+
 #include "../option_parser.h"
 
 #include <memory>
@@ -17,6 +18,7 @@ class Abstraction;
 class SymManager;
 class LabelledTransitionSystem;
 class LTSComplex;
+class ComputeSimulationRelation;
 
 // Label dominance simulation
 class LDSimulation {  
@@ -56,19 +58,15 @@ protected:
     //TODO: Use unique_ptr here
     std::unique_ptr<Labels> labels;
     std::vector<Abstraction *> abstractions;
-    std::vector<SimulationRelation *> simulations;
+    FactoredSimulation simulations;
     std::unique_ptr<Abstraction> final_abstraction;
 
     std::vector<int> useless_vars;
     std::vector<bool> dead_labels;
 
-
-    // std::unique_ptr<LabelRelation>  label_dominance;
-    //  std::vector<LabelledTransitionSystem *> ltss;
+    std::unique_ptr<ComputeSimulationRelation> alg_compute_simulation; 
 
     void dump_options() const;
-    int num_equivalences() const;
-    int num_simulations() const;
 
     void build_abstraction();
     void compute_ld_simulation(bool incremental_step = false);
@@ -76,24 +74,23 @@ protected:
 
     std::vector<std::vector<int> > get_variable_partition_greedy();
 
-    void compute_ld_simulation_after_merge(std::vector<Abstraction *> & _abstractions,
-            std::vector<SimulationRelation *> & _simulations,
-            const std::pair<int, int> & next_systems);
+    /* void compute_ld_simulation_after_merge(std::vector<Abstraction *> & _abstractions, */
+    /*         FactoredSimulation & _simulations, */
+    /*         const std::pair<int, int> & next_systems); */
 
     /* static void compute_ld_simulation(Labels * _labels, std::vector<Abstraction *> & _abstractions, */
-    /*         std::vector<SimulationRelation *> & _simulations, bool no_ld = false); */
+    /*         FactoredSimulation & _simulations, bool no_ld = false); */
 
     /* static void compute_ld_simulation_complex(Labels * _labels, */
     /*         std::vector<Abstraction *> & _abstractions, */
-    /*         std::vector<SimulationRelation *> & _simulations, bool no_ld = false); */
+    /*         FactoredSimulation & _simulations, bool no_ld = false); */
 
 
-
-    template <typename LTS>
-    void compute_ld_simulation(std::vector<LTS *> & _ltss,
-            const LabelMap & labelMap,
-            LabelRelation & label_dominance,
-            bool incremental_step = false);
+    template<typename LTS>
+	void compute_ld_simulation(std::vector<LTS *> & _ltss,
+				   const LabelMap & labelMap, 
+				   LabelRelation & label_dominance, 
+				   bool incremental_step);
 
     // If lts_id = -1 (default), then prunes in all ltss. If lts_id > 0,
     // prunes transitions dominated in all in all LTS, but other
@@ -106,8 +103,7 @@ protected:
 
     void remove_dead_labels(std::vector<Abstraction *> & abstractions);
 
-    int remove_useless_abstractions(std::vector<Abstraction *> & abstractions, 
-				    std::vector<SimulationRelation *> & simulations) ;
+    int remove_useless_abstractions(std::vector<Abstraction *> & abstractions) ;
 
     Abstraction * complete_heuristic() const;
 public:
@@ -116,30 +112,13 @@ public:
     virtual ~LDSimulation();
 
     void initialize();
-    void precompute_dominated_bdds(SymVariables * vars);
-    void precompute_dominating_bdds(SymVariables * vars);
 
     bool pruned_state(const State &state) const;
     int get_cost(const State &state) const;
 
-    BDD getSimulatedBDD(SymVariables * vars, const State &state) const;
-    BDD getSimulatingBDD(SymVariables * vars, const State &state) const;
-
-    BDD getIrrelevantStates(SymVariables * vars) const;
-
-    inline std::vector<SimulationRelation *> get_simulations(){
+    inline FactoredSimulation & get_simulations() {
         return simulations;
     }
-
-    //Computes the probability of selecting a random pair s, s' such
-    //that s simulates s'.
-    double get_percentage_simulations(bool ignore_equivalences) const;
-
-    //Computes the probability of selecting a random pair s, s' such that
-    //s is equivalent to s'.
-    double get_percentage_equivalences() const;
-
-    double get_percentage_equal() const;
 
     void getVariableOrdering(std::vector <int> & var_order);
 

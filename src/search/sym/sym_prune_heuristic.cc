@@ -28,7 +28,7 @@ void SymPruneHeuristic::initialize(SymManager * mgr) {
 
   if(prune_irrelevant){
       cout << "Computing irrelevant states BDD " << g_timer() << endl;
-      BDD irrelevantStates = ldSimulation->getIrrelevantStates(mgr->getVars());
+      BDD irrelevantStates = ldSimulation->get_simulations().getIrrelevantStates(mgr->getVars());
       cout << "Irrelevant states BDD: " << irrelevantStates.nodeCount() << " " << g_timer() << endl;
       //Prune irrelevant states in both directions
       mgr->addDeadEndStates(true, irrelevantStates);

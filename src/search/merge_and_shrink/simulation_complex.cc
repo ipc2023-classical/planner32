@@ -2,11 +2,49 @@
 
 #include <queue> 
 #include "../debug.h" 
-
 #include "labelled_transition_system.h" 
+#include "label_relation.h" 
+#include "abstraction.h" 
+#include "simulation_relation.h" 
 #include "lts_complex.h" 
 
 using namespace std;
+
+
+unique_ptr<SimulationRelation> ComputeSimulationRelationComplex::init_simulation
+(Abstraction * abs) { 
+    //cout << "Generate complex relation" << endl;
+    int num_states = abs->size();
+    //Generate a partition with two blocks, goal and non-goal (or N, based on computed_distances)
+    Qp.resize(num_states, 0);
+    Qp_block.resize(num_states, 0);
+    Qp_pos.resize(num_states, 0);
+    int goal_id =0;
+    int nongoal_id = num_states -1;
+    const vector <bool> & goal_states = abs->get_goal_states();
+    for(int i = 0; i < num_states; i++){
+	if(goal_states[i]){
+	    Qp_pos[i] = goal_id;
+	    Qp[goal_id++] = i;
+	    Qp_block[i] = 0;
+	}else{
+	    Qp_pos[i] = nongoal_id;
+	    Qp[nongoal_id--] = i;
+	    Qp_block[i] = 1;
+	}
+    }
+    Block * goalBlock = new Block(0, 0, goal_id - 1);
+    partition.push_back(unique_ptr<Block> (goalBlock));	    
+    if(nongoal_id < num_states - 1){
+	Block * ngoalBlock = new Block(1, nongoal_id+1, num_states -1);
+	partition.push_back(unique_ptr<Block> (ngoalBlock));
+	ngoalBlock->add_rel(goalBlock);
+    }
+
+    std::unique_ptr<SimulationRelation> res (new SimulationRelation(abs));
+    res->init_goal_respecting();
+    return std::move (res);
+}
 
 template <typename LTS> 
 void Block::add_notRel(Block * block, const LTS * lts, const vector<int> &  Qp) {
@@ -32,45 +70,12 @@ unique_ptr<Block> Block::split(int index) {
     return newb;
 }
 
-SimulationRelationComplex::SimulationRelationComplex(Abstraction * _abs)
-: SimulationRelation (_abs){
-    //cout << "Generate complex relation" << endl;
-    int num_states = abs->size();
-    //Generate a partition with two blocks, goal and non-goal (or N, based on computed_distances)
-    Qp.resize(num_states, 0);
-    Qp_block.resize(num_states, 0);
-    Qp_pos.resize(num_states, 0);
-    int goal_id =0;
-    int nongoal_id = num_states -1;
-    const vector <bool> & goal_states = abs->get_goal_states();
-    for(int i = 0; i < num_states; i++){
-        if(goal_states[i]){
-            Qp_pos[i] = goal_id;
-            Qp[goal_id++] = i;
-            Qp_block[i] = 0;
-        }else{
-            Qp_pos[i] = nongoal_id;
-            Qp[nongoal_id--] = i;
-            Qp_block[i] = 1;
-        }
-    }
-    Block * goalBlock = new Block(0, 0, goal_id - 1);
-    partition.push_back(unique_ptr<Block> (goalBlock));	    
-    if(nongoal_id < num_states - 1){
-        Block * ngoalBlock = new Block(1, nongoal_id+1, num_states -1);
-        partition.push_back(unique_ptr<Block> (ngoalBlock));
-        ngoalBlock->add_rel(goalBlock);
-    }
-    //cout << "Generated complex relation" << endl;
-}
-
 
 void LabelData::add_to_remove_init(const Qa & qa,
         const LabelRelation &label_dominance,
         int lts_id){
     //cout << "Add to remove " << qa.label << " " << qa.state << endl;
     for(int l = 0; l < label_dominance.get_num_labels(); ++l){
-
         // We dont care about labels dominated by noop (will be skipped later)
         if(!label_dominance.dominated_by_noop(l, lts_id)){
             if(label_dominance.dominates(qa.label, l, lts_id)){
@@ -83,9 +88,11 @@ void LabelData::add_to_remove_init(const Qa & qa,
 
 
 template <typename LTS>
-void SimulationRelationComplex::init(int lts_id, const LTS * lts,
-        const LabelRelation &label_dominance,
-        queue <Block *> & blocksToUpdate) {
+void ComputeSimulationRelationComplex::init(int lts_id, const LTS * lts,
+					    const LabelRelation &label_dominance,
+					    queue <Block *> & blocksToUpdate) {
+
+   
 
     // cout << "Init complex relation" << endl;
     // cout << "Qp: "; for (auto q : Qp) cout << " " << q; cout << endl;
@@ -176,8 +183,9 @@ void SimulationRelationComplex::init(int lts_id, const LTS * lts,
 
 
 template <typename LTS> 
-void  SimulationRelationComplex::update_sim(int lts_id, const LTS * lts,
-					  const LabelRelation & label_dominance){    
+void  ComputeSimulationRelationComplex::update_sim(int lts_id, const LTS * lts,
+						   const LabelRelation & label_dominance, 
+						   SimulationRelation & simrel){    
     Timer t;
     //cout << "Update complex relation" << endl;
     //label_dominance.dump();
@@ -368,18 +376,18 @@ void  SimulationRelationComplex::update_sim(int lts_id, const LTS * lts,
     }
 
     //cout << "Done update complex relation: " << t() << endl;
-    for(int s = 0; s < relation.size(); s++){
+    for(int s = 0; s < simrel.num_states(); s++){
         Block * bs = partition[Qp_block[s]].get();
-        for(int t = 0; t < relation.size(); t++){
-            if(s != t && !bs->in_rel(Qp_block[t])){//t does not simulate s
-                relation[t][s] = false;
+        for(int t = 0; t < simrel.num_states(); t++){
+            if(s != t && !bs->in_rel(Qp_block[t])){ //t does not simulate s
+                simrel.remove(t, s);
             }
         }
     }
     //cout << "Updated relation" << endl;
 }
 
-void SimulationRelationComplex::split_block(const set<int> & set_remove,
+void ComputeSimulationRelationComplex::split_block(const set<int> & set_remove,
         vector<pair<Block *, Block *> > & splitCouples,
         vector<Block *> & blocksInRemove){
     // cout << "SplitBlock" << endl;
@@ -451,7 +459,7 @@ void Block::dump  (const std::vector<int> & Qp){
 //s - l -> t' with l >= tl and t' in rel(B), i. e., if for any block C
 //in rel(B), and label l, C.relCount(sl) > 0
 template <typename LTS>
-bool SimulationRelationComplex::get_in_pre_rel(Block * b, int src, int label, int lts_id,
+bool ComputeSimulationRelationComplex::get_in_pre_rel(Block * b, int src, int label, int lts_id,
         const LTS * lts,
         const LabelRelation & label_dominance) const {
     //cout << "Check whether " << src << " is in preRel" << b->index << " l" << label  << endl;
