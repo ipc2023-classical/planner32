@@ -26,7 +26,6 @@ class ComputeSimulationRelation {
 				     const SimulationRelation & simrel_one, 
 				     const SimulationRelation & simrel_two) = 0;
 
-
 public:
 
     ComputeSimulationRelation() {}
@@ -38,8 +37,8 @@ public:
 
     void init_simulation_incremental (FactoredSimulation & simulations, 
 					  CompositeAbstraction * _abs, 
-					  const SimulationRelation * simrel_one, 
-					  const SimulationRelation * simrel_two);
+					  const SimulationRelation & simrel_one, 
+					  const SimulationRelation & simrel_two);
 
 
     virtual void update(int lts_id, const LabelledTransitionSystem * lts, 

@@ -3,9 +3,11 @@
 
 #include <vector>
 #include <memory>
-#include "../sym/sym_variables.h"
+#include "label_relation.h" 
 
-class SimulationRelation;
+#include "../sym/sym_variables.h"
+#include "simulation_relation.h"
+#include "compute_simulation.h"
 
 /*
  * Class that represents the collection of simulation relations for a
@@ -18,9 +20,68 @@ class FactoredSimulation {
 					    //the simulations
 
     std::vector<std::unique_ptr<SimulationRelation> > simulations;
+    LabelRelation label_dominance;
   public: 
-    FactoredSimulation() {}
+FactoredSimulation(Labels * labels) : label_dominance(labels) 
+    {}
+   
+    template<typename LTS>
+	void compute_ld_simulation(std::vector<LTS *> & _ltss,
+				   const LabelMap & labelMap, 
+				   bool incremental_step, bool nold_simulation, 
+				   ComputeSimulationRelation  & alg_compute_simulation) {
+	Timer t;
 
+	if(!nold_simulation){
+	    label_dominance.init(_ltss, *this, labelMap);
+	}else{
+	    label_dominance.init_identity(_ltss.size(), labelMap);
+	}
+
+        label_dominance.init(_ltss, *this, labelMap);
+						
+	std::cout << "Label dominance initialized: " << _ltss.size() <<" " << t() << std::endl;
+	do{
+	    std::cout << "LDsimulation loop: ";
+	    //label_dominance.dump();
+	    if (incremental_step) {
+		// Should be enough to just update the last (i.e., the new) simulation here.
+		alg_compute_simulation.update(simulations.size() - 1,
+					      _ltss.back(), label_dominance, *(simulations.back()));
+	    } else {
+		for (int i = 0; i < simulations.size(); i++){
+		    alg_compute_simulation.update(i, _ltss[i], label_dominance, *(simulations[i]));
+		    //_dominance_relation[i]->dump(_ltss[i]->get_names());
+		}
+	    }
+	    std::cout << " took " << t() << "s" << std::endl;
+	    //return; //PIET-edit: remove this for actual runs; just here for debugging the complex stuff
+	}while(label_dominance.update(_ltss, *this));
+	//for(int i = 0; i < _ltss.size(); i++){
+	//_ltss[i]->dump();
+	//	_dominance_relation[i]->dump(_ltss[i]->get_names());
+	//}
+	//label_dominance.dump_equivalent();
+	//label_dominance.dump_dominance();
+	//exit(0);
+	//}
+    }
+
+    bool propagate_transition_pruning(int lts_id,
+				      const std::vector<LabelledTransitionSystem *> & ltss, 
+				      int src, int label_id, int target) const;
+
+    int prune_subsumed_transitions(std::vector<Abstraction *> & abstractions, 
+				   const LabelMap & labelMap,
+				   const std::vector<LabelledTransitionSystem *> & ltss, 
+				   int lts_id);
+
+
+    EquivalenceRelation* get_equivalent_labels_relation(const LabelMap & labelMap, 
+							std::set<int> & dangerous_LTSs) const {
+	return label_dominance.get_equivalent_labels_relation(labelMap, dangerous_LTSs);
+    }
+    
     void remove_useless();
 
     void dump_statistics () const;

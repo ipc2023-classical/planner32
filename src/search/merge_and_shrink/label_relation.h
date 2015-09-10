@@ -36,8 +36,10 @@ class LabelRelation {
 
     std::vector<int> dominated_by_noop_in;
 
-    bool update(int i, const LabelledTransitionSystem * lts, const SimulationRelation & sim);
-    bool update(int i, const LTSComplex  * lts, const SimulationRelation & sim);
+    bool update(int i, const LabelledTransitionSystem * lts, 
+		const SimulationRelation & sim);
+    bool update(int i, const LTSComplex  * lts, 
+		const SimulationRelation & sim);
 
     void merge_systems(int system_one, int system_two);
     void merge_labels();
@@ -112,7 +114,7 @@ public:
     }
     void prune_operators();
 
-    void get_labels_dominated_in_all(std::vector<int> & labels_dominated_in_all);
+    std::vector<int> get_labels_dominated_in_all() const;
 
     inline int get_dominated_by_noop_in (int l) const {
         return dominated_by_noop_in[l];
@@ -142,7 +144,7 @@ public:
     bool propagate_transition_pruning(int lts_id, 
 				      const std::vector<LabelledTransitionSystem *> & ltss, 
 				      const FactoredSimulation & simulations, 
-				      int src, int l1, int target); 
+				      int src, int l1, int target) const; 
 
 
     void kill_label(int l) {

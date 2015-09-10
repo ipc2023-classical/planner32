@@ -23,12 +23,12 @@ void SymPruneHeuristic::initialize(SymManager * mgr) {
     cout << "Initialize sym prune heuristic" << endl;
   if(!tr && dominance_pruning){
     tr = unique_ptr<SymTransition>(new SymTransition(mgr,
-						     ldSimulation->get_simulations()));
+						     ldSimulation->get_dominance_relation()));
   }
 
   if(prune_irrelevant){
       cout << "Computing irrelevant states BDD " << g_timer() << endl;
-      BDD irrelevantStates = ldSimulation->get_simulations().getIrrelevantStates(mgr->getVars());
+      BDD irrelevantStates = ldSimulation->get_dominance_relation().getIrrelevantStates(mgr->getVars());
       cout << "Irrelevant states BDD: " << irrelevantStates.nodeCount() << " " << g_timer() << endl;
       //Prune irrelevant states in both directions
       mgr->addDeadEndStates(true, irrelevantStates);

@@ -67,6 +67,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
     original_merge(opts.get<bool>("original_merge")), 
     labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
+    dominance_relation = unique_ptr<FactoredSimulation>(new FactoredSimulation(labels.get()));
     /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
@@ -127,6 +128,7 @@ LDSimulation::LDSimulation(const Options &opts) :
 		shrink_after_merge(opts.get<bool>("shrink_after_merge")),
 		original_merge(opts.get<bool>("original_merge"))
     {
+
     /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
@@ -151,6 +153,7 @@ LDSimulation::LDSimulation(const Options &opts) :
         }
     }
     labels = unique_ptr<Labels> (new Labels(is_unit_cost, opts, cost_type)); //TODO: c++14::make_unique
+    dominance_relation = unique_ptr<FactoredSimulation>(new FactoredSimulation(labels.get()));
     /*if (apply_subsumed_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
         cerr << "Error: can only apply pruning of subsumed transitions if perfect label reduction is applied" << endl;
         exit(1);
@@ -219,7 +222,7 @@ void LDSimulation::remove_dead_labels(vector<Abstraction *> & abstractions){
 
 int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractions) {
     remove_dead_labels(abstractions);
-    simulations.remove_useless();
+    dominance_relation->remove_useless();
     int removed_abstractions = 0;
     for(int i =0; i < abstractions.size(); ++i){
 	if(abstractions[i] && abstractions[i]->is_useless()){
@@ -560,7 +563,7 @@ void LDSimulation::build_abstraction() {
             
             if (incremental_simulations) {
 		alg_compute_simulation->
-		    init_simulation_incremental(simulations, new_abstraction, 
+		    init_simulation_incremental(*dominance_relation, new_abstraction, 
 						abstraction->get_simulation_relation(),
 						other_abstraction->get_simulation_relation());
 		
@@ -632,24 +635,34 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
     }
 
     if (!incremental_step) {
-	alg_compute_simulation->init(simulations, abstractions);
+	alg_compute_simulation->init(*dominance_relation, abstractions);
     }
-
-    //Initialize label dominance relation
-    LabelRelation label_dominance (labels.get());
 
     // Algorithm to compute LD simulation 
     if(complex_lts){
-        compute_ld_simulation(ltss_complex, labelMap, label_dominance, incremental_step);
+        dominance_relation->compute_ld_simulation(ltss_complex, labelMap,
+						  incremental_step, nold_simulation, 
+						  *alg_compute_simulation);
     }else{
-        compute_ld_simulation(ltss_simple, labelMap, label_dominance, incremental_step);
+        dominance_relation->compute_ld_simulation(ltss_simple, labelMap,
+						  incremental_step, nold_simulation, 
+						  *alg_compute_simulation);
     }
 
     if (apply_subsumed_transitions_pruning) {
 	Timer t;
-	int lts_id = incremental_step ? simulations.size() -1 : -1;
+	int lts_id = incremental_step ? dominance_relation->size() - 1 : -1;
 
-        int num_pruned_trs = prune_subsumed_transitions(labelMap, label_dominance, ltss_simple, lts_id/*TODO: Hack lts_complex will not work ever */);
+	cout << "Prune transitions in " << lts_id << endl;
+
+	cout << "number of transitions before pruning:" << endl;
+	for (auto abs : abstractions) {
+	    abs->statistics(false);
+	}
+        int num_pruned_trs = dominance_relation->prune_subsumed_transitions(abstractions, labelMap, ltss_simple, lts_id/*TODO: Hack lts_complex will not work ever */);
+
+	remove_dead_labels(abstractions);
+
 
         //if(num_pruned_trs){
         std::cout << num_pruned_trs << " transitions in the LTSs were pruned. " << t() << std::endl;
@@ -660,7 +673,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 	set<int> dangerous_LTSs;
 	//labels->reduce(make_pair(0, 1), abstractions);
 
-	labels->reduce(labelMap, label_dominance, dangerous_LTSs);
+	labels->reduce(labelMap, *dominance_relation, dangerous_LTSs);
 	cout << "Labels reduced. Dangerous for: " << dangerous_LTSs.size() << endl;
 	//for (auto v : dangerous_LTSs) cout << v << " ";
 	//cout << endl;
@@ -675,14 +688,14 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 	if (apply_simulation_shrinking) {
 	    if (incremental_step) {
 		// Should be enough to just shrink the new abstraction (using the new simulation relation).
-		if(!dangerous_LTSs.count(simulations.size() - 1)){
-		    simulations.back()->shrink();
+		if(!dangerous_LTSs.count(dominance_relation->size() - 1)){
+		    dominance_relation->back()->shrink();
 		}
 	    } else {
 		//cout << "Shrink all" << endl;
-		for (int i = 0; i < simulations.size(); i++) {
+		for (int i = 0; i < dominance_relation->size(); i++) {
 		    if(!dangerous_LTSs.count(i)){
-			simulations[i].shrink();
+			(*dominance_relation)[i].shrink();
 		    }
 		}
 	    }       
@@ -741,47 +754,9 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 //        FactoredSimulation & _simulations,
 //        const LabelMap & labelMap, bool no_ld);
 
-template<typename LTS>
-void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
-        const LabelMap & labelMap, LabelRelation & label_dominance,
-        bool incremental_step) {
-    Timer t;
-
-    if(!nold_simulation){
-        label_dominance.init(_ltss, simulations, labelMap);
-    }else{
-        label_dominance.init_identity(_ltss.size(), labelMap);
-    }
-    std::cout << "Label dominance initialized: " << t() << std::endl;
-    do{
-        std::cout << "LDsimulation loop: ";
-        //label_dominance.dump();
-        if (incremental_step) {
-            // Should be enough to just update the last (i.e., the new) simulation here.
-	    alg_compute_simulation->update(simulations.size() - 1,
-					   _ltss.back(), label_dominance, *(simulations.back()));
-        } else {
-            for (int i = 0; i < simulations.size(); i++){
-                alg_compute_simulation->update(i, _ltss[i], label_dominance, simulations[i]);
-                //_simulations[i]->dump(_ltss[i]->get_names());
-            }
-        }
-        std::cout << " took " << t() << "s" << std::endl;
-        //return; //PIET-edit: remove this for actual runs; just here for debugging the complex stuff
-    }while(label_dominance.update(_ltss, simulations));
-    //for(int i = 0; i < _ltss.size(); i++){
-    //_ltss[i]->dump();
-    //	_simulations[i]->dump(_ltss[i]->get_names());
-    //}
-    //label_dominance.dump_equivalent();
-    //label_dominance.dump_dominance();
-    //exit(0);
-    //}
-}
-
 // void LDSimulation::compute_ld_simulation_complex(Labels * _labels, 
 //         vector<Abstraction *> & _abstractions,
-//         FactoredSimulation & _simulations, bool no_ld) {
+//         FactoredSimulation & _dominance_relation, bool no_ld) {
 //     cout << "Building LTSs and Simulation Relations" << endl;
 //     vector<LTSComplex *> ltss;
 //     LabelMap labelMap(_labels);
@@ -790,24 +765,24 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 //         cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
 //         //Create initial goal-respecting relation
 // 	if(no_ld){
-// 	    _simulations.push_back(new SimulationRelationComplexNoLD(a));
+// 	    _dominance_relation.push_back(new SimulationRelationComplexNoLD(a));
 // 	}else{
-// 	    _simulations.push_back(new SimulationRelationComplex(a));
+// 	    _dominance_relation.push_back(new SimulationRelationComplex(a));
 // 	}
 //     }
 
 //     LabelRelation TMPlabel (_labels);
 //     if(!no_ld)
-// 	TMPlabel.init(ltss, _simulations, labelMap);
+// 	TMPlabel.init(ltss, _dominance_relation, labelMap);
 //     Timer t;
-//     compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
+//     compute_ld_simulation(_labels, ltss, _dominance_relation, labelMap, no_ld);
 //     cout << "Time new: " << t() << endl;
 
 //     cout << "S1;" << endl;
 //     std::vector<std::vector<std::vector<bool> > > copy;
-//     for(int i = 0; i < _simulations.size(); i++){
-//         //_simulations[i]->dump(ltss[i]->get_names());
-//         copy.push_back(_simulations[i]->get_relation());
+//     for(int i = 0; i < _dominance_relation.size(); i++){
+//         //_dominance_relation[i]->dump(ltss[i]->get_names());
+//         copy.push_back(_dominance_relation[i]->get_relation());
 //     }
 
 //     FactoredSimulation sim2;
@@ -838,7 +813,7 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 //         for(int s = 0; s < ltss[i]->size(); s++){
 //             for(int t = 0; t < ltss[i]->size(); t++){
 //                 if(copy[i][s][t] != sim2[i]->simulates(s, t)){
-//                     cout << "Error: different simulations    ";
+//                     cout << "Error: different dominance_relation    ";
 //                     cout <<ltss[i]->get_names() [t] << " <= " <<ltss[i]->get_names() [s];
 //                     cout << "   Old: " << sim2[i]->simulates(s, t) << " new: " << copy[i][s][t]  << endl;
 //                 }
@@ -868,7 +843,7 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 //     // 	 for(int s = 0; s < ltss[i]->size(); s++){
 //     // 	     for(int t = 0; t < ltss[i]->size(); t++){
 //     // 		 if(s1.simulates(s, t) != s2.simulates(s, t)){
-//     // 		     cout << "Error: different simulations    ";
+//     // 		     cout << "Error: different dominance_relation    ";
 //     // 		     cout <<ltss[i]->get_names() [t] << " <= " <<ltss[i]->get_names() [s];
 //     // 		     cout << "   Old: " << s1.simulates(s, t) << " new: " << s2.simulates(s, t) << endl;
 //     // 		 }
@@ -880,84 +855,6 @@ void LDSimulation::compute_ld_simulation(std::vector<LTS *> & _ltss,
 // }
 
 
-// If lts_id = -1 (default), then prunes in all ltss. If lts_id > 0,
-// prunes transitions dominated in all in all LTS, but other
-// transitions are only checked for lts_id
-int LDSimulation::prune_subsumed_transitions(const LabelMap & labelMap,
-					     LabelRelation & label_dominance, 
-					     const vector<LabelledTransitionSystem *> & ltss, 
-					     int lts_id){ 
-    cout << "number of transitions before pruning:" << endl;
-    for (auto abs : abstractions) {
-        abs->statistics(false);
-    }
-    int num_pruned_transitions = 0;
-
-    //a) prune transitions of labels that are completely dominated by
-    //other in all LTS
-    vector <int> labels_id;
-    label_dominance.get_labels_dominated_in_all(labels_id);
-    for (auto abs : abstractions){
-	for (int l : labels_id){
-	    num_pruned_transitions += abs->prune_transitions_dominated_label_all(labelMap.get_old_id(l));
-	    label_dominance.kill_label(l);
-	}
-    }
-
-    //b) prune transitions dominated by noop in a transition system
-    for (int l = 0; l < label_dominance.get_num_labels(); l++){
-        int lts = label_dominance.get_dominated_by_noop_in(l);
-        if(lts >= 0 && (lts == lts_id || lts_id == -1)){
-            // the index of the LTS and its corresponding abstraction should always be the same -- be careful about
-            // this in the other code!
-            num_pruned_transitions += abstractions[lts]->
-		prune_transitions_dominated_label_noop(lts, ltss, 
-						       simulations, label_dominance, 
-						       labelMap, labelMap.get_old_id(l));
-        }
-    }
-
-    //c) prune transitions dominated by other transitions
-    for (int lts = 0; lts < abstractions.size(); lts++) {
-	if(lts_id != -1 && lts != lts_id) continue; 
-        Abstraction* abs = abstractions[lts];
-        const auto & is_rel_label = abs->get_relevant_labels();
-        //l : Iterate over relevant labels
-        for (int l = 0; l < is_rel_label.size(); ++l){
-            if(!is_rel_label[l]) continue;
-            int label_l = labelMap.get_id(l);
-            for (int l2 = l; l2 < is_rel_label.size(); ++l2){
-                if(!is_rel_label[l2]) continue;
-                int label_l2 = labelMap.get_id(l2);
-                //l2 : Iterate over relevant labels
-                /* PIET-edit: after talking to Alvaro, it seems that the only critical case, i.e., having two labels l and l'
-                 * with l >= l' and l' >= l, and two transitions, s--l->t and s--l'->t' with t >= t' and t' >= t, cannot occur
-                 * if we first run simulation-shrinking. So, if we make sure that it is run before irrelevance pruning, we
-                 * should have no problems here.
-                 */
-//                if (l != l2 && label_dominance.dominates(label_l, label_l2, lts) && label_dominance.dominates(label_l2, label_l, lts)) {
-//                    cerr << "Error: two labels dominating each other in all but one LTS; this CANNOT happen!" << endl;
-//                    cerr << l << "; " << l2 << "; " << label_l << "; " << label_l2 << endl;
-//                    exit(1);
-//                }
-                if (label_dominance.dominates(label_l2, label_l, lts)
-                        && label_dominance.dominates(label_l, label_l2, lts)) {
-                    num_pruned_transitions +=
-			abs->prune_transitions_dominated_label_equiv(lts, ltss, simulations, label_dominance, labelMap, l, l2);
-                } else if (label_dominance.dominates(label_l2, label_l, lts)) {
-                    num_pruned_transitions +=
-                            abs->prune_transitions_dominated_label(lts, ltss, simulations, label_dominance, labelMap, l, l2);
-                } else if (label_dominance.dominates(label_l, label_l2, lts)) {
-                    num_pruned_transitions +=
-			abs->prune_transitions_dominated_label(lts, ltss, simulations, label_dominance, labelMap,l2, l);
-                }
-            }
-        }
-    }
-    remove_dead_labels(abstractions);
-
-    return num_pruned_transitions;
-}
 
 void LDSimulation::dump_options() const {
     merge_strategy->dump_options();
@@ -1004,7 +901,7 @@ void LDSimulation::initialize() {
     cout << "Computing simulation..." << endl;
     if (intermediate_simulations) {
 	// remove the intermediately built simulations, and create the final ones from scratch
-	simulations.clear();
+	dominance_relation->clear();
     }
     compute_ld_simulation();
 
@@ -1030,7 +927,7 @@ void LDSimulation::initialize() {
         cout << endl;
     }
 
-    simulations.dump_statistics();   
+    dominance_relation->dump_statistics();   
     cout << "Useless vars: " << useless_vars.size() << endl;
 
     if (prune_dead_operators) {
@@ -1122,7 +1019,7 @@ void LDSimulation::initialize() {
 }
 
 bool LDSimulation::pruned_state(const State &state) const {
-    for(auto & sim : simulations) {
+    for(auto & sim : (*dominance_relation)) {
         if(sim->pruned(state)){
             return true;
         }
@@ -1135,7 +1032,7 @@ int LDSimulation::get_cost(const State &state) const {
     if(final_abstraction) {
 	cost = final_abstraction->get_cost(state);
     }else{
-	for(auto & sim : simulations) {
+	for(auto & sim : *dominance_relation) {
 	    int new_cost = sim->get_cost(state);
 	    if (new_cost == -1) return -1;
 	    cost = max (cost, new_cost);
@@ -1343,7 +1240,3 @@ void LDSimulation::getVariableOrdering(vector <int> & var_order){
     for(int v : var_order) cout << v << " ";
     cout  << endl;
 }
-
-
-
-

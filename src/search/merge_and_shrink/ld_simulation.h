@@ -58,7 +58,7 @@ protected:
     //TODO: Use unique_ptr here
     std::unique_ptr<Labels> labels;
     std::vector<Abstraction *> abstractions;
-    FactoredSimulation simulations;
+    std::unique_ptr<FactoredSimulation> dominance_relation;
     std::unique_ptr<Abstraction> final_abstraction;
 
     std::vector<int> useless_vars;
@@ -74,29 +74,15 @@ protected:
 
     std::vector<std::vector<int> > get_variable_partition_greedy();
 
-    /* void compute_ld_simulation_after_merge(std::vector<Abstraction *> & _abstractions, */
-    /*         FactoredSimulation & _simulations, */
-    /*         const std::pair<int, int> & next_systems); */
-
-    /* static void compute_ld_simulation(Labels * _labels, std::vector<Abstraction *> & _abstractions, */
-    /*         FactoredSimulation & _simulations, bool no_ld = false); */
-
-    /* static void compute_ld_simulation_complex(Labels * _labels, */
-    /*         std::vector<Abstraction *> & _abstractions, */
-    /*         FactoredSimulation & _simulations, bool no_ld = false); */
-
-
     template<typename LTS>
 	void compute_ld_simulation(std::vector<LTS *> & _ltss,
 				   const LabelMap & labelMap, 
-				   LabelRelation & label_dominance, 
 				   bool incremental_step);
 
     // If lts_id = -1 (default), then prunes in all ltss. If lts_id > 0,
     // prunes transitions dominated in all in all LTS, but other
     // transitions are only checked for lts_id
     int prune_subsumed_transitions(const LabelMap & labelMap,
-				   LabelRelation & label_dominance, 
 				   const std::vector<LabelledTransitionSystem *> & ltss, 
 				   int lts_id);
 
@@ -116,8 +102,8 @@ public:
     bool pruned_state(const State &state) const;
     int get_cost(const State &state) const;
 
-    inline FactoredSimulation & get_simulations() {
-        return simulations;
+    inline FactoredSimulation & get_dominance_relation() {
+        return *dominance_relation;
     }
 
     void getVariableOrdering(std::vector <int> & var_order);

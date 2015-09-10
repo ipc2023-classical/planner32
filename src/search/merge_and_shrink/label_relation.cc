@@ -132,12 +132,9 @@ void LabelRelation::prune_operators(){
 //     cerr << "Transitivity checked" << endl;
 // }
 
-void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_dominated_in_all){
+std::vector<int> LabelRelation::get_labels_dominated_in_all() const{
+    std::vector<int> labels_dominated_in_all;
     //cout << "We have " << num_labels << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
-
-
-
-
     for (int l = 0; l < dominates_in.size(); ++l){
 	//cout << "Check: " << l << endl;
         //labels->get_label_by_index(l)->dump();
@@ -190,6 +187,8 @@ void LabelRelation::get_labels_dominated_in_all(std::vector<int> & labels_domina
 //            }
 //        }
     }
+
+    return labels_dominated_in_all;
 }
 
 void LabelRelation::reset(){
@@ -216,6 +215,14 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
         const FactoredSimulation & sim,
         const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
+
+    //TODO: Only do this in the incremental step (reset) 
+    //TODO: Is there a better way to reinitialize these? 
+    std::vector<std::vector<bool> >().swap(simulates_irrelevant);
+    std::vector<std::vector<bool> >().swap(simulated_by_irrelevant);
+    std::vector<std::vector<int> > ().swap(dominates_in);
+    std::vector<int> ().swap(dominated_by_noop_in);
+
     simulates_irrelevant.resize(num_labels);
     simulated_by_irrelevant.resize(num_labels);
     for(int i = 0; i < num_labels; i++){
@@ -239,11 +246,9 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
     cout << "Update label dominance: " << num_labels
             << " labels " << lts.size() << " systems." << endl;
 
-
     for (int i = 0; i < lts.size(); ++i){
         update(i, lts[i], sim[i]);
     }
-
 }
 
 void LabelRelation::init(const std::vector<LTSComplex *> & lts,
@@ -284,9 +289,11 @@ void LabelRelation::init(const std::vector<LTSComplex *> & lts,
 bool LabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
         const FactoredSimulation & sim){
     bool changes = false;
+    
     for (int i = 0; i < lts.size(); ++i){
         changes |= update(i, lts[i], sim[i]);
     }
+    
     return changes;
 }
 
@@ -526,7 +533,7 @@ return new EquivalenceRelation(rel.size(), rel);
 bool LabelRelation::propagate_transition_pruning(int lts_id, 
 						 const vector<LabelledTransitionSystem *> & ltss, 
 						 const FactoredSimulation & simulations,
-						 int src, int l1, int target){
+						 int src, int l1, int target) const {
     LabelledTransitionSystem * lts = ltss[lts_id];
     const SimulationRelation & sim = simulations[lts_id]; 
 
