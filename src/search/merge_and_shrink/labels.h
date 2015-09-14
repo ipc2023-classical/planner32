@@ -10,7 +10,7 @@
 class Abstraction;
 class Label;
 class LabelMap;
-class FactoredSimulation;
+class DominanceRelation;
 class LabelReducer;
 class Options;
 
@@ -30,7 +30,7 @@ public:
     void reduce(std::pair<int, int> next_merge,
             const std::vector<Abstraction *> &all_abstractions);
     void reduce_to_cost();
-    void reduce(const LabelMap & labelMap, const FactoredSimulation & dominance_relation, 
+    void reduce(const LabelMap & labelMap, const DominanceRelation & dominance_relation, 
 		std::set<int> & dangerous_LTSs);
     // TODO: consider removing get_label_by_index and forwarding all required
     // methods of Label and giving access to them by label number.

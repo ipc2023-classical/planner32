@@ -20,7 +20,7 @@ class State;
 class SimulationRelation;
 class LabelledTransitionSystem;
 class LTSComplex;
-class FactoredSimulation;
+class DominanceRelation;
 
 typedef int AbstractStateRef;
 
@@ -268,20 +268,20 @@ public:
     // transition for label_no_by
     int prune_transitions_dominated_label(int lts_id, 
 					  const std::vector<LabelledTransitionSystem *> & ltss,
-					  const FactoredSimulation & simulations, const LabelMap & labelMap,
+					  const DominanceRelation & simulations, const LabelMap & labelMap,
 					  int label_no, int label_no_by);
     // Prune all the transitions of label_no such that exist a better
     // transition for label_no_by
     int prune_transitions_dominated_label_equiv(int lts_id, 
 						const std::vector<LabelledTransitionSystem *> & ltss,
-						const FactoredSimulation & simulations,
+						const DominanceRelation & simulations,
 						const LabelMap & labelMap,
 						int label_no, int label_no_by);
     
     //Prune all the transitions dominated by noop 
     int prune_transitions_dominated_label_noop(int lts_id, 
 						const std::vector<LabelledTransitionSystem *> & ltss,
-					       const FactoredSimulation & simulations, const LabelMap & labelMap, 
+					       const DominanceRelation & simulations, const LabelMap & labelMap, 
 					       int label_no);
 
     int estimate_transitions(const Abstraction * other) const;

@@ -14,7 +14,7 @@ class SymManager;
 class SymPDB;
 class SymSMAS;
 class SimulationRelation;
-class FactoredSimulation;
+class DominanceRelation;
 
 /*
  * Represents a symbolic transition.
@@ -38,7 +38,7 @@ class SymTransition{
  public:
   //Constructor for abstraction transitions
  SymTransition(SymManager * mgr, 
-	       const FactoredSimulation & sim_relations);
+	       const DominanceRelation & sim_relations);
 
   //Constructor for transitions irrelevant for the abstraction
   SymTransition(SymVariables * sVars, 

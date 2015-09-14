@@ -5,7 +5,7 @@
 
 #include "label_relation.h"
 #include "simulation_relation.h"
-#include "factored_simulation.h"
+#include "dominance_relation.h"
 
 #include "../option_parser.h"
 
@@ -58,7 +58,7 @@ protected:
     //TODO: Use unique_ptr here
     std::unique_ptr<Labels> labels;
     std::vector<Abstraction *> abstractions;
-    std::unique_ptr<FactoredSimulation> dominance_relation;
+    std::unique_ptr<DominanceRelation> dominance_relation;
     std::unique_ptr<Abstraction> final_abstraction;
 
     std::vector<int> useless_vars;
@@ -102,7 +102,7 @@ public:
     bool pruned_state(const State &state) const;
     int get_cost(const State &state) const;
 
-    inline FactoredSimulation & get_dominance_relation() {
+    inline DominanceRelation & get_dominance_relation() {
         return *dominance_relation;
     }
 

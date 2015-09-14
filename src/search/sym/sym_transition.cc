@@ -7,16 +7,18 @@
 
 #include "../timer.h"
 #include "../merge_and_shrink/simulation_relation.h"
-#include "../merge_and_shrink/factored_simulation.h"
+#include "../merge_and_shrink/dominance_relation.h"
 
 using namespace std;
 
 SymTransition::SymTransition(SymManager * mgr, 
-			     const FactoredSimulation & simulations) : 
+			     const DominanceRelation & dominance_relation) : 
   sV(mgr->getVars()), cost(0), tBDD (mgr->getVars()->oneBDD()), 
   existsVars(mgr->getVars()->oneBDD()), existsBwVars(mgr->getVars()->oneBDD()), 
   absAfterImage(nullptr){
 
+    const std::vector<std::unique_ptr<SimulationRelation> > & simulations = dominance_relation.get_simulations ();
+    
   // a) Collect effect variables
   for(auto & sim : simulations){
     const vector<int> & vset = sim->get_varset();

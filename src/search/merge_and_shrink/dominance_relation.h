@@ -15,15 +15,19 @@
  * it cannot be copied away.
  */
 
-class FactoredSimulation {
+class DominanceRelation {
     friend class ComputeSimulationRelation; //To allow initializing
 					    //the simulations
 
     std::vector<std::unique_ptr<SimulationRelation> > simulations;
     LabelRelation label_dominance;
   public: 
-FactoredSimulation(Labels * labels) : label_dominance(labels) 
+DominanceRelation(Labels * labels) : label_dominance(labels) 
     {}
+
+    bool pruned_state(const State &state) const;
+
+    int get_cost(const State &state) const;
    
     template<typename LTS>
 	void compute_ld_simulation(std::vector<LTS *> & _ltss,
@@ -106,8 +110,11 @@ FactoredSimulation(Labels * labels) : label_dominance(labels)
     BDD getIrrelevantStates(SymVariables * vars) const;
 
 
-
     //Methods to access the underlying simulation relations
+    const std::vector<std::unique_ptr<SimulationRelation> > & get_simulations () const{
+	return simulations;
+    }
+
     int size () const {
 	return simulations.size();
     }
@@ -118,44 +125,6 @@ FactoredSimulation(Labels * labels) : label_dominance(labels)
 
     const SimulationRelation & operator[](int index) const {
         return *(simulations[index]);
-    }
-
-    std::vector<std::unique_ptr<SimulationRelation> >::iterator begin() {
-	return simulations.begin();
-    }
-
-    std::vector<std::unique_ptr<SimulationRelation> >::iterator end() {
-	return simulations.end();
-    }
-
-    std::vector<std::unique_ptr<SimulationRelation> >::iterator rbegin() {
-	return simulations.begin();
-    }
-
-    std::vector<std::unique_ptr<SimulationRelation> >::iterator rend() {
-	return simulations.end();
-    }
-
-
-    std::vector<std::unique_ptr<SimulationRelation> >::const_iterator begin() const {
-	return simulations.begin();
-    }
-
-    std::vector<std::unique_ptr<SimulationRelation> >::const_iterator end() const {
-	return simulations.end();
-    }
-
-
-    std::vector<std::unique_ptr<SimulationRelation> >::const_iterator rbegin() const{
-	return simulations.begin();
-    }
-
-    std::vector<std::unique_ptr<SimulationRelation> >::const_iterator rend() const{
-	return simulations.end();
-    }
-
-    SimulationRelation * back() {
-	return simulations.back().get();
     }
 
     void clear(){

@@ -34,3 +34,4 @@
 ^src/plan_numbers_and_cost
 ^src/sas_plan
 ^src/elapsed.time
+^src/search/merge_and_shrink_test

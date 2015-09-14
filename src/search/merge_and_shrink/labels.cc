@@ -2,7 +2,7 @@
 
 #include "label.h"
 #include "label_reducer.h"
-#include "factored_simulation.h"
+#include "dominance_relation.h"
 
 #include "../globals.h"
 #include "../utilities.h"
@@ -37,7 +37,7 @@ void Labels::reduce(pair<int, int> next_merge,
     label_reducer->reduce_labels(next_merge, all_abstractions, labels);
 }
 
-void Labels::reduce(const LabelMap & labelMap, const FactoredSimulation & dominance_relation, 
+void Labels::reduce(const LabelMap & labelMap, const DominanceRelation & dominance_relation, 
 		    std::set<int> & dangerous_LTSs) {
     EquivalenceRelation* equiv_rel = dominance_relation.get_equivalent_labels_relation(labelMap, 
 										    dangerous_LTSs);

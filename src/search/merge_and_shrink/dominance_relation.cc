@@ -1,4 +1,4 @@
-#include "factored_simulation.h"
+#include "dominance_relation.h"
 
 #include "simulation_relation.h" 
 #include "abstraction.h" 
@@ -6,22 +6,22 @@
 using namespace std;
 
 
-bool FactoredSimulation::propagate_transition_pruning(int lts_id, const vector<LabelledTransitionSystem *> & ltss, 
+bool DominanceRelation::propagate_transition_pruning(int lts_id, const vector<LabelledTransitionSystem *> & ltss, 
 				  int src, int label_id, int target) const {
     return label_dominance.propagate_transition_pruning(lts_id, ltss, *this, src, label_id, target);
 }
 
 
 
-void FactoredSimulation::remove_useless() {
-    simulations.erase(std::remove_if(begin(), end(),
+void DominanceRelation::remove_useless() {
+    simulations.erase(std::remove_if(begin(simulations), end(simulations),
 				     [&](unique_ptr<SimulationRelation> & sim){
 					 return sim->get_abstraction()->is_useless();
-				     }), end());
+				     }), end(simulations));
     
 }
 
-double FactoredSimulation::get_percentage_simulations(bool ignore_equivalences) const {
+double DominanceRelation::get_percentage_simulations(bool ignore_equivalences) const {
     double percentage = 1;
     for (auto & sim : simulations){
         percentage *= sim->get_percentage_simulations(false);
@@ -35,7 +35,7 @@ double FactoredSimulation::get_percentage_simulations(bool ignore_equivalences) 
 }
 
 
-double FactoredSimulation::get_percentage_equal() const {
+double DominanceRelation::get_percentage_equal() const {
     double percentage = 1;
     for (auto & sim : simulations){
         percentage *= 1/(sim->num_states()*sim->num_states());
@@ -44,7 +44,7 @@ double FactoredSimulation::get_percentage_equal() const {
 }
 
 
-double FactoredSimulation::get_percentage_equivalences() const {
+double DominanceRelation::get_percentage_equivalences() const {
     double percentage = 1;
     for (auto & sim : simulations){
         percentage *= sim->get_percentage_equivalences();
@@ -56,7 +56,7 @@ double FactoredSimulation::get_percentage_equivalences() const {
 
 
 
-BDD FactoredSimulation::getSimulatedBDD(SymVariables * vars, const State &state ) const{
+BDD DominanceRelation::getSimulatedBDD(SymVariables * vars, const State &state ) const{
     BDD res = vars->oneBDD();
     try{
         for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
@@ -68,7 +68,7 @@ BDD FactoredSimulation::getSimulatedBDD(SymVariables * vars, const State &state 
     return res;
 }
 
-BDD FactoredSimulation::getSimulatingBDD(SymVariables * vars, const State &state ) const{
+BDD DominanceRelation::getSimulatingBDD(SymVariables * vars, const State &state ) const{
     BDD res = vars->oneBDD();
     try{
         for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
@@ -81,7 +81,7 @@ BDD FactoredSimulation::getSimulatingBDD(SymVariables * vars, const State &state
     return res;
 }
 
-BDD FactoredSimulation::getIrrelevantStates(SymVariables * vars) const{
+BDD DominanceRelation::getIrrelevantStates(SymVariables * vars) const{
     BDD res = vars->zeroBDD();
     try{
         for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
@@ -93,21 +93,21 @@ BDD FactoredSimulation::getIrrelevantStates(SymVariables * vars) const{
     return res;
 }
 
-void FactoredSimulation::precompute_dominated_bdds(SymVariables * vars){
+void DominanceRelation::precompute_dominated_bdds(SymVariables * vars){
     for(auto & sim : simulations){
         sim->precompute_absstate_bdds(vars);
         sim->precompute_dominated_bdds();
     }
 }
 
-void FactoredSimulation::precompute_dominating_bdds(SymVariables * vars){
+void DominanceRelation::precompute_dominating_bdds(SymVariables * vars){
     for(auto & sim : simulations){
         sim->precompute_absstate_bdds(vars);
         sim->precompute_dominating_bdds();
     }
 }
 
-int FactoredSimulation::num_equivalences() const {
+int DominanceRelation::num_equivalences() const {
     int res = 0;
     for(int i = 0; i < simulations.size(); i++){
         res += simulations[i]->num_equivalences();
@@ -115,7 +115,7 @@ int FactoredSimulation::num_equivalences() const {
     return res;
 }
 
-int FactoredSimulation::num_simulations() const {
+int DominanceRelation::num_simulations() const {
     int res = 0;
     for(int i = 0; i < simulations.size(); i++){
         res += simulations[i]->num_simulations(true);
@@ -124,7 +124,7 @@ int FactoredSimulation::num_simulations() const {
 }
 
 
-void FactoredSimulation::dump_statistics() const {
+void DominanceRelation::dump_statistics() const {
     int num_equi = num_equivalences();
     int num_sims = num_simulations();
     cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
@@ -140,7 +140,7 @@ void FactoredSimulation::dump_statistics() const {
 // If lts_id = -1 (default), then prunes in all ltss. If lts_id > 0,
 // prunes transitions dominated in all in all LTS, but other
 // transitions are only checked for lts_id
-int FactoredSimulation::prune_subsumed_transitions(vector<Abstraction *> & abstractions,
+int DominanceRelation::prune_subsumed_transitions(vector<Abstraction *> & abstractions,
 						   const LabelMap & labelMap,
 						   const vector<LabelledTransitionSystem *> & ltss, 
 						   int lts_id)  { 
@@ -162,7 +162,7 @@ int FactoredSimulation::prune_subsumed_transitions(vector<Abstraction *> & abstr
         if(lts >= 0 && (lts == lts_id || lts_id == -1)){
             // the index of the LTS and its corresponding abstraction should always be the same -- be careful about
             // this in the other code!
-	    cout << "Abs pointer: " << l << " dominated by noop in " << lts << "   " << abstractions.size() << "   " << size() << endl;
+	    cout << "Abs pointer: " << l << " dominated by noop in " << lts << "   " << endl;
 	    
             num_pruned_transitions += abstractions[lts]->
 		prune_transitions_dominated_label_noop(lts, ltss, 
@@ -210,4 +210,25 @@ int FactoredSimulation::prune_subsumed_transitions(vector<Abstraction *> & abstr
     }
 
     return num_pruned_transitions;
+}
+
+
+bool DominanceRelation::pruned_state(const State &state) const {
+    for(auto & sim : simulations) {
+        if(sim->pruned(state)){
+            return true;
+        }
+    }
+    return false;
+}
+
+
+int DominanceRelation::get_cost(const State &state) const{
+    int cost = 0;
+    for(auto & sim : simulations) {
+	int new_cost = sim->get_cost(state);
+	if (new_cost == -1) return -1;
+	cost = max (cost, new_cost);
+    }
+    return cost;
 }

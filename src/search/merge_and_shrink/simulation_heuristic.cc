@@ -69,7 +69,7 @@ void SimulationHeuristic::initialize() {
 }
 
 bool SimulationHeuristic::is_dead_end(const State &state) {
-    if(is_activated() && ldSimulation->pruned_state(state)){
+    if(is_activated() && ldSimulation->get_dominance_relation().pruned_state(state)){
         deadends_pruned ++;
         return true;
     }
@@ -77,7 +77,7 @@ bool SimulationHeuristic::is_dead_end(const State &state) {
 }
 
 int SimulationHeuristic::compute_heuristic(const State &state) {
-    int cost = ldSimulation->get_cost(state);
+    int cost = ldSimulation->get_dominance_relation().get_cost(state);
     if (cost == -1)
         return DEAD_END;
     return cost;
@@ -100,7 +100,7 @@ bool SimulationHeuristic::prune_generation(const State &state, int g) {
     // 	     <<  endl;
     // }
 
-    if(ldSimulation->pruned_state(state)){
+    if(ldSimulation->get_dominance_relation().pruned_state(state)){
         return true;
     }
     //a) Check if state is in a BDD with g.closed <= g

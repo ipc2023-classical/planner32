@@ -7,7 +7,7 @@
 #include "labels.h"
 #include "shrink_fh.h"
 
-#include "factored_simulation.h"
+#include "dominance_relation.h"
 #include "simulation_relation.h"
 #include "../equivalence_relation.h"
 #include "../globals.h"
@@ -1592,7 +1592,7 @@ int Abstraction::prune_transitions_dominated_label_all(int label_no/*, const Lab
 // transition for label_no_by
 int Abstraction::prune_transitions_dominated_label(int lts_id, 
 						   const vector<LabelledTransitionSystem *> & ltss,
-						   const FactoredSimulation & simulations,
+						   const DominanceRelation & simulations,
 						   const LabelMap & labelMap,
 						   int label_no, int label_no_by) {
     int label_id = labelMap.get_id(label_no);
@@ -1620,7 +1620,7 @@ int Abstraction::prune_transitions_dominated_label(int lts_id,
 int Abstraction::
 prune_transitions_dominated_label_equiv(int lts_id, 
 					const vector<LabelledTransitionSystem *> & ltss,
-					const FactoredSimulation & simulations,
+					const DominanceRelation & simulations,
 					const LabelMap & labelMap, 
 					int label_no, int label_no2) {
     int label_id = labelMap.get_id(label_no);
@@ -1687,7 +1687,7 @@ prune_transitions_dominated_label_equiv(int lts_id,
 //Prune all the transitions dominated by noop
 int Abstraction::prune_transitions_dominated_label_noop(int lts_id, 
 					const vector<LabelledTransitionSystem *> & ltss,
-					const FactoredSimulation & simulations,
+					const DominanceRelation & simulations,
 							const LabelMap & labelMap, 
 							int label_no){
     //Timer t;

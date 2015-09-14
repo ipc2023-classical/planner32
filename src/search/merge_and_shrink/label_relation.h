@@ -10,7 +10,7 @@ class EquivalenceRelation;
 class LTSComplex;
 class LabelledTransitionSystem;
 class SimulationRelation;
-class FactoredSimulation;
+class DominanceRelation;
 
 const int DOMINATES_IN_ALL = -2;
 const int DOMINATES_IN_NONE = -1;
@@ -84,12 +84,12 @@ public:
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
     void init(const std::vector<LabelledTransitionSystem *> & lts,
-            const FactoredSimulation & sim,
+            const DominanceRelation & sim,
             const LabelMap & labelMap);
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
     void init(const std::vector<LTSComplex *> & lts,
-            const FactoredSimulation & sim,
+            const DominanceRelation & sim,
             const LabelMap & labelMap);
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
@@ -98,9 +98,9 @@ public:
 
     void reset();
     bool update(const std::vector<LabelledTransitionSystem*> & lts,
-            const FactoredSimulation & sim);
+            const DominanceRelation & sim);
     bool update(const std::vector<LTSComplex*> & lts,
-            const FactoredSimulation & sim);
+            const DominanceRelation & sim);
 
 
     void dump() const;
@@ -143,7 +143,7 @@ public:
 
     bool propagate_transition_pruning(int lts_id, 
 				      const std::vector<LabelledTransitionSystem *> & ltss, 
-				      const FactoredSimulation & simulations, 
+				      const DominanceRelation & simulations, 
 				      int src, int l1, int target) const; 
 
 

@@ -67,7 +67,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
     original_merge(opts.get<bool>("original_merge")), 
     labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
-    dominance_relation = unique_ptr<FactoredSimulation>(new FactoredSimulation(labels.get()));
+    dominance_relation = unique_ptr<DominanceRelation>(new DominanceRelation(labels.get()));
     /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
@@ -153,7 +153,7 @@ LDSimulation::LDSimulation(const Options &opts) :
         }
     }
     labels = unique_ptr<Labels> (new Labels(is_unit_cost, opts, cost_type)); //TODO: c++14::make_unique
-    dominance_relation = unique_ptr<FactoredSimulation>(new FactoredSimulation(labels.get()));
+    dominance_relation = unique_ptr<DominanceRelation>(new DominanceRelation(labels.get()));
     /*if (apply_subsumed_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
         cerr << "Error: can only apply pruning of subsumed transitions if perfect label reduction is applied" << endl;
         exit(1);
@@ -689,7 +689,8 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 	    if (incremental_step) {
 		// Should be enough to just shrink the new abstraction (using the new simulation relation).
 		if(!dangerous_LTSs.count(dominance_relation->size() - 1)){
-		    dominance_relation->back()->shrink();
+		    //TODO: HACK HACK we should refractor a bit this. 
+		    dominance_relation->get_simulations().back()->shrink();
 		}
 	    } else {
 		//cout << "Shrink all" << endl;
@@ -722,7 +723,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 //Compute a simulation from 0
 // void LDSimulation::compute_ld_simulation(Labels * _labels, 
 // 					 vector<Abstraction *> & _abstractions, 
-// 					 FactoredSimulation & _simulations, bool no_ld) {
+// 					 DominanceRelation & _simulations, bool no_ld) {
 
 //     LabelMap labelMap (_labels);
 
@@ -745,18 +746,18 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 //template void LDSimulation::compute_ld_simulation<LabelledTransitionSystem>
 //(Labels * _labels,
 //        std::vector<LabelledTransitionSystem *> & _ltss,
-//        FactoredSimulation & _simulations,
+//        DominanceRelation & _simulations,
 //        const LabelMap & labelMap, bool no_ld);
 //
 //template void LDSimulation::compute_ld_simulation <LTSComplex>
 //(Labels * _labels,
 //        std::vector<LTSComplex *> & _ltss,
-//        FactoredSimulation & _simulations,
+//        DominanceRelation & _simulations,
 //        const LabelMap & labelMap, bool no_ld);
 
 // void LDSimulation::compute_ld_simulation_complex(Labels * _labels, 
 //         vector<Abstraction *> & _abstractions,
-//         FactoredSimulation & _dominance_relation, bool no_ld) {
+//         DominanceRelation & _dominance_relation, bool no_ld) {
 //     cout << "Building LTSs and Simulation Relations" << endl;
 //     vector<LTSComplex *> ltss;
 //     LabelMap labelMap(_labels);
@@ -785,7 +786,7 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 //         copy.push_back(_dominance_relation[i]->get_relation());
 //     }
 
-//     FactoredSimulation sim2;
+//     DominanceRelation sim2;
 //     cout << "Building LTSs and Simulation Relations" << endl;
 //     vector<LabelledTransitionSystem *> ltss2;
 //     for (auto a : _abstractions){
@@ -1018,25 +1019,13 @@ void LDSimulation::initialize() {
     }*/
 }
 
-bool LDSimulation::pruned_state(const State &state) const {
-    for(auto & sim : (*dominance_relation)) {
-        if(sim->pruned(state)){
-            return true;
-        }
-    }
-    return false;
-}
 
 int LDSimulation::get_cost(const State &state) const {
     int cost = 0;
     if(final_abstraction) {
 	cost = final_abstraction->get_cost(state);
     }else{
-	for(auto & sim : *dominance_relation) {
-	    int new_cost = sim->get_cost(state);
-	    if (new_cost == -1) return -1;
-	    cost = max (cost, new_cost);
-	}
+	cost = dominance_relation->get_cost(state);
     }
     return cost;
 }

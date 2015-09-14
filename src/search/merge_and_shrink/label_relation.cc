@@ -2,7 +2,7 @@
 
 #include "labels.h"
 #include "simulation_relation.h"
-#include "factored_simulation.h"
+#include "dominance_relation.h"
 #include "labelled_transition_system.h"
 #include "lts_complex.h"
 #include "../equivalence_relation.h"
@@ -212,7 +212,7 @@ void LabelRelation::reset(){
 }
 
 void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
-        const FactoredSimulation & sim,
+        const DominanceRelation & sim,
         const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
 
@@ -252,7 +252,7 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
 }
 
 void LabelRelation::init(const std::vector<LTSComplex *> & lts,
-        const FactoredSimulation & sim,
+        const DominanceRelation & sim,
         const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
 
@@ -287,7 +287,7 @@ void LabelRelation::init(const std::vector<LTSComplex *> & lts,
 
 
 bool LabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
-        const FactoredSimulation & sim){
+        const DominanceRelation & sim){
     bool changes = false;
     
     for (int i = 0; i < lts.size(); ++i){
@@ -298,7 +298,7 @@ bool LabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
 }
 
 bool LabelRelation::update(const std::vector<LTSComplex*> & lts,
-        const FactoredSimulation & sim){
+        const DominanceRelation & sim){
     bool changes = false;
     for (int i = 0; i < lts.size(); ++i){
         changes |= update(i, lts[i], sim[i]);
@@ -532,7 +532,7 @@ return new EquivalenceRelation(rel.size(), rel);
 /* Returns true if we succeeded in propagating the effects of pruning a transition in lts i. */
 bool LabelRelation::propagate_transition_pruning(int lts_id, 
 						 const vector<LabelledTransitionSystem *> & ltss, 
-						 const FactoredSimulation & simulations,
+						 const DominanceRelation & simulations,
 						 int src, int l1, int target) const {
     LabelledTransitionSystem * lts = ltss[lts_id];
     const SimulationRelation & sim = simulations[lts_id]; 
@@ -584,7 +584,7 @@ bool LabelRelation::propagate_transition_pruning(int lts_id,
 /* Old version that prunes slighty more but it is too innefficient.
 bool LabelRelation::propagate_transition_pruning(int lts_id, 
 						 const vector<LabelledTransitionSystem *> & ltss, 
-						 const FactoredSimulation & simulations,
+						 const DominanceRelation & simulations,
 						 int src, int l1, int target){
     LabelledTransitionSystem * lts = ltss[lts_id];
     const SimulationRelation * sim = simulations[lts_id]; 

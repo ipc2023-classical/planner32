@@ -11,7 +11,7 @@ class LTSComplex;
 class LabelledTransitionSystem;
 class Abstraction;
 class CompositeAbstraction;
-class FactoredSimulation; 
+class DominanceRelation; 
 
 /* 
  * Abstract class for simulation relation algorithms
@@ -31,11 +31,11 @@ public:
     ComputeSimulationRelation() {}
     virtual ~ComputeSimulationRelation() {}
 
-    void init (FactoredSimulation & simulations, 
+    void init (DominanceRelation & simulations, 
 	       const std::vector<Abstraction *> & abstractions);
 
 
-    void init_simulation_incremental (FactoredSimulation & simulations, 
+    void init_simulation_incremental (DominanceRelation & simulations, 
 					  CompositeAbstraction * _abs, 
 					  const SimulationRelation & simrel_one, 
 					  const SimulationRelation & simrel_two);
