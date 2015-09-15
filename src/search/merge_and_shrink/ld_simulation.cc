@@ -13,7 +13,8 @@
 #include "../causal_graph.h"
 #include "label_reducer.h"
 #include <boost/dynamic_bitset.hpp>
-
+#include "label_relation.h"
+#include "label_relation_identity.h"
 #include "variable_partition_finder.h"
 
 using namespace std;
@@ -41,7 +42,6 @@ using namespace std;
  *   skip_simulation, nold_simulation, 
  *   complex_lts, complex_simulation
  */ 
-
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
 		                          skip_simulation(opts.get<bool>("skip_simulation")),
 		                          nold_simulation(opts.get<bool>("nold_simulation")),
@@ -67,7 +67,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
     original_merge(opts.get<bool>("original_merge")), 
     labels (new Labels(unit_cost, opts, cost_type)) //TODO: c++14::make_unique
 {
-    dominance_relation = unique_ptr<DominanceRelation>(new DominanceRelation(labels.get()));
+    dominance_relation = create_dominance_relation();
     /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
         cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
         exit(1);
@@ -90,17 +90,6 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
     if (!prune_dead_operators && Abstraction::store_original_operators) {
         cerr << "Error: Why do you want to store operators if you don't prune them?" << endl;
         exit(1);
-    }
-
-
-    if (complex_simulation) {
-	if (nold_simulation) {
-	    alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationComplexNoLD());
-	} else {
-	    alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationComplex());
-	}
-    } else {
-	alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationSimple());
     }
 }
 
@@ -153,7 +142,7 @@ LDSimulation::LDSimulation(const Options &opts) :
         }
     }
     labels = unique_ptr<Labels> (new Labels(is_unit_cost, opts, cost_type)); //TODO: c++14::make_unique
-    dominance_relation = unique_ptr<DominanceRelation>(new DominanceRelation(labels.get()));
+    dominance_relation = create_dominance_relation();
     /*if (apply_subsumed_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
         cerr << "Error: can only apply pruning of subsumed transitions if perfect label reduction is applied" << endl;
         exit(1);
@@ -162,16 +151,6 @@ LDSimulation::LDSimulation(const Options &opts) :
     if (!prune_dead_operators && Abstraction::store_original_operators) {
         cerr << "Error: Why do you want to store operators if you don't prune them?" << endl;
         exit(1);
-    }
-
-    if (complex_simulation) {
-	if (nold_simulation) {
-	    alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationComplexNoLD());
-	} else {
-	    alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationComplex());
-	}
-    } else {
-	alg_compute_simulation = unique_ptr<ComputeSimulationRelation>(new ComputeSimulationRelationSimple());
     }
 
 }
@@ -183,6 +162,23 @@ LDSimulation::~LDSimulation(){
     // for(auto sim : simulations){
     //     delete sim;
     // }
+}
+
+unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation() {
+    if (complex_simulation) {
+	if (nold_simulation) {
+	    //return unique_ptr<DominanceRelation>(nullptr);
+	    return unique_ptr<DominanceRelation>(new ComplexNoLDDominanceRelation<LabelRelationIdentity>(labels.get())); 
+	} else {
+	    return unique_ptr<DominanceRelation>(new ComplexDominanceRelation<LabelRelation>(labels.get())); 
+	}
+    } else {
+	if (nold_simulation) {
+	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationIdentity>(labels.get())); 
+	} else {
+	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelation>(labels.get())); 		
+	}
+    }    
 }
 
 void LDSimulation::build_factored_systems() {
@@ -562,10 +558,10 @@ void LDSimulation::build_abstraction() {
             }
             
             if (incremental_simulations) {
-		alg_compute_simulation->
-		    init_simulation_incremental(*dominance_relation, new_abstraction, 
-						abstraction->get_simulation_relation(),
-						other_abstraction->get_simulation_relation());
+		dominance_relation->
+		    init_incremental(new_abstraction, 
+				     abstraction->get_simulation_relation(),
+				     other_abstraction->get_simulation_relation());
 		
                 compute_ld_simulation(true);
 
@@ -635,18 +631,16 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
     }
 
     if (!incremental_step) {
-	alg_compute_simulation->init(*dominance_relation, abstractions);
+	dominance_relation->init(abstractions);
     }
 
     // Algorithm to compute LD simulation 
     if(complex_lts){
         dominance_relation->compute_ld_simulation(ltss_complex, labelMap,
-						  incremental_step, nold_simulation, 
-						  *alg_compute_simulation);
+						  incremental_step);
     }else{
         dominance_relation->compute_ld_simulation(ltss_simple, labelMap,
-						  incremental_step, nold_simulation, 
-						  *alg_compute_simulation);
+						  incremental_step);
     }
 
     if (apply_subsumed_transitions_pruning) {
@@ -718,144 +712,6 @@ void LDSimulation::compute_ld_simulation(bool incremental_step) {
 	    abs->get_num_nonreduced_labels() << " / " << abs->get_num_labels() << " labels still alive" << std::endl;
     }
 }
-
-
-//Compute a simulation from 0
-// void LDSimulation::compute_ld_simulation(Labels * _labels, 
-// 					 vector<Abstraction *> & _abstractions, 
-// 					 DominanceRelation & _simulations, bool no_ld) {
-
-//     LabelMap labelMap (_labels);
-
-//     cout << "Building LTSs and Simulation Relations" << endl;
-//     vector<LabelledTransitionSystem *> ltss;
-//     for (auto a : _abstractions){
-//         ltss.push_back(a->get_lts(_labels));
-//         cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
-//         //Create initial goal-respecting relation
-//         _simulations.push_back(new SimulationRelationSimple(a));
-//     }
-
-
-//     compute_ld_simulation(_labels, ltss, _simulations, labelMap, no_ld);
-
-//     for(int i = 0; i < _simulations.size(); i++)
-//         _simulations[i]->dump(ltss[i]->get_names());
-// }
-
-//template void LDSimulation::compute_ld_simulation<LabelledTransitionSystem>
-//(Labels * _labels,
-//        std::vector<LabelledTransitionSystem *> & _ltss,
-//        DominanceRelation & _simulations,
-//        const LabelMap & labelMap, bool no_ld);
-//
-//template void LDSimulation::compute_ld_simulation <LTSComplex>
-//(Labels * _labels,
-//        std::vector<LTSComplex *> & _ltss,
-//        DominanceRelation & _simulations,
-//        const LabelMap & labelMap, bool no_ld);
-
-// void LDSimulation::compute_ld_simulation_complex(Labels * _labels, 
-//         vector<Abstraction *> & _abstractions,
-//         DominanceRelation & _dominance_relation, bool no_ld) {
-//     cout << "Building LTSs and Simulation Relations" << endl;
-//     vector<LTSComplex *> ltss;
-//     LabelMap labelMap(_labels);
-//     for (auto a : _abstractions){
-//         ltss.push_back(a->get_lts_complex(labelMap));
-//         cout << "LTS built: " << ltss.back()->size() << " states " << ltss.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
-//         //Create initial goal-respecting relation
-// 	if(no_ld){
-// 	    _dominance_relation.push_back(new SimulationRelationComplexNoLD(a));
-// 	}else{
-// 	    _dominance_relation.push_back(new SimulationRelationComplex(a));
-// 	}
-//     }
-
-//     LabelRelation TMPlabel (_labels);
-//     if(!no_ld)
-// 	TMPlabel.init(ltss, _dominance_relation, labelMap);
-//     Timer t;
-//     compute_ld_simulation(_labels, ltss, _dominance_relation, labelMap, no_ld);
-//     cout << "Time new: " << t() << endl;
-
-//     cout << "S1;" << endl;
-//     std::vector<std::vector<std::vector<bool> > > copy;
-//     for(int i = 0; i < _dominance_relation.size(); i++){
-//         //_dominance_relation[i]->dump(ltss[i]->get_names());
-//         copy.push_back(_dominance_relation[i]->get_relation());
-//     }
-
-//     DominanceRelation sim2;
-//     cout << "Building LTSs and Simulation Relations" << endl;
-//     vector<LabelledTransitionSystem *> ltss2;
-//     for (auto a : _abstractions){
-//         ltss2.push_back(a->get_lts(labelMap));
-//         cout << "LTS built: " << ltss2.back()->size() << " states " << ltss2.back()->num_transitions() << " transitions " << _labels->get_size() << " num_labels"  << endl;
-//         //Create initial goal-respecting relation
-//         sim2.push_back(new SimulationRelationSimple(a));
-//     }
-
-//     LabelRelation TMPlabel2 (_labels);
-//     if(!no_ld)
-// 	TMPlabel2.init(ltss2, sim2, labelMap);
-
-//     Timer t2;
-//     compute_ld_simulation(_labels, ltss2, sim2, labelMap, no_ld);
-//     cout << "Time old: " << t2() << endl;
-
-//     /*cout << "S2;" << endl;
-//    for(int i = 0; i < sim2.size(); i++){ 
-//        sim2[i]->dump(ltss[i]->get_names()); 
-//        }*/
-//     cout << sim2.size() << endl;
-//     for(int i = 0; i < sim2.size(); i++){
-//         cout << "Check LTS " << i << endl;
-//         for(int s = 0; s < ltss[i]->size(); s++){
-//             for(int t = 0; t < ltss[i]->size(); t++){
-//                 if(copy[i][s][t] != sim2[i]->simulates(s, t)){
-//                     cout << "Error: different dominance_relation    ";
-//                     cout <<ltss[i]->get_names() [t] << " <= " <<ltss[i]->get_names() [s];
-//                     cout << "   Old: " << sim2[i]->simulates(s, t) << " new: " << copy[i][s][t]  << endl;
-//                 }
-//             }
-//         }
-//     }
-//     cout << "Checked!" << endl;
-
-
-//     for(int i = 0; i < sim2.size(); i++){
-//         for(int l = 0; l < TMPlabel.get_num_labels(); ++l){
-//             for(int l2 = 0; l2 < TMPlabel.get_num_labels(); ++l2){
-//                 if(TMPlabel.dominates(l, l2, i) != TMPlabel2.dominates(l, l2, i)){
-//                     cout << "Different label relation for " << l << " and " << l2 << " in "<< i << ": " << TMPlabel.dominates(l, l2, i)  << "    " << TMPlabel2.dominates(l, l2, i)  << endl;
-
-//                 }
-//             }
-//         }
-//     }
-
-//     cout << "Checked labels!" << endl;
-
-
-//     // for (int i = 0; i < ltss.size(); i++){
-//     // 	 SimulationRelationComplex s1 (_abstractions[i]);
-//     // 	 SimulationRelationSimple s2 (_abstractions[i]);
-//     // 	 for(int s = 0; s < ltss[i]->size(); s++){
-//     // 	     for(int t = 0; t < ltss[i]->size(); t++){
-//     // 		 if(s1.simulates(s, t) != s2.simulates(s, t)){
-//     // 		     cout << "Error: different dominance_relation    ";
-//     // 		     cout <<ltss[i]->get_names() [t] << " <= " <<ltss[i]->get_names() [s];
-//     // 		     cout << "   Old: " << s1.simulates(s, t) << " new: " << s2.simulates(s, t) << endl;
-//     // 		 }
-//     // 	     }
-//     // 	 }
-//     //  }
-
-//     exit(0);
-// }
-
-
 
 void LDSimulation::dump_options() const {
     merge_strategy->dump_options();

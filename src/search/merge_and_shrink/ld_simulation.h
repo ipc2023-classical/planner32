@@ -3,7 +3,6 @@
 
 #include "../operator_cost.h"
 
-#include "label_relation.h"
 #include "simulation_relation.h"
 #include "dominance_relation.h"
 
@@ -18,7 +17,7 @@ class Abstraction;
 class SymManager;
 class LabelledTransitionSystem;
 class LTSComplex;
-class ComputeSimulationRelation;
+
 
 // Label dominance simulation
 class LDSimulation {  
@@ -64,7 +63,7 @@ protected:
     std::vector<int> useless_vars;
     std::vector<bool> dead_labels;
 
-    std::unique_ptr<ComputeSimulationRelation> alg_compute_simulation; 
+    std::unique_ptr<DominanceRelation> create_dominance_relation();
 
     void dump_options() const;
 

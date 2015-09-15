@@ -7,37 +7,17 @@
 #include "labelled_transition_system.h"
 #include "lts_complex.h"
 #include "label_relation.h"
+#include "label_relation_identity.h"
 #include "abstraction.h"
 
 
 using namespace std;
 
-
-std::unique_ptr<SimulationRelation> ComputeSimulationRelationSimple::init_simulation (Abstraction * _abs){
-    std::unique_ptr<SimulationRelation> res (new SimulationRelation(_abs));
-    res->init_goal_respecting();
-    return std::move (res);
-}
-
-std::unique_ptr<SimulationRelation> 
-ComputeSimulationRelationSimple::init_simulation_incremental (CompositeAbstraction * _abs, 
-			     const SimulationRelation & simrel_one, 
-			     const SimulationRelation & simrel_two){
-    
-    std::unique_ptr<SimulationRelation> res (new SimulationRelation(_abs));
-    res->init_incremental(_abs, simrel_one, simrel_two);
-    return std::move (res);
-}
-
-
-/*
- * THIS IMPLEMENTATION IS VERY INNEFICIENT
- * ONLY TO BE USED AS A PROOF OF CONCEPT
- */
-template<typename LTS>
-void ComputeSimulationRelationSimple::update_sim(int lts_id, const LTS * lts,
-						 const LabelRelation & label_dominance, 
-						 SimulationRelation & simrel) {
+template <typename LR> 
+template<typename LTS> void 
+DominanceRelationSimple<LR>::update_sim (int lts_id, const LTS * lts,
+		    const LR & label_dominance, 
+		    SimulationRelation & simrel) {
     bool changes = true;
     while (changes) {
         //std::cout << "looping" << std::endl;
@@ -100,12 +80,30 @@ void ComputeSimulationRelationSimple::update_sim(int lts_id, const LTS * lts,
         }
     }
 }
+template <typename LR> 
+std::unique_ptr<SimulationRelation> DominanceRelationSimple<LR>::init_simulation (Abstraction * _abs){
+    std::unique_ptr<SimulationRelation> res (new SimulationRelation(_abs));
+    res->init_goal_respecting();
+    return std::move (res);
+}
+
+template <typename LR> 
+std::unique_ptr<SimulationRelation> 
+DominanceRelationSimple<LR>::init_simulation_incremental (CompositeAbstraction * _abs, 
+			     const SimulationRelation & simrel_one, 
+			     const SimulationRelation & simrel_two){
+    
+    std::unique_ptr<SimulationRelation> res (new SimulationRelation(_abs));
+    res->init_incremental(_abs, simrel_one, simrel_two);
+    return std::move (res);
+}
 
 
 //l does not dominate l2 anymore, check if this changes the simulation relation
-bool ComputeSimulationRelationSimple::propagate_label_domination(int lts_id, 
+template <typename LR> 
+bool DominanceRelationSimple<LR>::propagate_label_domination(int lts_id, 
 								 const LabelledTransitionSystem * lts,
-								 const LabelRelation & label_dominance, 
+								 const LR & label_dominance, 
 								 int l, int l2, 
 								 SimulationRelation & simrel) const {
     for (int s = 0; s < lts->size(); s++) {
@@ -141,3 +139,6 @@ bool ComputeSimulationRelationSimple::propagate_label_domination(int lts_id,
     }
     return true;    
 }
+
+template class DominanceRelationSimple<LabelRelation>;
+template class DominanceRelationSimple<LabelRelationIdentity>;

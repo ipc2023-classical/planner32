@@ -448,25 +448,22 @@ bool LabelRelation::update(int i, const LTSComplex * lts,
 }
 
 
+// void LabelRelation::init_identity(int num_lts, const LabelMap & labelMap){
+//     num_labels = labelMap.get_num_labels();
+//     simulates_irrelevant.resize(num_labels);
+//     simulated_by_irrelevant.resize(num_labels);
+//     for(int i = 0; i < num_labels; i++){
+//         simulates_irrelevant[i].resize(num_lts, false);
+//         simulated_by_irrelevant[i].resize(num_lts, false);
+//     }
 
-
-
-void LabelRelation::init_identity(int num_lts, const LabelMap & labelMap){
-    num_labels = labelMap.get_num_labels();
-    simulates_irrelevant.resize(num_labels);
-    simulated_by_irrelevant.resize(num_labels);
-    for(int i = 0; i < num_labels; i++){
-        simulates_irrelevant[i].resize(num_lts, false);
-        simulated_by_irrelevant[i].resize(num_lts, false);
-    }
-
-    dominates_in.resize(num_labels);
-    dominated_by_noop_in.resize(num_labels, DOMINATES_IN_NONE);
-    for (int l1 = 0; l1 < dominates_in.size(); ++l1){
-        dominates_in[l1].resize(num_labels, DOMINATES_IN_NONE);
-        dominates_in[l1][l1] = DOMINATES_IN_ALL;
-    }
-}
+//     dominates_in.resize(num_labels);
+//     dominated_by_noop_in.resize(num_labels, DOMINATES_IN_NONE);
+//     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
+//         dominates_in[l1].resize(num_labels, DOMINATES_IN_NONE);
+//         dominates_in[l1][l1] = DOMINATES_IN_ALL;
+//     }
+// }
 
 EquivalenceRelation * LabelRelation::get_equivalent_labels_relation(const LabelMap & labelMap, 
 								    set<int> &  dangerous_LTSs)

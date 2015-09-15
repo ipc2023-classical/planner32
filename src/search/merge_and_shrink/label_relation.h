@@ -92,8 +92,8 @@ public:
             const DominanceRelation & sim,
             const LabelMap & labelMap);
 
-    //Initializes label relation (only the first time, to reinitialize call reset instead)
-    void init_identity(int num_lts, const LabelMap & labelMap);
+    /* //Initializes label relation (only the first time, to reinitialize call reset instead) */
+    /* void init_identity(int num_lts, const LabelMap & labelMap); */
 
 
     void reset();

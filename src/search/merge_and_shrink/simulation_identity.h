@@ -1,17 +1,18 @@
 #ifndef MERGE_AND_SHRINK_SIMULATION_IDENTITY_H
 #define MERGE_AND_SHRINK_SIMULATION_IDENTITY_H
 
-#include "compute_simulation.h"
+#include "dominance_relation.h"
 #include "simulation_relation.h"
 #include "abstraction.h"
 
 
 // First implementation of a simulation relation. 
-class ComputeSimulationRelationIdentity : public ComputeSimulationRelation {
+template <typename LR> 
+class DominanceRelationIdentity : public DominanceRelationLR<LR> {
 
  public:
-    ComputeSimulationRelationIdentity() : 
-    ComputeSimulationRelation() {}
+    DominanceRelationIdentity(Labels * labels) : 
+    DominanceRelationLR<LR>(labels) {}
 
     virtual std::unique_ptr<SimulationRelation> init_simulation (Abstraction * _abs) {
 	std::unique_ptr<SimulationRelation> simrel = 
@@ -30,15 +31,15 @@ class ComputeSimulationRelationIdentity : public ComputeSimulationRelation {
 
     virtual void update(int , 
 			const LabelledTransitionSystem * , 
-			const LabelRelation & , SimulationRelation & ){}
+			const LR & , SimulationRelation & ){}
 
     virtual void update(int , const LTSComplex * ,
-			const LabelRelation &,
+			const LR &,
 			SimulationRelation & ){}
 
     virtual bool propagate_label_domination(int /*lts_id*/, 
 					    const LabelledTransitionSystem * /*lts*/,
-					    const LabelRelation & /*label_dominance*/, 
+					    const LR & /*label_dominance*/, 
 					    int /*l*/, int /*l2*/, 
 					    SimulationRelation & ) const{
 	return true;

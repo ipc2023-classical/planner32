@@ -3,20 +3,21 @@
 #include <queue> 
 #include "../debug.h" 
 #include "label_relation.h" 
+#include "label_relation_identity.h"
 #include "simulation_relation.h" 
 
 using namespace std;
 
-template <typename LTS> 
-void ComputeSimulationRelationComplexNoLD::init(int /*lts_id*/, const LTS * lts,
-        const LabelRelation &label_dominance,
+template <typename LR>  template <typename LTS> 
+void ComplexNoLDDominanceRelation<LR>::init(int /*lts_id*/, const LTS * lts,
+        const LR &label_dominance,
         queue <Block *> & blocksToUpdate) {
 
     //Initialize relCounts. For every qa, set the number of transitions q-l>x with l >= a
     const vector<Qa> & qas = lts->get_qa_post();
 
     int num_labels = label_dominance.get_num_labels();
-    LabelData label_data (num_labels);
+    LabelData<LR> label_data (num_labels);
 
     //Initialize relCounts and l.Remove
     vector<int> relCount (qas.size(), 0); 
@@ -32,15 +33,15 @@ void ComputeSimulationRelationComplexNoLD::init(int /*lts_id*/, const LTS * lts,
     //cout << "Initialized relCount: ";     for(int i : relCount) cout << i << " "; cout << endl;
 
     //Set relCount to all blocks (initially all they have the same)
-    for(auto & b : partition) b->initRelCounts(relCount); 
+    for(auto & b : ComplexDominanceRelation<LR>::partition) b->initRelCounts(relCount); 
 
     //Perform split
     for(int l = 0; l < num_labels; l++) {
         vector<pair<Block *, Block *> > splitCouples;
         vector<Block *> blocksInRemove;
-        split_block(label_data.get_remove(l), splitCouples, blocksInRemove);
+        ComplexDominanceRelation<LR>::split_block(label_data.get_remove(l), splitCouples, blocksInRemove);
         for(auto c : blocksInRemove){
-            for(auto & d : partition){
+            for(auto & d : ComplexDominanceRelation<LR>::partition){
                 if(!d->markInRemove){
                     c->rel.erase(d->index);
                 }
@@ -51,20 +52,20 @@ void ComputeSimulationRelationComplexNoLD::init(int /*lts_id*/, const LTS * lts,
         }
     }
 
-    for (auto & c : partition){
+    for (auto & c : ComplexDominanceRelation<LR>::partition){
         /*cout << " Push c: " << c->index << endl;
 	c->dump(Qp); cout << " relCount: "; 
 	for(int i : c->relCount) cout << i;
 	cout << endl;*/
 
-        for (auto & aux : partition){
+        for (auto & aux : ComplexDominanceRelation<LR>::partition){
             if (!c->in_rel(aux.get())){
                 //cout << "Adding block "; aux->dump(Qp);
                 //cout << " as not rel of  "; c->dump(Qp); cout << endl;
-                c->add_notRel(aux.get(), lts, Qp);
+                c->add_notRel(aux.get(), lts, ComplexDominanceRelation<LR>::Qp);
             }
         }
-        if(!c->notRel.empty() && unmarked(c->markS))
+        if(!c->notRel.empty() && ComplexDominanceRelation<LR>::unmarked(c->markS))
             blocksToUpdate.push(c.get());
         /*c->dump(Qp); cout << " relCount: ";
 	for(int i : c->relCount) cout << i;
@@ -82,14 +83,14 @@ void ComputeSimulationRelationComplexNoLD::init(int /*lts_id*/, const LTS * lts,
 	}*/
 }
 
-
-void ComputeSimulationRelationComplexNoLD::update_sim_nold (int lts_id, const LTSComplex * lts,
-							    const LabelRelation & label_dominance, 
+template <typename LR> 
+void ComplexNoLDDominanceRelation<LR>::update_sim_nold (int lts_id, const LTSComplex * lts,
+							    const LR & label_dominance, 
 							    SimulationRelation & simrel) {
     Timer t;
     //cout << "Update complex relation" << endl;
     //label_dominance.dump();
-    LabelData label_data (label_dominance.get_num_labels());
+    LabelData<LR> label_data (label_dominance.get_num_labels());
     set<int> alph; //TODO: Not using the data structure suggested in the paper
 
     queue <Block *> blocksToUpdate; 
@@ -112,7 +113,7 @@ void ComputeSimulationRelationComplexNoLD::update_sim_nold (int lts_id, const LT
         blocksToUpdate.pop();
         b->markS = false;
 
-        DEBUG_MSG(cout << "Selected block: "; b->dump(Qp); cout << endl;);
+        DEBUG_MSG(cout << "Selected block: "; b->dump(ComplexDominanceRelation<LR>::Qp); cout << endl;);
         //Block b has notRel => c does not dominate b anymore. Check
         //transitions to c because they do not simulate transitions to
         //b anymore.
@@ -145,7 +146,7 @@ void ComputeSimulationRelationComplexNoLD::update_sim_nold (int lts_id, const LT
 
         //Compute label.remove with a single pass through the transitions
         for (auto & t : lts->get_transitions_pre()){
-            if(b->in_notRel(Qp_pos[t.target]) &&
+            if(b->in_notRel(ComplexDominanceRelation<LR>::Qp_pos[t.target]) &&
 	       !b->hasTransitionFrom(lts->get_qa_post(t.label,t.src).index)) {
 		alph.insert(t.label);
 		label_data.add_to_remove(t.label, t.src);   
@@ -157,7 +158,7 @@ void ComputeSimulationRelationComplexNoLD::update_sim_nold (int lts_id, const LT
         for (auto l : alph){ //Populate a.PreB
             //for each state s in B
             for(int i = b->node.b; i <= b->node.e; ++i){
-                int s = Qp[i];
+                int s = ComplexDominanceRelation<LR>::Qp[i];
                 //for each transition pointing s with l
                 if(!lts->hasQaPre(l, s)) continue;
                 const Qa & qa = lts->get_qa_pre(l, s);
@@ -187,18 +188,18 @@ void ComputeSimulationRelationComplexNoLD::update_sim_nold (int lts_id, const LT
             vector<pair<Block *, Block *> > splitCouples;
             vector<Block *> blocksInRemove;
 
-            split_block(label_data.get_remove(l), splitCouples, blocksInRemove);
+            ComplexDominanceRelation<LR>::split_block(label_data.get_remove(l), splitCouples, blocksInRemove);
 
             for(const auto & p : splitCouples){
                 DEBUG_MSG(cout <<"Blocks: " << p.first->index << " (";
-			  for(int i = p.first->node.b; i <= p.first->node.e; ++i) cout << " " << Qp[i];
+			  for(int i = p.first->node.b; i <= p.first->node.e; ++i) cout << " " << ComplexDominanceRelation<LR>::Qp[i];
 			  cout <<") and " << p.second->index << " (";
-			  for(int i = p.second->node.b; i <= p.second->node.e; ++i) cout << " " << Qp[i];
+			  for(int i = p.second->node.b; i <= p.second->node.e; ++i) cout << " " << ComplexDominanceRelation<LR>::Qp[i];
 			  cout << ") have been splitted" << endl;
 			  );
 
                 p.first->remove_rel(p.second);
-                p.first->add_notRel(p.second, lts, Qp);
+                p.first->add_notRel(p.second, lts, ComplexDominanceRelation<LR>::Qp);
 
                 /*for(auto & x : partition){
 		     x->dump(Qp); cout << " has as rel: " << endl;
@@ -206,20 +207,20 @@ void ComputeSimulationRelationComplexNoLD::update_sim_nold (int lts_id, const LT
 		     }*/
 
 
-                if(unmarked(p.first->markS)) blocksToUpdate.push(p.first);
-                else if (unmarked(p.second->markS)) blocksToUpdate.push(p.second);
+                if(ComplexDominanceRelation<LR>::unmarked(p.first->markS)) blocksToUpdate.push(p.first);
+                else if (ComplexDominanceRelation<LR>::unmarked(p.second->markS)) blocksToUpdate.push(p.second);
 	    }
 
             //cout << "processed couples splitted." << endl;
             for(auto  d : blocksInRemove) {
                 d->markInRemove = false;
                 for (int s : label_data.get_preB(l)){
-                    Block * c = partition[Qp_block[s]].get();
+                    Block * c = ComplexDominanceRelation<LR>::partition[ComplexDominanceRelation<LR>::Qp_block[s]].get();
                     if (c->in_rel(d)){
-                        DEBUG_MSG(d->dump(Qp);  cout << " does not simulate "; c->dump(Qp); cout << endl;);
+                        DEBUG_MSG(d->dump(ComplexDominanceRelation<LR>::Qp);  cout << " does not simulate "; c->dump(ComplexDominanceRelation<LR>::Qp); cout << endl;);
                         c->remove_rel(d);
-                        c->add_notRel(d, lts, Qp);
-                        if(unmarked(c->markS)) blocksToUpdate.push(c);
+                        c->add_notRel(d, lts, ComplexDominanceRelation<LR>::Qp);
+                        if(ComplexDominanceRelation<LR>::unmarked(c->markS)) blocksToUpdate.push(c);
                     }
                 }
             }
@@ -232,12 +233,16 @@ void ComputeSimulationRelationComplexNoLD::update_sim_nold (int lts_id, const LT
 
     //cout << "Done update complex relation: " << t() << endl;
     for(int s = 0; s < simrel.num_states(); s++){
-        Block * bs = partition[Qp_block[s]].get();
+        Block * bs = ComplexDominanceRelation<LR>::partition[ComplexDominanceRelation<LR>::Qp_block[s]].get();
         for(int t = 0; t < simrel.num_states(); t++){
-            if(s != t && !bs->in_rel(Qp_block[t])){//t does not simulate s
+            if(s != t && !bs->in_rel(ComplexDominanceRelation<LR>::Qp_block[t])){//t does not simulate s
                 simrel.remove(t, s);
             }
         }
     }
     //cout << "Updated relation" << endl;
 }
+
+
+template class ComplexNoLDDominanceRelation<LabelRelation>;
+template class ComplexNoLDDominanceRelation<LabelRelationIdentity>;

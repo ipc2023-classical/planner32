@@ -4,7 +4,6 @@
 #include <vector>
 #include <string>
 #include <iostream>
-#include "label_relation.h"
 #include "../sym/sym_variables.h"
 
 class Labels;
