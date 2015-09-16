@@ -681,15 +681,6 @@ class ComplexDominanceRelation : public DominanceRelationLR<LR> {
     //cout << "Updated relation" << std::endl;
 }
 
-
-    virtual bool propagate_label_domination(int /*lts_id*/, 
-					    const LabelledTransitionSystem * /*lts*/,
-					    const LR & /*label_dominance*/, 
-					    int /*l*/, int /*l2*/, SimulationRelation & /*simrel*/) const {
-	std::cerr << "Error: ComputeSimulationRelationComplex::propagate_label_domination not implemented yet" << std::endl;
-	std::exit(-1);
-	return false;
-    }
 };
 
 #endif

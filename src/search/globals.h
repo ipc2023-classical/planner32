@@ -9,6 +9,8 @@
 
 #include <boost/dynamic_bitset.hpp>
 
+#include "operator_cost.h"
+
 class Axiom;
 class AxiomEvaluator;
 class CausalGraph;
@@ -54,6 +56,7 @@ extern std::vector<int> g_id_first_fact;
 extern bool g_use_metric;
 extern int g_min_action_cost;
 extern int g_max_action_cost;
+bool is_unit_cost_task(const OperatorCost & cost_type);
 
 // TODO: The following five belong into a new Variable class.
 extern std::vector<std::string> g_variable_name;

@@ -15,9 +15,38 @@
 #include <boost/dynamic_bitset.hpp>
 #include "label_relation.h"
 #include "label_relation_identity.h"
+#include "label_relation_noop.h"
 #include "variable_partition_finder.h"
 
 using namespace std;
+
+std::ostream & operator<<(std::ostream &os, const LabelDominanceType & type){
+  switch(type){
+  case LabelDominanceType::NONE: return os << "none";
+  case LabelDominanceType::NOOP: return os << "noop";
+  case LabelDominanceType::NORMAL: return os << "normal";
+  default:
+    std::cerr << "Name of LabelDominanceType not known";
+    exit(-1);
+  }
+} 
+const std::vector<std::string> LabelDominanceTypeValues {
+    "NONE", "NOOP", "NORMAL"
+};
+
+std::ostream & operator<<(std::ostream &os, const SimulationType & type){
+  switch(type){
+  case SimulationType::NONE: return os << "none";
+  case SimulationType::SIMPLE: return os << "simple";
+  case SimulationType::COMPLEX: return os << "complex";
+  default:
+    std::cerr << "Name of SimulationType not known";
+    exit(-1);
+  }
+} 
+const std::vector<std::string> SimulationTypeValues {
+    "NONE", "SIMPLE", "COMPLEX"
+};
 
 /* 
  * TODO: Right now this class has too much responsability and
@@ -43,25 +72,24 @@ using namespace std;
  *   complex_lts, complex_simulation
  */ 
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
-		                          skip_simulation(opts.get<bool>("skip_simulation")),
-		                          nold_simulation(opts.get<bool>("nold_simulation")),
-		                          apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
-		                          apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
-		                          apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
-		                          prune_dead_operators(opts.get<bool>("prune_dead_operators")),
-					  forbid_lr(opts.get<bool>("forbid_lr")),	                          
-                                          complex_simulation(opts.get<bool>("complex_simulation")),
-		                          complex_lts(opts.get<bool>("complex_lts")),
-		                          use_expensive_statistics(opts.get<bool>("expensive_statistics")),
-		                          limit_absstates_merge(opts.get<int>("limit_merge")),
-		                          limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
-		                          use_mas(opts.get<bool>("use_mas")),
-		                          limit_seconds_mas(opts.get<int>("limit_seconds")),
-		                          merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
-		                          use_bisimulation(opts.get<bool>("use_bisimulation")),
-		                          intermediate_simulations(opts.get<bool>("intermediate_simulations")),
-		                          incremental_simulations(opts.get<bool>("incremental_simulations")),
-		                          compute_final_abstraction(opts.get<bool>("compute_final_abstraction")),
+    simulation_type(SimulationType(opts.get_enum("simulation_type"))),
+    label_dominance_type(LabelDominanceType(opts.get_enum("label_dominance_type"))),
+    apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
+    apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
+    apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
+    prune_dead_operators(opts.get<bool>("prune_dead_operators")),
+    forbid_lr(opts.get<bool>("forbid_lr")),	                          
+    complex_lts(opts.get<bool>("complex_lts")),	                          
+    use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+    limit_absstates_merge(opts.get<int>("limit_merge")),
+    limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
+    use_mas(opts.get<bool>("use_mas")),
+    limit_seconds_mas(opts.get<int>("limit_seconds")),
+    merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
+    use_bisimulation(opts.get<bool>("use_bisimulation")),
+    intermediate_simulations(opts.get<bool>("intermediate_simulations")),
+    incremental_simulations(opts.get<bool>("incremental_simulations")),
+    compute_final_abstraction(opts.get<bool>("compute_final_abstraction")),
     shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
     shrink_after_merge(opts.get<bool>("shrink_after_merge")),
     original_merge(opts.get<bool>("original_merge")), 
@@ -80,10 +108,6 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
         cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
         exit(1);
     }
-    if (incremental_simulations && complex_simulation) {
-        cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) complex simulation relation!" << endl;
-        exit(1);
-    }
 
     Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
 
@@ -93,66 +117,7 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
     }
 }
 
-LDSimulation::LDSimulation(const Options &opts) : 
-    		                        skip_simulation(opts.get<bool>("skip_simulation")),
-    		                        nold_simulation(opts.get<bool>("nold_simulation")),
-    		                        apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
-    		                        apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
-					apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
-					prune_dead_operators(opts.get<bool>("prune_dead_operators")),
-					forbid_lr(opts.get<bool>("forbid_lr")),	                          
-		                        complex_simulation(opts.get<bool>("complex_simulation")),
-    		                        complex_lts(opts.get<bool>("complex_lts")),
-    		                        use_expensive_statistics(opts.get<bool>("expensive_statistics")),
-    		                        limit_absstates_merge(opts.get<int>("limit_merge")),
-    		                        limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
-    		                        use_mas(opts.get<bool>("use_mas")),
-    		                        limit_seconds_mas(opts.get<int>("limit_seconds")),
-    		                        merge_strategy(opts.get<MergeStrategy *>("merge_strategy")),
-    		                        use_bisimulation(opts.get<bool>("use_bisimulation")),
-    		                        intermediate_simulations(opts.get<bool>("intermediate_simulations")),
-		incremental_simulations(opts.get<bool>("incremental_simulations")), 
-    compute_final_abstraction(opts.get<bool>("compute_final_abstraction")), 
-    shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
-		shrink_after_merge(opts.get<bool>("shrink_after_merge")),
-		original_merge(opts.get<bool>("original_merge"))
-    {
-
-    /*if (apply_subsumed_transitions_pruning && (! apply_simulation_shrinking && ! intermediate_simulations)) {
-        cerr << "Error: can only apply pruning of subsumed transitions if simulation shrinking (either at the end or in an intermediate fashion) is used!" << endl;
-        exit(1);
-	}*/ 
-   if (incremental_simulations && !intermediate_simulations) {
-        cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
-        exit(1);
-    }
-    if (incremental_simulations && complex_simulation) {
-        cerr << "Error: Support for incremental calculation of simulations not yet implemented in (supposedly) complex simulation relation!" << endl;
-        exit(1);
-    }
-
-    //TODO: Copied from heuristic.cc. Move to the PlanningTask class
-    //that someday will be added to FD.
-    OperatorCost cost_type = OperatorCost::NORMAL;
-    bool is_unit_cost = true;
-    for (size_t i = 0; i < g_operators.size(); ++i) {
-        if (get_adjusted_action_cost(g_operators[i], cost_type) != 1) {
-            is_unit_cost = false;
-            break;
-        }
-    }
-    labels = unique_ptr<Labels> (new Labels(is_unit_cost, opts, cost_type)); //TODO: c++14::make_unique
-    dominance_relation = create_dominance_relation();
-    /*if (apply_subsumed_transitions_pruning && ! labels->applies_perfect_label_reduction()) {
-        cerr << "Error: can only apply pruning of subsumed transitions if perfect label reduction is applied" << endl;
-        exit(1);
-    }*/
-    Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
-    if (!prune_dead_operators && Abstraction::store_original_operators) {
-        cerr << "Error: Why do you want to store operators if you don't prune them?" << endl;
-        exit(1);
-    }
-
+LDSimulation::LDSimulation(const Options &opts) : LDSimulation(is_unit_cost_task(OperatorCost::NORMAL), opts, OperatorCost::NORMAL){
 }
 
 LDSimulation::~LDSimulation(){
@@ -165,20 +130,31 @@ LDSimulation::~LDSimulation(){
 }
 
 unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation() {
-    if (complex_simulation) {
-	if (nold_simulation) {
-	    //return unique_ptr<DominanceRelation>(nullptr);
+    switch(simulation_type){
+    case SimulationType::NONE:
+	return unique_ptr<DominanceRelation>(new DominanceRelationIdentity<LabelRelationIdentity>(labels.get()));
+    case SimulationType::SIMPLE: 
+	switch(label_dominance_type){
+	case LabelDominanceType::NONE:
+	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationIdentity>(labels.get())); 
+	case LabelDominanceType::NOOP: 
+	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationNoop>(labels.get())); 
+	case LabelDominanceType::NORMAL: 	    
+	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelation>(labels.get())); 
+	}
+
+    case SimulationType::COMPLEX: 
+	switch(label_dominance_type){
+	case LabelDominanceType::NONE:
 	    return unique_ptr<DominanceRelation>(new ComplexNoLDDominanceRelation<LabelRelationIdentity>(labels.get())); 
-	} else {
+	case LabelDominanceType::NOOP: 
+	    return unique_ptr<DominanceRelation>(new ComplexDominanceRelation<LabelRelationNoop>(labels.get())); 
+	case LabelDominanceType::NORMAL: 	    
 	    return unique_ptr<DominanceRelation>(new ComplexDominanceRelation<LabelRelation>(labels.get())); 
 	}
-    } else {
-	if (nold_simulation) {
-	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationIdentity>(labels.get())); 
-	} else {
-	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelation>(labels.get())); 		
-	}
-    }    
+    }
+    cerr << "Error: unkown type of simulation relation or label dominance" << endl;
+    exit(-1);
 }
 
 void LDSimulation::build_factored_systems() {

@@ -18,12 +18,24 @@ class SymManager;
 class LabelledTransitionSystem;
 class LTSComplex;
 
+enum class LabelDominanceType {
+    NONE, NOOP, NORMAL
+};
+enum class SimulationType {
+    NONE, SIMPLE, COMPLEX
+};
+
+std::ostream & operator<<(std::ostream &os, const LabelDominanceType & m);
+extern const std::vector<std::string> LabelDominanceTypeValues;
+std::ostream & operator<<(std::ostream &os, const SimulationType & m);
+extern const std::vector<std::string> SimulationTypeValues;
+
 
 // Label dominance simulation
 class LDSimulation {  
 protected:
-    const bool skip_simulation;
-    const bool nold_simulation;
+    const SimulationType simulation_type;
+    const LabelDominanceType label_dominance_type;
 
     const bool apply_simulation_shrinking;
     const bool apply_subsumed_transitions_pruning;
@@ -31,7 +43,6 @@ protected:
     const bool prune_dead_operators;
     const bool forbid_lr;
 
-    const bool complex_simulation;
     const bool complex_lts;
 
     const bool use_expensive_statistics;

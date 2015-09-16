@@ -28,7 +28,13 @@ protected:
 				     const SimulationRelation & simrel_one, 
 				     const SimulationRelation & simrel_two) = 0;
 
+
 public: 
+    //Methods to use the simulation 
+    bool pruned_state(const State &state) const;
+    int get_cost(const State &state) const;
+
+
 
     void init (const std::vector<Abstraction *> & abstractions);
 
@@ -36,17 +42,14 @@ public:
 			   const SimulationRelation & simrel_one, 
 			   const SimulationRelation & simrel_two);
     
-    virtual void compute_ld_simulation(std::vector<LabelledTransitionSystem *> & _ltss,
+    virtual void compute_ld_simulation (std::vector<LabelledTransitionSystem *> & _ltss,
 				       const LabelMap & labelMap, 
 				       bool incremental_step) = 0;   
 
-    virtual void compute_ld_simulation(std::vector<LTSComplex *> & _ltss,
+    virtual void compute_ld_simulation (std::vector<LTSComplex *> & _ltss,
 				       const LabelMap & labelMap, 
 				       bool incremental_step) = 0;   
 
-
-    bool pruned_state(const State &state) const;
-    int get_cost(const State &state) const;
 
     virtual bool propagate_transition_pruning
 	(int lts_id, const std::vector<LabelledTransitionSystem *> & ltss, 
@@ -64,8 +67,9 @@ public:
    
     void remove_useless();
 
-    void dump_statistics () const;
+
     //Statistics of the factored simulation 
+    void dump_statistics () const;
     int num_equivalences() const;
     int num_simulations() const;   
     //Computes the probability of selecting a random pair s, s' such
@@ -127,10 +131,9 @@ class DominanceRelationLR : public DominanceRelation {
 			const LR & label_dominance, 
 			SimulationRelation & simrel) = 0;
 
-    virtual bool propagate_label_domination(int lts_id, 
-					    const LabelledTransitionSystem * lts,
-					    const LR & label_dominance, 
-					    int l, int l2, SimulationRelation & simrel) const = 0;
+    bool propagate_label_domination(int lts_id, 
+				    const LabelledTransitionSystem * lts,
+				    int l, int l2, SimulationRelation & simrel) const;
 
     template<typename LTS>
 	void compute_ld_simulation_template(std::vector<LTS *> & _ltss,
@@ -277,5 +280,6 @@ DominanceRelationLR(Labels * labels) : label_dominance(labels)
 	return label_dominance.get_equivalent_labels_relation(labelMap, dangerous_LTSs);
     }    
 };
+
 
 #endif

@@ -416,3 +416,16 @@ Timer g_timer;
 string g_plan_filename = "sas_plan";
 RandomNumberGenerator g_rng(2011); // Use an arbitrary default seed.
 StateRegistry *g_state_registry = 0;
+
+
+
+bool is_unit_cost_task(const OperatorCost & cost_type){
+    bool is_unit_cost = true;
+    for (size_t i = 0; i < g_operators.size(); ++i) {
+        if (get_adjusted_action_cost(g_operators[i], cost_type) != 1) {
+            is_unit_cost = false;
+            break;
+        }
+    }
+    return is_unit_cost;
+}

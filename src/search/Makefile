@@ -107,6 +107,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/simulation_heuristic.h \
            merge_and_shrink/label_relation.h \
            merge_and_shrink/label_relation_identity.h \
+           merge_and_shrink/label_relation_noop.h \
            merge_and_shrink/labelled_transition_system.h \
            merge_and_shrink/lts_complex.h \
            merge_and_shrink/simulation_simple.h \

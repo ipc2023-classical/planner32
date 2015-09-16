@@ -5,6 +5,7 @@
 #include "label_relation.h" 
 #include "label_relation_identity.h"
 #include "simulation_relation.h" 
+#include "label_relation_noop.h"
 
 using namespace std;
 
@@ -243,6 +244,6 @@ void ComplexNoLDDominanceRelation<LR>::update_sim_nold (int lts_id, const LTSCom
     //cout << "Updated relation" << endl;
 }
 
-
 template class ComplexNoLDDominanceRelation<LabelRelation>;
 template class ComplexNoLDDominanceRelation<LabelRelationIdentity>;
+template class ComplexNoLDDominanceRelation<LabelRelationNoop>;

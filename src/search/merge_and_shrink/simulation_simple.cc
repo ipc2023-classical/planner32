@@ -8,6 +8,7 @@
 #include "lts_complex.h"
 #include "label_relation.h"
 #include "label_relation_identity.h"
+#include "label_relation_noop.h"
 #include "abstraction.h"
 
 
@@ -99,46 +100,6 @@ DominanceRelationSimple<LR>::init_simulation_incremental (CompositeAbstraction *
 }
 
 
-//l does not dominate l2 anymore, check if this changes the simulation relation
-template <typename LR> 
-bool DominanceRelationSimple<LR>::propagate_label_domination(int lts_id, 
-								 const LabelledTransitionSystem * lts,
-								 const LR & label_dominance, 
-								 int l, int l2, 
-								 SimulationRelation & simrel) const {
-    for (int s = 0; s < lts->size(); s++) {
-	for (int t = 0; t < lts->size(); t++) { //for each pair of states t, s
-	    if (s != t && simrel.simulates(t, s)) {
-		//Check if really t simulates s //for each transition s--l->s':
-		// a) with noop t >= s' and l dominated by noop?
-		// b) exist t--l'-->t', t' >= s' and l dominated by l'?
-		bool not_simulates_anymore = lts->applyPostSrc(s, [&](const LTSTransition & trs) {
-			if(trs.label != l2) return false;
-
-			if(simrel.simulates (t, trs.target) &&
-			   label_dominance.dominated_by_noop(trs.label, lts_id)) {
-			    //cout << "Dominated by noop!" << endl;
-			    return false;
-			}
-			bool found =
-                            lts->applyPostSrc(t,[&](const LTSTransition & trt) {
-				    if (trt.label == l) return false;
-				    if(label_dominance.dominates(trt.label, trs.label, lts_id) &&
-				       simrel.simulates(trt.target, trs.target)) {
-					return true;
-				    }
-				    return false;
-				});
-			
-			return !found;
-		    });
-
-		if(not_simulates_anymore) return false;
-	    }
-	}
-    }
-    return true;    
-}
-
 template class DominanceRelationSimple<LabelRelation>;
 template class DominanceRelationSimple<LabelRelationIdentity>;
+template class DominanceRelationSimple<LabelRelationNoop>;

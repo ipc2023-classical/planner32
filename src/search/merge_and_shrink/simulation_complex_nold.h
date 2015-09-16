@@ -33,15 +33,6 @@ class ComplexNoLDDominanceRelation : public ComplexDominanceRelation<LR> {
 			SimulationRelation & simrel){
 	update_sim_nold(lts_id, lts, label_dominance, simrel);
     }
-
-    virtual bool propagate_label_domination(int /*lts_id*/, 
-					    const LabelledTransitionSystem * /*lts*/,
-					    const LR & /*label_dominance*/, 
-					    int /*l*/, int /*l2*/, SimulationRelation & /*simrel*/) const{
-	std::cerr << "Error: ComputeSimulationRelationComplexNoLD::propagate_label_domination not implemented yet" << std::endl;
-	std::exit(-1);
-	return false;
-    }
 };
 
 #endif
