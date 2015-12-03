@@ -51,4 +51,11 @@ void generate_cpp_input(bool causal_graph_acyclic,
                         const CausalGraph &cg);
 void check_magic(istream &in, string magic);
 
+void write_mutexes(vector<Variable*> & variables, vector<MutexGroup> & m, string filename);
+void write_mutexes(vector<Variable*> & variables, vector<MutexGroup> & m, ofstream & filename);
+void write_operators(vector<Operator> & ops, string filename);
+void write_operators(vector<Operator> & ops, ofstream & filename);
+void write_variables(vector<Variable *> & variables, string filename);
+void write_variables(vector<Variable *> & variables, ofstream & file);
+
 #endif
