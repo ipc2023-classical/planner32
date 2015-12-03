@@ -37,6 +37,10 @@ EagerSearch::EagerSearch(
     }else{
         prune_heuristic = nullptr;
     }
+
+    if(prune_heuristic){
+        prune_heuristic->initialize();
+    }
 }
 
 void EagerSearch::initialize() {
@@ -51,10 +55,6 @@ void EagerSearch::initialize() {
         cout << "Using multi-path dependence (LM-A*)" << endl;
     assert(open_list != NULL);
 
-
-    if(prune_heuristic){
-        prune_heuristic->initialize();
-    }
 
     set<Heuristic *> hset;
     open_list->get_involved_heuristics(hset);
