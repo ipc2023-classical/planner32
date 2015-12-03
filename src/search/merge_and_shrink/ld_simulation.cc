@@ -146,11 +146,11 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation() {
     case SimulationType::COMPLEX: 
 	switch(label_dominance_type){
 	case LabelDominanceType::NONE:
-	    return unique_ptr<DominanceRelation>(new ComplexNoLDDominanceRelation<LabelRelationIdentity>(labels.get())); 
+	    return unique_ptr<DominanceRelation>(new DominanceRelationComplexNoLD<LabelRelationIdentity>(labels.get())); 
 	case LabelDominanceType::NOOP: 
-	    return unique_ptr<DominanceRelation>(new ComplexDominanceRelation<LabelRelationNoop>(labels.get())); 
+	    return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelationNoop>(labels.get())); 
 	case LabelDominanceType::NORMAL: 	    
-	    return unique_ptr<DominanceRelation>(new ComplexDominanceRelation<LabelRelation>(labels.get())); 
+	    return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelation>(labels.get())); 
 	}
     }
     cerr << "Error: unkown type of simulation relation or label dominance" << endl;

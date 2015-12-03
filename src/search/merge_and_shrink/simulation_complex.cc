@@ -13,7 +13,7 @@
 using namespace std;
 
 template <typename LR> 
-unique_ptr<SimulationRelation> ComplexDominanceRelation<LR>::init_simulation (Abstraction * abs) { 
+unique_ptr<SimulationRelation> DominanceRelationComplex<LR>::init_simulation (Abstraction * abs) { 
     //cout << "Generate complex relation" << endl;
     int num_states = abs->size();
     //Generate a partition with two blocks, goal and non-goal (or N, based on computed_distances)
@@ -64,6 +64,6 @@ void Block::dump  (const std::vector<int> & Qp){
 //     relCount[sl]--;
 // }
 
-template class ComplexDominanceRelation<LabelRelation>;
-template class ComplexDominanceRelation<LabelRelationIdentity>;
-template class ComplexDominanceRelation<LabelRelationNoop>;
+template class DominanceRelationComplex<LabelRelation>;
+template class DominanceRelationComplex<LabelRelationIdentity>;
+template class DominanceRelationComplex<LabelRelationNoop>;

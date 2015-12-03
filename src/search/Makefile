@@ -104,7 +104,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/variable_order_finder.h \
            merge_and_shrink/simulation_relation.h \
            merge_and_shrink/dominance_relation.h \
-           merge_and_shrink/simulation_heuristic.h \
+           merge_and_shrink/dominance_pruning_simulation.h \
            merge_and_shrink/label_relation.h \
            merge_and_shrink/label_relation_identity.h \
            merge_and_shrink/label_relation_noop.h \

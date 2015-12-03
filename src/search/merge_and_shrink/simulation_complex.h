@@ -217,7 +217,7 @@ class LabelData {
 };
 
 template <typename LR> 
-class ComplexDominanceRelation : public DominanceRelationLR<LR> {
+class DominanceRelationComplex : public DominanceRelationLR<LR> {
  protected:
     //By now we assume that the partition is unitary... we can improve
     //this later with EquivalenceRelation
@@ -452,7 +452,7 @@ class ComplexDominanceRelation : public DominanceRelationLR<LR> {
     }
     
  public:
-    ComplexDominanceRelation (Labels * labels) : DominanceRelationLR<LR> (labels) {}
+    DominanceRelationComplex (Labels * labels) : DominanceRelationLR<LR> (labels) {}
 
     virtual std::unique_ptr<SimulationRelation> init_simulation (Abstraction * _abs);
 

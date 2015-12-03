@@ -6,7 +6,7 @@
 #include "simulation_complex.h"
 
 template <typename LR> 
-class ComplexNoLDDominanceRelation : public ComplexDominanceRelation<LR> {
+class DominanceRelationComplexNoLD : public DominanceRelationComplex<LR> {
 
     template<typename LTS> void init (int lts_id, const LTS * lts,
 				      const LR & label_dominance, 
@@ -21,7 +21,7 @@ class ComplexNoLDDominanceRelation : public ComplexDominanceRelation<LR> {
 			  SimulationRelation & simrel);
     
  public:
-    ComplexNoLDDominanceRelation(Labels * labels) : ComplexDominanceRelation<LR>(labels) {}
+    DominanceRelationComplexNoLD(Labels * labels) : DominanceRelationComplex<LR>(labels) {}
   
 
     virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,

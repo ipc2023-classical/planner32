@@ -33,3 +33,76 @@ Parameters that you might want to adapt are:
   - limit_transitions_merge: lower means less pruning but faster preprocessing
   - merge_strategy
 
+
+
+FIRST EXPERIMENT: LAUNCH ALL COMBINATIONS OF: 
+
+TYPE OF SIMULATION (4): 
+  BISIM: simulation_type=NONE
+  SIM: simulation_type=SIMPLE, label_dominance_type=NONE
+  LDSIM: simulation_type=SIMPLE, label_dominance_type=NORMA
+  NOOPSIM: simulation_type=SIMPLE, label_dominance_type=NOOP
+
+TYPE OF PRUNING (2): 
+GEN: pruning_type=generation
+EXP: pruning_type=expansion
+
+HEURISTIC + pruning type (3):
+LMCUT: lmcut(), pruning_dd=bdd_map
+BLIND: blind(), pruning_dd=bdd
+M&S: ????
+
+SHRINKING (2): 
+NONE: use_bisimulation=false, forbid_lr=true
+BISIM+LR: use_bisimulation=true, forbid_lr=false
+
+MERGE (6):
+ATOM: limit_transitions_merge=1, 
+DFP1k:   merge_strategy=merge_dfp(), limit_transitions_merge=1000, limit_second_mas=300, original_merge=false
+DFP10k:  merge_strategy=merge_dfp(), limit_transitions_merge=10000, limit_second_mas=300, original_merge=false
+DFP50k:  merge_strategy=merge_dfp(), limit_transitions_merge=50000, limit_second_mas=300, original_merge=false
+DFP100k: merge_strategy=merge_dfp(), limit_transitions_merge=100000, limit_second_mas=300, original_merge=false
+DFP200k: merge_strategy=merge_dfp(), limit_transitions_merge=200000, limit_second_mas=300, original_merge=false
+
+SECOND EXPERIMENT: SKYLINE 
+Using best configuration for first experiment (lmcut, blind) run with
+skyline pruning.
+
+THIRD EXPERIMENT: MERGE STRATEGIES
+
+FOURTH EXPERIMENT: WITHOUT M&S
+
+FIFTH EXPERIMENT: WITH SUBSUMED TRANSITION PRUNING
+
+
+simulation_type {NONE, SIMPLE, COMPLEX}
+label_dominance_type {NONE, NOOP, NORMAL}
+
+pruning_dd {BDD_MAP, ADD, BDD, BDD_MAP_DISJ, SKYLINE_BDD_MAP, SKYLINE_BDD}
+pruning_type {Expansion, Generation, None}
+
+merge_strategy: MERGE
+limit_absstates_merge(opts.get<int>("limit_merge")),
+limit_transitions_merge(opts.get<int>("limit_transitions_merge")),
+limit_seconds_mas(opts.get<int>("limit_seconds")),
+use_bisimulation(opts.get<bool>("use_bisimulation")),
+original_merge: bool (keep merging after reaching limit or not)
+forbid_lr(opts.get<bool>("forbid_lr")),	                          
+
+
+intermediate_simulations(opts.get<bool>("intermediate_simulations")),
+incremental_simulations(opts.get<bool>("incremental_simulations")),
+apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
+apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
+apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
+prune_dead_operators(opts.get<bool>("prune_dead_operators")),
+
+complex_lts(opts.get<bool>("complex_lts")),	                          
+use_mas(opts.get<bool>("use_mas")),
+use_expensive_statistics(opts.get<bool>("expensive_statistics")),
+
+    
+compute_final_abstraction(opts.get<bool>("compute_final_abstraction")),
+shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
+shrink_after_merge(opts.get<bool>("shrink_after_merge")),
+    

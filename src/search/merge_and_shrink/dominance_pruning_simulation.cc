@@ -1,4 +1,4 @@
-#include "simulation_heuristic.h"
+#include "dominance_pruning_simulation.h"
 
 #include "abstraction.h"
 #include "labels.h"
@@ -24,7 +24,7 @@
 
 using namespace std;
 
-SimulationHeuristic::SimulationHeuristic(const Options &opts)
+DominancePruningSimulation::DominancePruningSimulation(const Options &opts)
 : PruneHeuristic(opts), 
   mgrParams(opts), initialized(false),
   remove_spurious_dominated_states(opts.get<bool>("remove_spurious")),
@@ -37,14 +37,14 @@ SimulationHeuristic::SimulationHeuristic(const Options &opts)
   states_inserted(0), states_checked(0), states_pruned(0), deadends_pruned(0) {
 }
 
-SimulationHeuristic::~SimulationHeuristic() {
+DominancePruningSimulation::~DominancePruningSimulation() {
 }
 
-void SimulationHeuristic::dump_options() const {
+void DominancePruningSimulation::dump_options() const {
     cout << "Type pruning: " << pruning_type;
 }
 
-void SimulationHeuristic::initialize() {
+void DominancePruningSimulation::initialize() {
     if(!initialized){
         initialized = true;
         ldSimulation->initialize();
@@ -68,7 +68,7 @@ void SimulationHeuristic::initialize() {
     }
 }
 
-bool SimulationHeuristic::is_dead_end(const State &state) {
+bool DominancePruningSimulation::is_dead_end(const State &state) {
     if(is_activated() && ldSimulation->get_dominance_relation().pruned_state(state)){
         deadends_pruned ++;
         return true;
@@ -76,14 +76,14 @@ bool SimulationHeuristic::is_dead_end(const State &state) {
     return false;
 }
 
-int SimulationHeuristic::compute_heuristic(const State &state) {
+int DominancePruningSimulation::compute_heuristic(const State &state) {
     int cost = ldSimulation->get_dominance_relation().get_cost(state);
     if (cost == -1)
         return DEAD_END;
     return cost;
 }
 
-bool SimulationHeuristic::prune_generation(const State &state, int g) {
+bool DominancePruningSimulation::prune_generation(const State &state, int g) {
     if(pruning_type == PruningType::None) return false;
     if(!is_activated()) return false;
     
@@ -118,7 +118,7 @@ bool SimulationHeuristic::prune_generation(const State &state, int g) {
     return false;
 }
 
-bool SimulationHeuristic::prune_expansion (const State &state, int g){
+bool DominancePruningSimulation::prune_expansion (const State &state, int g){
     if(pruning_type == PruningType::None) return false;
     if(!is_activated()) return false;
     
@@ -136,7 +136,7 @@ bool SimulationHeuristic::prune_expansion (const State &state, int g){
     return false;
 }
 
-BDD SimulationHeuristic::getBDDToInsert(const State &state){
+BDD DominancePruningSimulation::getBDDToInsert(const State &state){
     if(insert_dominated){
         BDD res = ldSimulation->get_dominance_relation().getSimulatedBDD(vars.get(), state);
         if(remove_spurious_dominated_states){
@@ -217,12 +217,12 @@ static PruneHeuristic *_parse(OptionParser &parser) {
         return 0;
     } else {
         switch(PruningDD(opts.get_enum("pruning_dd"))){
-        case PruningDD::BDD_MAP: return new SimulationHeuristicBDDMap (opts);
-        //case PruningType::ADD_DOMINATED: return new SimulationHeuristicADD (opts, true);
-        case PruningDD::BDD: return new SimulationHeuristicBDD (opts);
-        case PruningDD::BDD_MAP_DISJ: return new SimulationHeuristicBDDMapDisj (opts);
-        case PruningDD::SKYLINE_BDD_MAP: return new SimulationHeuristicSkylineBDDMap (opts);
-        case PruningDD::SKYLINE_BDD: return new SimulationHeuristicSkylineBDD (opts);
+        case PruningDD::BDD_MAP: return new DominancePruningSimulationBDDMap (opts);
+        //case PruningType::ADD_DOMINATED: return new DominancePruningSimulationADD (opts, true);
+        case PruningDD::BDD: return new DominancePruningSimulationBDD (opts);
+        case PruningDD::BDD_MAP_DISJ: return new DominancePruningSimulationBDDMapDisj (opts);
+        case PruningDD::SKYLINE_BDD_MAP: return new DominancePruningSimulationSkylineBDDMap (opts);
+        case PruningDD::SKYLINE_BDD: return new DominancePruningSimulationSkylineBDD (opts);
         default:
             std::cerr << "Name of PruningTypeStrategy not known";
             exit(-1);
@@ -278,7 +278,7 @@ const std::vector<std::string> PruningTypeValues {
 
 
 float time_insert = 0, time_check = 0, time_bdd = 0;
-void SimulationHeuristicBDDMap::insert (const State & state, int g){
+void DominancePruningSimulationBDDMap::insert (const State & state, int g){
     //Timer t;
     BDD res = getBDDToInsert(state);
     //time_bdd += t();
@@ -299,7 +299,7 @@ void SimulationHeuristicBDDMap::insert (const State & state, int g){
 
 }
 
-bool SimulationHeuristicBDDMap::check (const State & state, int g){
+bool DominancePruningSimulationBDDMap::check (const State & state, int g){
     //Timer t;
     // //CODE TO TEST Simulation TR
     // BDD dominatedBDD = vars->oneBDD();
@@ -336,7 +336,7 @@ bool SimulationHeuristicBDDMap::check (const State & state, int g){
 
     return false;
 }
-void SimulationHeuristicBDD::insert (const State & state, int /*g*/){
+void DominancePruningSimulationBDD::insert (const State & state, int /*g*/){
     if(!initialized){
         closed = vars->zeroBDD();
         closed_inserted = vars->zeroBDD();
@@ -351,7 +351,7 @@ void SimulationHeuristicBDD::insert (const State & state, int /*g*/){
       }*/
 }
 
-bool SimulationHeuristicBDD::check (const State & state, int /*g*/){
+bool DominancePruningSimulationBDD::check (const State & state, int /*g*/){
     if(!initialized){
         closed = vars->zeroBDD();
         closed_inserted = vars->zeroBDD();
@@ -368,7 +368,7 @@ bool SimulationHeuristicBDD::check (const State & state, int /*g*/){
 }
 
 
-// void SimulationHeuristicBDD::insert (const BDD & bdd, int /*g*/){
+// void DominancePruningSimulationBDD::insert (const BDD & bdd, int /*g*/){
 //   if(insert_dominated){
 //     closed += tr->image(bdd);
 //   }else{
@@ -376,7 +376,7 @@ bool SimulationHeuristicBDD::check (const State & state, int /*g*/){
 //   }
 // }
 
-// BDD SimulationHeuristicBDD::check (const BDD & bdd, int /*g*/){
+// BDD DominancePruningSimulationBDD::check (const BDD & bdd, int /*g*/){
 //   if(insert_dominated){
 //     return bdd*!closed;
 //   }else{
@@ -385,19 +385,19 @@ bool SimulationHeuristicBDD::check (const State & state, int /*g*/){
 //   }
 // }
 
-// void SimulationHeuristicBDDMap::insert (const BDD & /*bdd*/, int /*g*/){
+// void DominancePruningSimulationBDDMap::insert (const BDD & /*bdd*/, int /*g*/){
 //   cerr << "Pruning with BDDMap not supported yet in symbolic search" << endl;
 //   exit(0);
 // }
 
-// BDD SimulationHeuristicBDDMap::check (const BDD & /*bdd*/, int /*g*/){
+// BDD DominancePruningSimulationBDDMap::check (const BDD & /*bdd*/, int /*g*/){
 //   cerr << "Pruning with BDDMap not supported yet in symbolic search" << endl;
 //   exit(0);
 // }
 
 
 
-void SimulationHeuristicBDDMapDisj::insert (const State & state, int g){
+void DominancePruningSimulationBDDMapDisj::insert (const State & state, int g){
     Timer t;
     BDD res = getBDDToInsert(state);
     time_bdd += t();
@@ -419,7 +419,7 @@ void SimulationHeuristicBDDMapDisj::insert (const State & state, int g){
     }
 }
 
-bool SimulationHeuristicBDDMapDisj::check (const State & state, int g){
+bool DominancePruningSimulationBDDMapDisj::check (const State & state, int g){
     Timer t;
 
     if(insert_dominated){
@@ -450,7 +450,7 @@ bool SimulationHeuristicBDDMapDisj::check (const State & state, int g){
 
 
 
-bool SimulationHeuristicSkylineBDDMap::check (const State & state, int g){
+bool DominancePruningSimulationSkylineBDDMap::check (const State & state, int g){
     auto & sims = ldSimulation->get_dominance_relation();
 
     if(closed.empty()){
@@ -493,7 +493,7 @@ bool SimulationHeuristicSkylineBDDMap::check (const State & state, int g){
     return false;
 }
 
-void SimulationHeuristicSkylineBDDMap::insert (const State & state, int g){
+void DominancePruningSimulationSkylineBDDMap::insert (const State & state, int g){
     g_values.insert(g);
     auto & sims = ldSimulation->get_dominance_relation();
 
@@ -531,7 +531,7 @@ void SimulationHeuristicSkylineBDDMap::insert (const State & state, int g){
 
 
 
-bool SimulationHeuristicSkylineBDD::check (const State & state, int /*g*/){
+bool DominancePruningSimulationSkylineBDD::check (const State & state, int /*g*/){
     auto & sims = ldSimulation->get_dominance_relation();
 
     if(closed.empty()){
@@ -559,7 +559,7 @@ bool SimulationHeuristicSkylineBDD::check (const State & state, int /*g*/){
     return !res.IsZero();
 }
 
-    void SimulationHeuristicSkylineBDD::insert (const State & state, int /*g*/) {
+    void DominancePruningSimulationSkylineBDD::insert (const State & state, int /*g*/) {
     auto & sims = ldSimulation->get_dominance_relation ();
 
     if(closed.empty()){

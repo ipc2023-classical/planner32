@@ -1,5 +1,5 @@
-#ifndef MERGE_AND_SHRINK_SIMULATION_HEURISTIC_H
-#define MERGE_AND_SHRINK_SIMULATION_HEURISTIC_H
+#ifndef MERGE_AND_SHRINK_DOMINANCE_PRUNING_SIMULATION_H
+#define MERGE_AND_SHRINK_DOMINANCE_PRUNING_SIMULATION_H
 
 #include "../prune_heuristic.h"
 #include "../sym/sym_variables.h"
@@ -17,7 +17,7 @@ enum class PruningType {Expansion, Generation, None};
 std::ostream & operator<<(std::ostream &os, const PruningType & m);
 extern const std::vector<std::string> PruningTypeValues;
 
-class SimulationHeuristic : public PruneHeuristic {  
+class DominancePruningSimulation : public PruneHeuristic {  
  protected:
   //Parameters to control the pruning
   const SymParamsMgr mgrParams; //Parameters for SymManager configuration.
@@ -110,30 +110,30 @@ class SimulationHeuristic : public PruneHeuristic {
   virtual bool is_dead_end(const State &state);
 
   virtual int compute_heuristic(const State &state);
-  SimulationHeuristic(const Options &opts);
-  virtual ~SimulationHeuristic();
+  DominancePruningSimulation(const Options &opts);
+  virtual ~DominancePruningSimulation();
 };
 
-class SimulationHeuristicBDDMap : public SimulationHeuristic {
+class DominancePruningSimulationBDDMap : public DominancePruningSimulation {
   std::map<int, BDD> closed;
  public:
-  SimulationHeuristicBDDMap (const Options &opts) : 
-  SimulationHeuristic(opts)
+  DominancePruningSimulationBDDMap (const Options &opts) : 
+  DominancePruningSimulation(opts)
   {}
-  virtual ~SimulationHeuristicBDDMap (){}
+  virtual ~DominancePruningSimulationBDDMap (){}
 
   //Methods to keep dominated states in explicit search
   virtual bool check (const State & state, int g);
   virtual void insert (const State & state, int g);
 };
 
-class SimulationHeuristicBDDMapDisj : public SimulationHeuristic {
+class DominancePruningSimulationBDDMapDisj : public DominancePruningSimulation {
     std::map<int, std::vector<BDD> > closed;
  public:
-  SimulationHeuristicBDDMapDisj (const Options &opts) : 
-  SimulationHeuristic(opts)
+  DominancePruningSimulationBDDMapDisj (const Options &opts) : 
+  DominancePruningSimulation(opts)
   {}
-  virtual ~SimulationHeuristicBDDMapDisj (){}
+  virtual ~DominancePruningSimulationBDDMapDisj (){}
 
   //Methods to keep dominated states in explicit search
   virtual bool check (const State & state, int g);
@@ -141,43 +141,43 @@ class SimulationHeuristicBDDMapDisj : public SimulationHeuristic {
 };
 
 
-class SimulationHeuristicBDD : public SimulationHeuristic {
+class DominancePruningSimulationBDD : public DominancePruningSimulation {
   BDD closed, closed_inserted;
   bool initialized;
  public:
-  SimulationHeuristicBDD (const Options &opts) : 
-  SimulationHeuristic(opts), initialized(false)
+  DominancePruningSimulationBDD (const Options &opts) : 
+  DominancePruningSimulation(opts), initialized(false)
   {}
-  virtual ~SimulationHeuristicBDD (){}
+  virtual ~DominancePruningSimulationBDD (){}
 
   //Methods to keep dominated states in explicit search
   virtual bool check (const State & state, int g);
   virtual void insert (const State & state, int g);
 };
 
-class SimulationHeuristicSkylineBDDMap : public SimulationHeuristic {
+class DominancePruningSimulationSkylineBDDMap : public DominancePruningSimulation {
     // We have the set of states inserted with each g-value that could
     // dominate each fluent
     std::vector<std::vector<std::map<int, BDD> > > closed;
     std::set<int> g_values;
 public:
-    SimulationHeuristicSkylineBDDMap (const Options &opts) : 
-    SimulationHeuristic(opts)
+    DominancePruningSimulationSkylineBDDMap (const Options &opts) : 
+    DominancePruningSimulation(opts)
     {}
-    virtual ~SimulationHeuristicSkylineBDDMap (){}
+    virtual ~DominancePruningSimulationSkylineBDDMap (){}
     
     //Methods to keep dominated states in explicit search
     virtual bool check (const State & state, int g);
     virtual void insert (const State & state, int g);
 };
 
-class SimulationHeuristicSkylineBDD : public SimulationHeuristic {
+class DominancePruningSimulationSkylineBDD : public DominancePruningSimulation {
     std::vector<std::vector<BDD> > closed;
 public:
-    SimulationHeuristicSkylineBDD (const Options &opts) : 
-    SimulationHeuristic(opts)
+    DominancePruningSimulationSkylineBDD (const Options &opts) : 
+    DominancePruningSimulation(opts)
     {}
-    virtual ~SimulationHeuristicSkylineBDD (){}
+    virtual ~DominancePruningSimulationSkylineBDD (){}
     
     //Methods to keep dominated states in explicit search
     virtual bool check (const State & state, int g);
@@ -185,14 +185,14 @@ public:
 };
 
 
-/* class SimulationHeuristicADD : public SimulationHeuristic { */
+/* class DominancePruningSimulationADD : public DominancePruningSimulation { */
 /*   ADD closed; */
 /*  public: */
-/*   SimulationHeuristicADD (const Options &opts,  */
+/*   DominancePruningSimulationADD (const Options &opts,  */
 /* 			  bool _insert_dominated) :  */
-/*   SimulationHeuristic(opts, _insert_dominated) */
+/*   DominancePruningSimulation(opts, _insert_dominated) */
 /*   {} */
-/*   virtual ~SimulationHeuristicADD (){} */
+/*   virtual ~DominancePruningSimulationADD (){} */
 
 /*     virtual bool check (const State & state, int g); */
 /*     virtual void insert (const State & state, int g); */
