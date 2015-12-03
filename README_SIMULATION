@@ -40,7 +40,7 @@ FIRST EXPERIMENT: LAUNCH ALL COMBINATIONS OF:
 TYPE OF SIMULATION (4): 
   BISIM: simulation_type=NONE
   SIM: simulation_type=SIMPLE, label_dominance_type=NONE
-  LDSIM: simulation_type=SIMPLE, label_dominance_type=NORMA
+  LDSIM: simulation_type=SIMPLE, label_dominance_type=NORMAL
   NOOPSIM: simulation_type=SIMPLE, label_dominance_type=NOOP
 
 TYPE OF PRUNING (2): 

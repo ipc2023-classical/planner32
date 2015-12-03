@@ -68,7 +68,6 @@ const std::vector<std::string> SimulationTypeValues {
  *   apply_subsumed_transitions_pruning, prune_dead_operators
  * 
  * Parameters for LDS: 
- *   skip_simulation, nold_simulation, 
  *   complex_lts, complex_simulation
  */ 
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
@@ -948,15 +947,6 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
             "Use the complex method for LTS representation",
             "false");
 
-
-    parser.add_option<bool>("skip_simulation",
-            "Skip doing the simulation algorithm",
-            "false");
-
-    parser.add_option<bool>("nold_simulation",
-            "Perform only simulation but without label dominance",
-            "false");
-
     parser.add_option<bool>("apply_simulation_shrinking",
             "Perform simulation shrinking",
             "false");
@@ -998,6 +988,15 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
     parser.add_option<ShrinkStrategy *>("shrink_strategy",
 					"shrink strategy; ", 
 	"shrink_bisimulation");
+
+
+    parser.add_enum_option("simulation_type", SimulationTypeValues ,
+			   "type of simulation implementation: NONE, SIMPLE or COMPLEX .", "SIMPLE" );
+
+
+    parser.add_enum_option("label_dominance_type", LabelDominanceTypeValues ,
+			   "type of simulation implementation: NONE, NOOP or NORMAL.", "NORMAL" );  
+
 }
 
 
