@@ -20,7 +20,7 @@
 using namespace std;
 
 int main(int argc, const char ** argv) {
-  int h2_mutex_time = 0; // 5 minutes to compute mutexes by default
+  int h2_mutex_time = 300; // 5 minutes to compute mutexes by default
   bool optimize_ordering = false;  
   bool write_to_file_for_gamer = false;
 
@@ -73,9 +73,16 @@ int main(int argc, const char ** argv) {
 
   // compute h2 mutexes
   if(h2_mutex_time){
+      bool conditional_effects = false;
+      for(int i = 0; i < operators.size(); i++){
+	  if(operators[i].has_conditional_effects()){
+	      conditional_effects = true;
+	      break;
+	  }
+      }
     compute_h2_mutexes(ordering, operators, axioms,
 		       mutexes, initial_state, goals, 
-		       h2_mutex_time);
+		       h2_mutex_time, conditional_effects);
     //Update the causal graph and remove unneccessary variables
     //TODO: remove variables
     strip_mutexes(mutexes);

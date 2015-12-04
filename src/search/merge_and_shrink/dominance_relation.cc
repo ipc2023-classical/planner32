@@ -139,13 +139,36 @@ int DominanceRelation::num_simulations() const {
     return res;
 }
 
+double DominanceRelation::num_st_pairs() const {
+    double res = 1;
+    for(int i = 0; i < simulations.size(); i++){
+        res *= simulations[i]->num_simulations(false);
+    }
+    return res;
+}
+
+
+double DominanceRelation::num_states_problem() const {
+    double res = 1;
+    for(int i = 0; i < simulations.size(); i++){
+        res *= simulations[i]->num_states();
+    }
+    return res;
+}
+
 
 void DominanceRelation::dump_statistics() const {
     int num_equi = num_equivalences();
     int num_sims = num_simulations();
+    double num_pairs = num_st_pairs();
+    double problem_size = num_states_problem();
+    
     cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
     cout << "Similarity equivalences: " << num_equi  << endl;
     cout << "Only Simulations: " << num_sims << endl;
+    cout << "Total st pairs: " << num_pairs  << endl;
+    cout << "Percentage st pairs: " << num_pairs/(problem_size*problem_size)  << endl;
+
     /*for(int i = 0; i < simulations.size(); i++){
       cout << "States after simulation: " << simulations[i]->num_states() << " " 
       << simulations[i]->num_different_states() << endl;

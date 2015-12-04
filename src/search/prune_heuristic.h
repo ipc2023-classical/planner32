@@ -25,6 +25,7 @@ public:
     virtual bool prune_expansion (const State &state, int g) = 0;
     virtual bool is_dead_end(const State &state) = 0;
 
+    virtual void print_statistics() {}
     //Methods for pruning symbolic search. Return the BDD without
     //pruned states.
     /* virtual BDD prune_generation(const BDD &bdd, int g) = 0; */

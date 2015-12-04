@@ -112,6 +112,8 @@ class DominancePruningSimulation : public PruneHeuristic {
   virtual int compute_heuristic(const State &state);
   DominancePruningSimulation(const Options &opts);
   virtual ~DominancePruningSimulation();
+
+  virtual void print_statistics();
 };
 
 class DominancePruningSimulationBDDMap : public DominancePruningSimulation {

@@ -581,3 +581,11 @@ bool DominancePruningSimulationSkylineBDD::check (const State & state, int /*g*/
 	}
     }
 }
+
+
+
+void DominancePruningSimulation::print_statistics()
+ {
+     cout << "Dominance BDD nodes: " << mgr->totalNodes() << endl;
+     cout << "Dominance BDD memory: " << mgr->totalMemory() << endl;
+ }

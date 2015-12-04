@@ -132,6 +132,7 @@ void CausalGraph::update(){
 
   // 2) Reconstruct causal graph with new variables and operators
 
+  predecessor_graph.clear();
   weighted_graph.clear();
   for (int i = 0; i < ordering.size(); i++){
     weighted_graph[ordering[i]] = WeightedSuccessors();
@@ -171,7 +172,9 @@ void CausalGraph::update(){
     //cout <<endl;
   }
 
-  //calculate_important_vars(); 
+  vector<Variable *>().swap(ordering);
+  calculate_topological_pseudo_sort(sccs);
+  calculate_important_vars(); 
   //Put -1 to every variable to remove variables that are not in ordering
   for (int i = 0; i < variables.size(); i++) {
     variables[i]->set_level(-1); 
@@ -315,6 +318,8 @@ void CausalGraph::get_strongly_connected_components(const vector <Variable *> & 
     }
 }
 void CausalGraph::calculate_important_vars() {
+    for (int i = 0; i < ordering.size(); i++)
+        ordering[i]->reset_necessary();
     for (int i = 0; i < goals.size(); i++) {
         if (!goals[i].first->is_necessary()) {
             //cout << "var " << goals[i].first->get_name() <<" is directly neccessary."

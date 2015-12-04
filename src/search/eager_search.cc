@@ -107,6 +107,7 @@ void EagerSearch::initialize() {
 
 
 void EagerSearch::statistics() const {
+    if (prune_heuristic) prune_heuristic->print_statistics();
     search_progress.print_statistics();
     search_space.statistics();
 }

@@ -72,6 +72,9 @@ public:
     void dump_statistics () const;
     int num_equivalences() const;
     int num_simulations() const;   
+    double num_st_pairs() const;
+    double num_states_problem() const;
+    
     //Computes the probability of selecting a random pair s, s' such
     //that s simulates s'.
     double get_percentage_simulations(bool ignore_equivalences) const;
