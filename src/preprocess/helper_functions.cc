@@ -237,6 +237,51 @@ void generate_cpp_input(bool /*solvable_in_poly_time*/,
 }
 
 
+void generate_unsolvable_cpp_input() {
+    ofstream outfile;
+    outfile.open("output", ios::out);
+    outfile << "begin_version" << endl;
+    outfile << PRE_FILE_VERSION << endl;
+    outfile << "end_version" << endl;
+
+    outfile << "begin_metric" << endl << "0" << "end_metric" << endl;
+
+    //variables
+    outfile << "1" << endl << "begin_variable" << endl
+            << "var1" << endl
+            << "0" << endl
+            << "2" << endl
+	    << "val0" << endl
+	    << "val1" << endl
+	    << "end_variable" << endl;
+
+    //Mutexes 
+    outfile << "0" << endl;
+
+    //Initial state and goal
+    outfile << "begin_state" << endl << "0" << endl << "end_state" << endl;
+    outfile << "begin_goal" << endl << "1" << endl << "0 1" << endl << "end_goal" << endl;
+
+    //Operators
+    outfile << "0" << endl;
+
+    //Axioms
+    outfile << "0" << endl;
+
+    outfile << "begin_SG" << endl;
+    outfile << "check 0" << endl;
+    outfile << "end_SG" << endl;
+
+    outfile << "begin_DTG" << endl << "0" << endl  << "0" << endl
+     << "end_DTG" << endl;
+
+    outfile << "begin_CG" << endl << "0" << endl << "end_CG" << endl;
+
+    outfile.close();
+}
+
+
+
 void write_variables(vector<Variable *> & variables, string filename){
   ofstream vars_file; 
   vars_file.open(filename.c_str());

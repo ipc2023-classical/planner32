@@ -191,14 +191,19 @@ int main(int argc, const char ** argv) {
   cout << "Preprocessor task size: " << task_size << endl;
 
   cout << "Writing output..." << endl;
-  generate_cpp_input(solveable_in_poly_time, ordering, metric,
-		     mutexes, initial_state, goals,
-		     operators, axioms, successor_generator,
-		     transition_graphs, causal_graph);
-  if(write_to_file_for_gamer){
-    write_mutexes(variables, mutexes, "file_mutexes");
-    write_operators(operators, "file_operators");
-    write_variables(variables, "file_variables");
-    }
+  if (ordering.empty()){
+      cout << "Unsolvable task in preprocessor" << endl;
+      generate_unsolvable_cpp_input();
+  }else{
+      generate_cpp_input(solveable_in_poly_time, ordering, metric,
+			 mutexes, initial_state, goals,
+			 operators, axioms, successor_generator,
+			 transition_graphs, causal_graph);
+      if(write_to_file_for_gamer){
+	  write_mutexes(variables, mutexes, "file_mutexes");
+	  write_operators(operators, "file_operators");
+	  write_variables(variables, "file_variables");
+      }
+  }
   cout << "done" << endl << endl;
 }
