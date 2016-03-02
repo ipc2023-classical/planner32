@@ -49,6 +49,8 @@ public:
     void statistics() const;
 
     void dump_search_space();
+
+    virtual bool proves_task_unsolvable() const;
 };
 
 #endif

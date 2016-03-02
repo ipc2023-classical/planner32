@@ -29,6 +29,14 @@ public:
     virtual bool dead_end_is_reliable() const;
     virtual int get_value() const;
     virtual void get_involved_heuristics(std::set<Heuristic *> &hset);
+
+    virtual bool proves_task_unsolvable() const {
+	for (auto se : subevaluators){
+	    if (!se->proves_task_unsolvable()) return false;
+	} 
+	return true;
+    }
+
 };
 
 #endif

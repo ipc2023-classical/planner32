@@ -54,6 +54,10 @@ public:
     virtual ~EnforcedHillClimbingSearch();
 
     virtual void statistics() const;
+
+    virtual bool proves_task_unsolvable() const {
+	return false;
+    }
 };
 
 #endif

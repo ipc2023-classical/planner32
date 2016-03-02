@@ -5,6 +5,7 @@ rm -f output
 rm -f elapsed.time
 rm -f plan_numbers_and_cost
 rm -f sas_plan
+rm -f plan.soln
 
 NUM=1
 while [[ -e sas_plan.$NUM ]]; do

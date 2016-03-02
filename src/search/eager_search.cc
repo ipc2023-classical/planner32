@@ -372,6 +372,11 @@ void EagerSearch::print_heuristic_values(const vector<int> &values) const {
     }
 }
 
+bool EagerSearch::proves_task_unsolvable() const{
+    return f_evaluator->proves_task_unsolvable() && 
+	(!prune_heuristic || prune_heuristic->proves_task_unsolvable());
+}
+
 static SearchEngine *_parse(OptionParser &parser) {
     //open lists are currently registered with the parser on demand,
     //because for templated classes the usual method of registering

@@ -114,6 +114,10 @@ class DominancePruningSimulation : public PruneHeuristic {
   virtual ~DominancePruningSimulation();
 
   virtual void print_statistics();
+
+  virtual bool proves_task_unsolvable() const {
+      return true;
+  }
 };
 
 class DominancePruningSimulationBDDMap : public DominancePruningSimulation {

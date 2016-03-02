@@ -53,6 +53,10 @@ public:
     void set_pref_operator_heuristics(std::vector<Heuristic *> &heur);
 
     virtual void statistics() const;
+
+    virtual bool proves_task_unsolvable() const {
+	return false;
+    }
 };
 
 #endif

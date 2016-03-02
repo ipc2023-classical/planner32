@@ -35,6 +35,10 @@ public:
     virtual ~IteratedSearch();
     virtual void save_plan_if_necessary() const;
     void statistics() const;
+
+    virtual bool proves_task_unsolvable() const {
+	return false;
+    }
 };
 
 #endif

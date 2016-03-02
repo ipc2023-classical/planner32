@@ -8,6 +8,8 @@ public:
     virtual ~ScalarEvaluator() {}
 
     virtual int get_value() const = 0;
+
+    virtual bool proves_task_unsolvable() const = 0;
 };
 
 #endif

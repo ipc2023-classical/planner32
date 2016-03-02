@@ -11,6 +11,7 @@ protected:
 public:
     BlindSearchHeuristic(const Options &options);
     ~BlindSearchHeuristic();
+
 };
 
 #endif

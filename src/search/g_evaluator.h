@@ -20,6 +20,11 @@ public:
     bool dead_end_is_reliable() const;
     int get_value() const;
     void get_involved_heuristics(std::set<Heuristic *> &) {}
+
+    virtual bool proves_task_unsolvable() const {
+	return true;
+    }
+
 };
 
 #endif

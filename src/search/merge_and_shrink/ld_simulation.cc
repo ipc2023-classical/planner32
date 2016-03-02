@@ -772,7 +772,7 @@ void LDSimulation::initialize() {
                 num_dead++;
         }
 
-	printf("Dead operators due to dead labels: %d / %d (%.2lf%%)\n",
+	printf("Dead operators due to dead labels: %d / %lu (%.2lf%%)\n",
 	       num_dead, g_operators.size(),
 	       ((double) num_dead / g_operators.size()) * 100);
 
@@ -815,7 +815,7 @@ void LDSimulation::initialize() {
             //cout << endl;
             required_operators |= required_operators_for_label;
         }
-        printf("Dead operators detected by storing original operators: %d / %d (%.2lf%%)\n",
+        printf("Dead operators detected by storing original operators: %lu / %lu (%.2lf%%)\n",
                 g_operators.size() - required_operators.count(),
                 g_operators.size(),
                 ((double) g_operators.size() - required_operators.count())
