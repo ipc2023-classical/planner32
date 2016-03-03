@@ -2,7 +2,13 @@
 
 import sys 
 
-# Merge and shrink for unsolvability stuff:                                                                                                            
+# Merge and shrink for unsolvability stuff:                                                                                          
+merge_order = {
+    'lev' : 'level',
+    'rnd' : 'random',
+    'rlev' : 'reverse_level'
+}
+                  
 def get_merge_criteria(crit):
     def get_subopt_factor(s):
         opt_factor = '1'
@@ -40,9 +46,6 @@ rue, opt_factor=%s, opt_diff=%s)' % (opt_factor, opt_diff, opt_factor, opt_diff,
 def get_new_linear_merge_strategy(criteria, var_order):
     return "merge_linear_criteria(criteria=[%s], var_order=%s)" % (",".join(map(lambda x : get_merge_criteria(x),  criteria)), merge_order[var_order])
 
-
-def get_new_linear_merge_strategy(criteria, var_order):
-    return "merge_linear_criteria(criteria=[%s], var_order=%s)" % (",".join(map(lambda x : get_merge_criteria(x),  criteria)), merge_order[var_order])
 
 def get_merge_strategy(merge):
     if merge == 'dfp':
@@ -98,15 +101,13 @@ def get_config(configuration):
 
     return "astar(%s, %s)" % (heuristic, pruningMethod if pruningMethod else "")
  
-# if len(sys.argv) < 2: 
-#     print "Usage: python lab_configs.py <configuration>" 
-#     exit()
+if len(sys.argv) >= 2: 
 
-# print get_config(sys.argv[1])
+    print get_config(sys.argv[1])
+else:
 
+    default_configs = ["masunsat-dfp-ownlabel", "masunsat-cgcom_goal_lev-ownlabel"]
 
-default_configs = ["masunsat-dfp-ownlabel"]
-
-print "[" + ", ".join(["(\"%s\", \"%s\")" %  (c, get_config(c)) for  c in default_configs]) + "]"
+    print "[\n" + ", \n".join(["(\"%s\", \"%s\")" %  (c, get_config(c)) for  c in default_configs]) + "\n]"
 
 
