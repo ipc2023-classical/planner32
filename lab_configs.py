@@ -74,12 +74,33 @@ def get_mas(merge_strategy, shrink_strategy, parameters):
 def get_mas_unsat(merge_strategy, shrink_strategy, parameters=[]):
     return get_mas(merge_strategy, shrink_strategy, ["cost_type=3"]+parameters)
 
+
+
+
 #pruning_type=generation, pruning_dd=bdd_map, limit_merge=10000,            
 def get_simulation(merge_strategy=None, parameters=[]):
+    fixed_parameters = "pruning_dd=bdd, limit_seconds=300, use_bisimulation=true,pruning_type=expansion, remove_spurious=true, min_insertions=1000, min_desactivation_ratio=0.0, limit_merge=infinity, limit_transitions_merge=100000, apply_simulation_shrinking=false, apply_label_dominance_reduction=false"
+
+    parameters = fixed_parameters
+    
+    if "op" in parameters:
+        parameters += ", prune_dead_operators=true, store_original_operators=true"
+    else:
+        parameters += ", prune_dead_operators=false, store_original_operators=false"
+
+    if "trpr":
+        parameters += ", apply_subsumed_transitions_pruning=true"
+    else:
+        parameters += ", apply_subsumed_transitions_pruning=false"
+
+    if "inc" in parameters:
+        parameters += ", intermediate_simulations=true,incremental_simulations=true"
+    else:
+        parameters += ", intermediate_simulations=false,incremental_simulations=false"
+        
+
     merge = "merge_strategy=%s" % get_merge_strategy(merge_strategy) if merge_strategy else ""
     return "prune=simulation(%s, %s)" % (merge, ",".join(parameters))
-
-
 
 
 def get_config(configuration):
@@ -96,18 +117,18 @@ def get_config(configuration):
     elif config[0] == 'masunsat':
         heuristic = get_mas_unsat(config[1], config[2], config[3:])
     elif config[0] == 'dom':
+        
         pruningMethod = "prune = %s" % get_simulation(config[1], config[2:])
-
 
     return "astar(%s, %s)" % (heuristic, pruningMethod if pruningMethod else "")
  
 if len(sys.argv) >= 2: 
-
     print get_config(sys.argv[1])
 else:
 
-    default_configs = ["masunsat-dfp-ownlabel", "masunsat-cgcom_goal_lev-ownlabel"]
+    default_configs = ["masunsat-dfp-ownlabel", ]
+    #"masunsat-cgcom_goal_lev-ownlabel"]
 
-    print "[\n" + ", \n".join(["(\"%s\", \"%s\")" %  (c, get_config(c)) for  c in default_configs]) + "\n]"
+    print "[\n" + ", \n".join(["['fd_simulation/%s', REPO_MAS, \"('%s', ['--search', '%s'])\"" %  (c, c, get_config(c)) for  c in default_configs]) + "]\n]"
 
 

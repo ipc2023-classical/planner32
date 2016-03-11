@@ -367,6 +367,7 @@ bool are_mutex(const pair<int, int> &a, const pair<int, int> &b) {
     return a.second != b.second;
   return g_inconsistent_facts[id_mutex(a, b)];
 }
+
 int id_mutex(const std::pair<int, int> & a, const std::pair<int, int> &b){
   int id_a = g_id_first_fact [a.first] + a.second;
   int id_b = g_id_first_fact [b.first] + b.second;
