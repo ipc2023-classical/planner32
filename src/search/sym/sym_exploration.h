@@ -66,7 +66,7 @@ class SymExploration  {
   //hValues contains all the possible h-values returned by the heuristics. 
   //std::set<int> hValues;   //Possible h-values 
   SymClosed * perfectHeuristic;                  //The perfect heuristic for this state space
-  std::vector <SymHeuristic> heuristics;       //List of non-perfect heuristics
+  std::vector <std::shared_ptr<SymHeuristic> > heuristics;  //List of non-perfect heuristics
   std::set<int> hValuesExplicit;
   
   SymStepCostEstimation estimationCost, estimationZero;//Time/nodes estimated
@@ -181,7 +181,7 @@ class SymExploration  {
   bool relax(int maxTime, int maxNodes);
   void relaxClosed();
 
-  void addHeuristic(const SymHeuristic & heuristic);
+  void addHeuristic(std::shared_ptr<SymHeuristic> heuristic);
   void setPerfectHeuristic(SymClosed * h);
 
   //Adds a new heuristic to evaluate States
@@ -430,7 +430,7 @@ class SymExploration  {
     }
   }
 
-  int frontierStates() const{
+  double frontierStates() const{
     if(!Szero.empty()){
       return stateCount(Szero);
     }else if (!S.empty()){

@@ -2,6 +2,8 @@
 
 #include "../sym_manager.h"
 
+using namespace std;
+
 void GSTMutex::check_mutexes(SymManager & manager){
   SymAbstraction * abs = manager.getAbstraction();
   BDD goal = manager.getGoal();

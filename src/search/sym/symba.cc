@@ -56,6 +56,10 @@ SymExploration * SymBA::selectExploration() {
   for(auto exp : potentialExplorations){
     if(exp->isSearchable() && exp->isUseful()){
       return exp;
+    }else if (!exp->isSearchable()){
+	cout << "Skip potential exp because it is not searchable"  << endl;
+    }else{
+	cout << "Skip potential exp because it is not useful" << endl;
     }
   }
 
@@ -93,16 +97,7 @@ SymExploration * SymBA::selectExploration() {
 
 void SymBA::print_options() const{
   cout << "SymBA* " << endl;
-  cout << "   Search dir: ";
-  switch(searchDir){
-  case Dir::FW:
-    cout << "fw";
-  case Dir::BW:
-    cout << "bw";
-  case Dir::BIDIR:
-    cout << "bd";
-  }
-  cout << endl;
+  cout << "   Search dir: " << searchDir <<   cout << endl;
   cout << "   Time force original: " << t_orig << " seconds" <<endl;
 }
 

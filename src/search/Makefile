@@ -164,6 +164,8 @@ HEADERS += sym/sym_controller.h \
            sym/sym_enums.h \
            sym/sym_abstraction.h \
            sym/sym_pdb.h \
+           sym/sym_ph_minimization.h \
+           sym/sym_abs_minimization.h \
            sym/sym_transition.h \
            sym/sym_params.h \
            sym/sym_heuristic.h \
@@ -172,26 +174,25 @@ HEADERS += sym/sym_controller.h \
            sym/sym_hnode.h \
            sym/sym_bdexp.h \
            sym/sym_ph.h \
+           sym/sym_ph_pdbs.h \
            sym/sym_estimate.h \
            sym/sym_estimate_linear.h \
            sym/sym_solution.h \
-           sym/sym_prune_heuristic.h \
-
-	# sym/sym_ph_pdbs.h \
-	   #sym/sym_ph_smas.h \
-           # sym/smas_shrink_bisimulation.h \
-           # sym/smas_shrink_bucket_based.h \
-           # sym/smas_shrink_fh.h \
-           # sym/smas_shrink_random.h \
-           # sym/smas_shrink_all.h \
-           # sym/smas_shrink_strategy.h \
-           # sym/smas_variable_order_finder.h \
-           # sym/smas_abs_state.h \
-           # sym/smas_shrink_state.h \
-           # sym/sym_smas.h \
-           # sym/spmas_heuristic.h \
-	   # sym/test/sym_test.h \
-	   # sym/test/sym_test_mutex.h \
+           sym/spmas_heuristic.h \
+	   sym/test/sym_test.h \
+	   sym/test/sym_test_mutex.h \
+	   sym/sym_prune_heuristic.h \
+           #sym/sym_ph_smas.h \
+           sym/smas_shrink_bisimulation.h \
+           sym/smas_shrink_bucket_based.h \
+           sym/smas_shrink_fh.h \
+           sym/smas_shrink_random.h \
+           sym/smas_shrink_all.h \
+           sym/smas_shrink_strategy.h \
+           sym/smas_abs_state.h \
+           sym/smas_shrink_state.h \
+           sym/sym_smas.h \
+           sym_unsat/sym_unsat_exploration.h \
 
 SHELL = /bin/bash
 

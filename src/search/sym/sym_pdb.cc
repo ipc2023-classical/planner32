@@ -74,7 +74,7 @@ BDD SymPDB::shrinkForall(const BDD & bdd, int maxNodes) const{
 BDD SymPDB::getInitialState() const{
   vector<pair<int, int> > abstract_ini;
   for(int var : fullVars){
-    abstract_ini.push_back(std::pair<int, int> (var, (g_initial_state())[var]));
+    abstract_ini.push_back(std::pair<int, int> (var, g_initial_state()[var]));
   }
   return vars->getPartialStateBDD(abstract_ini);
 }

@@ -40,6 +40,9 @@ class SymPH{
  const RelaxDirStrategy relaxDir;
  const double ratioRelaxTime, ratioRelaxNodes; 
 
+ //Whether the ph should use mutexes
+ const bool use_mutex_in_abstraction;
+
  const double shouldAbstractRatio;
  const int maxNumAbstractions;
  int numAbstractions;

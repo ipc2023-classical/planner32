@@ -19,7 +19,7 @@ SymHNode(SymController * eng, const SymParamsMgr & params) :
 
 SymHNode::
 SymHNode(SymHNode * o, SymPH * ph_, 
-	 std:: unique_ptr<SymAbstraction> abs) : 
+	 unique_ptr<SymAbstraction> abs) : 
   engine(o->engine), ph(ph_),  abstraction(std::move(abs)), 
   mgr(new SymManager(o->getManager(), abstraction.get(),
 		     ph_->getMgrParams())){

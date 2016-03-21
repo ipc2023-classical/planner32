@@ -127,6 +127,7 @@ void SymClosed::insert(int h, const BDD & S){
   }
 
   zeroCostClosed[h].push_back(S);
+  closedTotal += S;
 
   //Introduce in closedUpTo
   auto c = closedUpTo.lower_bound(h);
@@ -134,6 +135,8 @@ void SymClosed::insert(int h, const BDD & S){
     c->second += S;
     c++;
   }
+
+  //TODO_UNSAT
   //Only valid for blind search
   Timer t;
   BDD Ssim = mgr->simulatedBy(S, exploration->isFW());

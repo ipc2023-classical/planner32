@@ -98,7 +98,10 @@ void SymExploration::init(SymBDExp * exp, SymExploration * other){
   for(auto openIt : other->open){
     int g_val = openIt.first;
     for(const BDD & bdd : openIt.second){
-      open[g_val].push_back(other->closed->remove_duplicates(bdd));
+	BDD tmp = other->closed->remove_duplicates(bdd);
+	if(!tmp.IsZero()){
+	    open[g_val].push_back(tmp);
+	}
     }
   }
   DEBUG_MSG (cout <<"  open copy, total time: " << g_timer() << endl;);
@@ -147,6 +150,7 @@ void SymExploration::init2(SymExploration * /*opposite*/){
 
   //6) Set new frontier
   open[g].swap(Sfilter);
+  open.erase(g);
 
   //Hack: Call to mergeBucket in parent because I do not have a manager yet.
   parent->mergeBucket(Sfilter, p.max_pop_time, p.max_pop_nodes);  
@@ -693,7 +697,7 @@ bool SymExploration::stepImage(int maxTime, int maxNodes){
   //<< endl;DEBUG_MSG(
   cout << " frontierNodes: " << frontierNodes() << " frontierStates: " << frontierStates() << " [" << frontierBuckets() << "]"  << " total time: " << g_timer 
 	    << " total nodes: " << mgr->totalNodes() << " total memory: " << mgr->totalMemory() << endl;
-	    //	    );
+
 
 #ifdef DEBUG_GST
   gst_plan.checkExploration(this );
@@ -850,28 +854,28 @@ void SymExploration::getNextFHValues(const map<int, vector<BDD>> & open,
 }
 
 
-void SymExploration::addHeuristic(const SymHeuristic & newHeuristic){
-  mgr->addDeadEndStates(fw, newHeuristic.getDeadEnds());
+void SymExploration::addHeuristic(std::shared_ptr<SymHeuristic> newHeuristic){
+    mgr->addDeadEndStates(fw, newHeuristic->getDeadEnds());
   if(!perfectHeuristic || 
-     newHeuristic.getMaxValue() > perfectHeuristic->getHNotClosed()){
-    const auto & hVals = newHeuristic.getHValues();
+       newHeuristic->getMaxValue() > perfectHeuristic->getHNotClosed()){
+	const auto & hVals = newHeuristic->getHValues();
     hValuesExplicit.insert(begin(hVals), end(hVals));
     heuristics.push_back(newHeuristic);
     Bucket toNotify;
-    toNotify.push_back(newHeuristic.prunedStates(f-g));
+	toNotify.push_back(newHeuristic->prunedStates(f-g));
     notify(toNotify);
   }
 }
 
 BDD SymExploration::compute_heuristic(const BDD & from, int fVal, int hVal){
   assert(isAbstracted() || !perfectHeuristic ||
-	 hVal <= perfectHeuristic->getHNotClosed());
+	 hVal <= perfectHeuristic->getHNotClosed);
 
   //DEBUG_MSG(cout << "Compute heuristic: " << hVal << endl;);
   BDD pruned = mgr->zeroBDD();
   BDD notPruned = from;
-  for (const auto & heur : heuristics){
-    BDD newPruned = from * heur.prunedStates(hVal);
+  for (auto & heur : heuristics){
+    BDD newPruned = from * heur->prunedStates(hVal);
     notPruned -= newPruned; 
     pruned += newPruned;
   }

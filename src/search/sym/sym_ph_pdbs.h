@@ -13,7 +13,7 @@ class SymPHPDBs : public SymPH {
  //state space and other when relaxing abstract state spaces.
  const LinearPDBStrategy strategy, strategy_abstract;
 
- MergeStrategy var_strategy; //Strategy to select vars
+ VariableOrderType var_strategy; //Strategy to select vars
 
   std::map<VarSet, SymHNode *> generatedSets;
   

@@ -44,6 +44,9 @@ class SymBA : public SymEngine{
   virtual int step();
 
   virtual void print_options() const;
+  virtual bool proves_task_unsolvable() const {
+      return true;
+  }
 };
 
 
