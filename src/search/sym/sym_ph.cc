@@ -18,6 +18,7 @@ SymPH::SymPH(const Options & opts) :
   relaxDir(RelaxDirStrategy(opts.get_enum("relax_dir"))),
   ratioRelaxTime(opts.get<double> ("relax_ratio_time")), 
   ratioRelaxNodes(opts.get<double> ("relax_ratio_nodes")), 
+  use_mutex_in_abstraction(opts.get<bool> ("use_mutex_in_abstraction")), 
   shouldAbstractRatio(opts.get<double> ("should_abstract_ratio")), 
   maxNumAbstractions(opts.get<int> ("max_abstractions")),
   numAbstractions(0), ignore_if_useful(false)
@@ -28,10 +29,12 @@ SymPH::SymPH(const Options & opts) :
 bool SymPH::init(SymController * eng, SymVariables * v, SymManager * mgr){
   engine = eng;
   vars = v;
+  if(use_mutex_in_abstraction){
   const auto & nmFw = mgr->getNotMutexBDDs(true);
   const auto & nmBw = mgr->getNotMutexBDDs(false);
   notMutexBDDs.insert(end(notMutexBDDs), begin(nmFw), end(nmFw));
   notMutexBDDs.insert(end(notMutexBDDs), begin(nmBw), end(nmBw));
+  }
   return init();
 }
 
@@ -71,12 +74,16 @@ bool SymPH::askHeuristic(SymBDExp * originalSearch, double allotedTime){
 	//If we cannot continue the search, we relax it even more
 	// bdExp = abstractExp; 
 	// abstractExp = abstractExp->relax();
+	cout << "We cannot continue the search so we relax it even more" << endl;
 	abstractExp = relax(bdExp, abstractExp->getHNode(), ++num_relaxations);
       }
     }
+    string reason = abstractExp->finishedMainDiagonal() ?
+	(abstractExp->finished() ? "totally explored" : "f > concrete_f") : 
+	"exhausted resources";
   
-    cout << "Finished the exploration of the abstract state space: " << 
-      t_gen_heuristic() << " spent of " << allotedTime << endl;
+    cout << "Finished the exploration of the abstract state space (" <<  reason
+	 << "): " << t_gen_heuristic() << " spent of " << allotedTime << endl;
   
     //3) Add last heuristic 
     if(abstractExp){
@@ -87,13 +94,13 @@ bool SymPH::askHeuristic(SymBDExp * originalSearch, double allotedTime){
 		intermediate_heuristics_fw.size() << endl;);
       //Add explicit heuristic
       for(auto & inth : intermediate_heuristics_fw){
-	originalSearch->getFw()->addHeuristic(SymHeuristic(*vars,inth));
+	  originalSearch->getFw()->addHeuristic(make_shared<SymHeuristic>(*vars,inth));
       }
     
       DEBUG_MSG(cout << "Adding explicit heuristic to fw: " <<
 		intermediate_heuristics_bw.size() << endl;);
       for(auto & inth : intermediate_heuristics_bw){
-	originalSearch->getBw()->addHeuristic(SymHeuristic(*vars,inth));
+	  originalSearch->getBw()->addHeuristic(make_shared<SymHeuristic> (*vars,inth));
       }
     }
   }
@@ -200,6 +207,10 @@ void SymPH::add_options_to_parser(OptionParser & parser,
 			 "direction allowed to relax",  "BIDIR");
 
 			    parser.add_option<bool>("perimeter_pdbs",  "initializes explorations with the one being relaxed", "true");
+
+  parser.add_option<bool>("use_mutex_in_abstraction", 
+			  "uses mutex to prune abstract states in the abstraction procedure", "true");
+
 			    parser.add_option<double>("should_abstract_ratio", "relax the search when has more than this estimated time/nodes· If it is zero, it abstract the current perimeter (when askHeuristic is called)", "0");
   parser.add_option<double>("ratio_increase", 
 			    "maxStepTime is multiplied by ratio to the number of abstractions", "2");

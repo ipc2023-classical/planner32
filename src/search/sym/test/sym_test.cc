@@ -4,7 +4,7 @@
 #include "../../globals.h"
 #include "../sym_abstraction.h"
 #include "../sym_exploration.h"
-
+#include "../state_registry.h"
 #include <sstream>
 using namespace std;
 
@@ -191,7 +191,7 @@ void GSTPlan::loadPlan(string filename, const SymVariables & vars){
     }
     //cout << "#Total plan cost: " << f << endl;
 
-    State s (*g_initial_state);
+    State s (g_initial_state());
     int id = 0;
     int g = 0;  
     int h = f;
@@ -204,7 +204,7 @@ void GSTPlan::loadPlan(string filename, const SymVariables & vars){
 	cout << "#ERROR: bad plan reconstruction" << endl;
 	exit(-1);	
       }
-      s = State(s, *op);
+      s = g_state_registry->get_successor_state(s, *op);
       g += op->get_cost();
       h -= op->get_cost();
       bdd = vars.getStateBDD(s);

@@ -11,7 +11,7 @@ using namespace std;
 
 
 SMASVariableOrderFinder::SMASVariableOrderFinder(
-    MergeStrategy merge_strategy_, bool is_first)
+    VarOrder merge_strategy_, bool is_first)
     : merge_strategy(merge_strategy_) {
     int var_count = g_variable_domain.size();
     if (merge_strategy_ == MERGE_LINEAR_REVERSE_LEVEL) {

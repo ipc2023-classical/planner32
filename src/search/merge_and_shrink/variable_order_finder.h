@@ -20,7 +20,9 @@ class VariableOrderFinder {
 
     void select_next(int position, int var_no);
 public:
-    VariableOrderFinder(VariableOrderType variable_order_type);
+    VariableOrderFinder(VariableOrderType variable_order_type_, bool is_first = true);
+    VariableOrderFinder(VariableOrderType variable_order_type_, bool is_first,
+			const std::vector <int> & remaining_vars_);
     ~VariableOrderFinder();
     bool done() const;
     int next();

@@ -13,7 +13,7 @@ using namespace std;
 
 
 VariableOrderFinder::VariableOrderFinder(
-    VariableOrderType variable_order_type_)
+    VariableOrderType variable_order_type_, bool is_first)
     : variable_order_type(variable_order_type_) {
     int var_count = g_variable_domain.size();
     if (variable_order_type == REVERSE_LEVEL) {
@@ -25,7 +25,8 @@ VariableOrderFinder::VariableOrderFinder(
     }
 
     if (variable_order_type == CG_GOAL_RANDOM ||
-        variable_order_type == RANDOM)
+        variable_order_type == RANDOM ||
+        !is_first)
         random_shuffle(remaining_vars.begin(), remaining_vars.end());
 
     is_causal_predecessor.resize(var_count, false);
@@ -34,6 +35,35 @@ VariableOrderFinder::VariableOrderFinder(
         is_goal_variable[g_goal[i].first] = true;
 }
 
+VariableOrderFinder::VariableOrderFinder(VariableOrderType variable_order_type_, bool is_first, const vector <int> & remaining_vars_)
+  : variable_order_type(variable_order_type_), remaining_vars(remaining_vars_) {
+    int var_count = g_variable_domain.size();
+    std::sort(remaining_vars.begin(), remaining_vars.end());
+    if (variable_order_type_ != REVERSE_LEVEL) {
+      std::reverse(remaining_vars.begin(), remaining_vars.end());
+    } 
+
+    if (variable_order_type == CG_GOAL_RANDOM ||
+        variable_order_type == RANDOM ||
+        !is_first)
+        random_shuffle(remaining_vars.begin(), remaining_vars.end());
+
+    is_causal_predecessor.resize(var_count, false);
+    is_goal_variable.resize(var_count, false);
+    for (int i = 0; i < g_goal.size(); ++i)
+        is_goal_variable[g_goal[i].first] = true;
+    
+    for (int var_no = 0; var_no < g_variable_domain.size(); ++var_no)
+      if(std::find(begin(remaining_vars), end(remaining_vars), var_no)
+	 == end(remaining_vars)){
+	selected_vars.push_back(var_no);
+	const vector<int> &new_vars = g_legacy_causal_graph->get_predecessors(var_no);
+	for (int i = 0; i < new_vars.size(); ++i)
+	  is_causal_predecessor[new_vars[i]] = true;
+
+      }
+
+}
 VariableOrderFinder::~VariableOrderFinder() {
 }
 

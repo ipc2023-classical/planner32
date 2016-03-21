@@ -8,6 +8,7 @@
 using namespace std;
 
 SymParamsMgr::SymParamsMgr(const Options & opts) : 
+  variable_ordering(VariableOrderType(opts.get_enum("var_order"))), 
   cudd_init_nodes(opts.get<long>("cudd_init_nodes")), 
   cudd_init_cache_size(opts.get<long>("cudd_init_cache_size")), 
   cudd_init_available_memory(opts.get<long>("cudd_init_available_memory")), 
@@ -16,11 +17,29 @@ SymParamsMgr::SymParamsMgr(const Options & opts) :
   mutex_type(MutexType(opts.get_enum("mutex_type"))),
   max_mutex_size(opts.get<int>("max_mutex_size")),
   max_mutex_time(opts.get<int>("max_mutex_time")) {
+
     //Don't use edeletion with conditional effects
   if(mutex_type == MutexType::MUTEX_EDELETION && has_conditional_effects()){
     cout << "Mutex type changed to mutex_and because the domain has conditional effects" << endl;
     mutex_type = MutexType::MUTEX_AND;
   }
+}
+
+SymParamsMgr::SymParamsMgr() : 
+    variable_ordering(REVERSE_LEVEL), 
+    cudd_init_nodes(16000000L), 
+    cudd_init_cache_size(16000000L), 
+    cudd_init_available_memory(0L),
+    max_tr_size(100000),
+    max_tr_time(60000),
+    mutex_type(MutexType::MUTEX_EDELETION),
+    max_mutex_size(100000),
+    max_mutex_time(60000) {
+    //Don't use edeletion with conditional effects
+    if(mutex_type == MutexType::MUTEX_EDELETION && has_conditional_effects()){
+	cout << "Mutex type changed to mutex_and because the domain has conditional effects" << endl;
+	mutex_type = MutexType::MUTEX_AND;
+    }
 }
 
 void SymParamsMgr::print_options() const{
@@ -32,6 +51,16 @@ void SymParamsMgr::print_options() const{
 }
 
 void SymParamsMgr::add_options_to_parser(OptionParser &parser){
+
+const std::vector<std::string> VariableOrderValues {
+    "CG_GOAL_LEVEL", "CG_GOAL_RANDOM",
+	"GOAL_CG_LEVEL", "RANDOM",
+	"LEVEL", "REVERSE_LEVEL"};
+
+  parser.add_enum_option("var_order", VariableOrderValues,
+			 "variable ordering for the symbolic manager", "REVERSE_LEVEL");
+
+
   parser.add_option<long> ("cudd_init_nodes", "Initial number of nodes in the cudd manager.",
 			   "16000000L");
 

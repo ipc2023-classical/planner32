@@ -431,9 +431,9 @@ SMASShrinkStrategy *SMASShrinkBisimulation::create_default() {
 
 static SMASShrinkStrategy *_parse(OptionParser &parser) {
     SMASShrinkStrategy::add_options_to_parser(parser);
-    parser.add_option<bool>("greedy", false, "use greedy bisimulation");
-    parser.add_option<int>("threshold", -1); // default: same as max_states
-    parser.add_option<bool>("group_by_h", false);
+    parser.add_option<bool>("greedy", "use greedy bisimulation", "false");
+    parser.add_option<int>("threshold", "threshold for bisimulation", "-1"); // default: same as max_states
+    parser.add_option<bool>("group_by_h", "group by h in bisimulation", "false");
 
     vector<string> at_limit;
     at_limit.push_back("RETURN");

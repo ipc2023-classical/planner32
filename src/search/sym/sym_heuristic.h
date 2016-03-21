@@ -5,7 +5,7 @@
 #include <map>
 #include <set>
 
-//SymHeuristic represents a heuristic in the form of 
+//SymHeuristic represents a heuristic in the form of BDDs
 
 class SymHeuristic{
   BDD zeroBDD;

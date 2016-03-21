@@ -7,7 +7,7 @@
 class SymExploration;
 class SymHNode;
 
-class SymBA : public SymEngine {
+class SymBA : public SymEngine{
   // If g_timer() > t_orig => force to search on original state space.
   // A hack to avoid wasting the last remaining time in abstract state space searches
   double t_orig;

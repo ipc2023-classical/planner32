@@ -3,6 +3,8 @@
 
 #include "sym_enums.h" 
 
+//TODO: move variable_order_finder somewhere else
+#include "../merge_and_shrink/variable_order_finder.h" 
 class OptionParser;
 class Options;
 
@@ -13,6 +15,12 @@ class Options;
 class SymParamsMgr{
 
  public:
+    //TODO: Rename merge strategy type to VarOrder
+
+    // Var order used by the algorithm. By default: MERGE_LINEAR_LEVEL
+    // so that we follow the preprocessor order (which should be
+    // optimized)
+    VariableOrderType variable_ordering; 
   //Parameters to initialize the CUDD manager
   long cudd_init_nodes; //Number of initial nodes
   long cudd_init_cache_size; //Initial cache size
@@ -27,6 +35,7 @@ class SymParamsMgr{
   int max_mutex_size;
   int max_mutex_time; 
 
+    SymParamsMgr();
   SymParamsMgr(const Options & opts);
   static void add_options_to_parser(OptionParser &parser);
   static void add_options_to_parser_simulation(OptionParser &parser);
