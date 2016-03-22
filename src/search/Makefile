@@ -170,7 +170,9 @@ HEADERS += sym/sym_controller.h \
            sym/sym_transition.h \
            sym/sym_params.h \
            sym/sym_heuristic.h \
+           sym/sym_bucket.h \
            sym/sym_closed.h \
+           sym/sym_open.h \
            sym/sym_exploration.h \
            sym/sym_hnode.h \
            sym/sym_bdexp.h \
@@ -193,7 +195,6 @@ HEADERS += sym/sym_controller.h \
            sym/smas_abs_state.h \
            sym/smas_shrink_state.h \
            sym/sym_smas.h \
-           sym_unsat/sym_unsat_exploration.h \
 
 SHELL = /bin/bash
 

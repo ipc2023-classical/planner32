@@ -18,9 +18,9 @@ SymController::SymController(const Options &opts)
   if(gamer_ordering) {
       InfluenceGraph::compute_gamer_ordering(var_order);
   }else{
-	while(!vo.done()){
-      var_order.push_back(vo.next());
-  	}
+      while(!vo.done()){
+	  var_order.push_back(vo.next());
+      }
   }
   cout << "Sym variable order: ";
   for (int v : var_order) cout << v;

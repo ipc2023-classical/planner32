@@ -24,7 +24,7 @@ class SymHNode {
   std::vector <SymHNode *> children; //Nodes more abstracted
   std::vector <SymHNode *> parents; //Nodes less abstracted
 
-  std::vector<std::unique_ptr<SymBDExp>> exps;
+  std::unique_ptr<SymBDExp> exp;
   std::set <SymBDExp *> failedForExps; //Set of exps we failed to abstract
   std::set <SymBDExp *> notUsefulForExps; //Set of exps we are not useful for
 

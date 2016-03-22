@@ -13,7 +13,7 @@
 SymPHPDBs::SymPHPDBs(const Options &opts) : 
   SymPH(opts), strategy (LinearPDBStrategy(opts.get_enum("st"))), 
   strategy_abstract (LinearPDBStrategy(opts.get_enum("st_abs"))), 
-  var_strategy(MergeStrategy(opts.get_enum("sel_var"))), 
+  var_strategy(VariableOrderType(opts.get_enum("sel_var"))), 
   randomize_strategy(opts.get<bool>("randomize_abstractions")), 
   time_relax (0){}
 

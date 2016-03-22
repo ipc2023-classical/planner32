@@ -113,7 +113,7 @@ class SymExploration  {
 
   bool bucketReady() const {
     /*cout << "bucket ready " << !(Szero.empty() && S.empty() && 
-      Sfilter.empty() && Smerge.empty()) << endl;*/
+      Sfilter.empty() && Smerge.empty()) << std::endl;*/
     return !(Szero.empty() && S.empty() && Sfilter.empty() && Smerge.empty());
   }
 
@@ -166,7 +166,7 @@ class SymExploration  {
   SymExploration(SymExploration &&) = default;
   SymExploration& operator=(const SymExploration& ) = delete;
   SymExploration& operator=(SymExploration &&) = default;
-  ~SymExploration() {DEBUG_MSG(cout << "DELETED EXPLORATION: " << *this << endl;);}
+  ~SymExploration() {}
 
 
   inline bool finished() const {
@@ -371,11 +371,11 @@ class SymExploration  {
       //For each BDD in the bucket, get states with f
       for(auto & bdd : bucket){
 	  bdd *= closed->notClosed();
-	  DEBUG_MSG(cout << ", duplicates: " << bdd.nodeCount(););
+	  DEBUG_MSG(std::cout << ", duplicates: " << bdd.nodeCount(););
 	  if(perfectHeuristic && 
-	     perfectHeuristic->getFNotClosed() == numeric_limits<int>::max()){
+	     perfectHeuristic->getFNotClosed() == std::numeric_limits<int>::max()){
 	      bdd *= perfectHeuristic->getClosed();
-	      DEBUG_MSG(cout << ", dead ends: " << bdd.nodeCount(););
+	      DEBUG_MSG(std::cout << ", dead ends: " << bdd.nodeCount(););
 	  }
       }
   }
@@ -395,13 +395,13 @@ class SymExploration  {
 	
 	  if (!bucket[i].IsZero()) {
 	      //bddH contains all the extracted states (those that fit fVal and hVal)
-	      DEBUG_MSG(cout << "Pruning thanks to the heuristic: " << bddH.nodeCount(););
+	      DEBUG_MSG(std::cout << "Pruning thanks to the heuristic: " << bddH.nodeCount(););
 	      bddH -= bucket[i];
-	      DEBUG_MSG(cout << " => " << bddH.nodeCount() << endl;);	
+	      DEBUG_MSG(std::cout << " => " << bddH.nodeCount() << std::endl;);	
 	  }
 	
-	  DEBUG_MSG(cout << ", h="<< hVal << ", extracted: " << bddH.nodeCount() 
-		    << ", left: " << bucket[i].nodeCount() << endl;);
+	  DEBUG_MSG(std::cout << ", h="<< hVal << ", extracted: " << bddH.nodeCount() 
+		    << ", left: " << bucket[i].nodeCount() << std::endl;);
 	  if(!bddH.IsZero()){
 	      res.push_back(bddH);
 	  }
@@ -428,8 +428,8 @@ class SymExploration  {
 	  perfectHeuristic->accept(f, f - g);
   }
 
-  pair<int, int> getAcceptedUpperBound() {
-      pair<int, int> upper_bound {numeric_limits<int>::max(), 
+  std::pair<int, int> getAcceptedUpperBound() {
+      std::pair<int, int> upper_bound {std::numeric_limits<int>::max(), 
 	      open_list.minG()};
       const auto & candidates = acceptedValues.upper_bound(f);
       acceptedValues.erase(begin(acceptedValues), candidates);
@@ -447,8 +447,8 @@ class SymExploration  {
   BDD getExpanded() const;
   void getNotExpanded(Bucket & res) const;
 
-  void write(const string & file) const;
-  void init(SymBDExp * exp, SymManager * manager,  const string & file);
+  void write(const std::string & file) const;
+  void init(SymBDExp * exp, SymManager * manager,  const std::string & file);
 
 
   inline SymController * getEngine() const{
@@ -487,7 +487,7 @@ class SymExploration  {
       auto mergeBDDs = [] (BDD bdd, BDD bdd2, int maxNodes){
 	  return bdd.Or(bdd2, maxNodes);
       };
-      merge(mgr->getVars(), bucket, mergeBDDs, maxTime, min(maxNodes, p.max_disj_nodes));
+      merge(mgr->getVars(), bucket, mergeBDDs, maxTime, std::min(maxNodes, p.max_disj_nodes));
       removeZero(bucket); //Be sure that we do not contain only the zero BDD
     
       return maxNodes >= p.max_disj_nodes || bucket.size() <= 1;

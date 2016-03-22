@@ -54,7 +54,7 @@ class GSTPlan{
  public:
   GSTPlan(): f(0){} 
   void loadPlan(std::string filename, const SymVariables & vars);
-  void checkClose(BDD closedStates, SymExploration * exp);
+  void checkClose(BDD closedStates, int g, SymExploration * exp);
   void checkOpen(BDD openStates, int g,  SymExploration * exp);
   void checkBDD(BDD S) const;
   void checkHeuristicValue(BDD states, int h, int f);

@@ -204,6 +204,5 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
 			    "multiplier to decide alloted nodes for a step", "2.0");
   parser.add_option<double> ("ratio_after_relax", 
 			    "multiplier to decide alloted nodes for a step", "0.8");
- parser.add_option<bool>("non_stop", false,
-			  "Removes initial state from closed to avoid backward search to stop.");
+ parser.add_option<bool>("non_stop", "Removes initial state from closed to avoid backward search to stop.", "false");
 }

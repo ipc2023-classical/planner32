@@ -45,7 +45,7 @@ private:
     // ALERT: The information here might be wrong
     // It is just used to extract path more quickly, but the information
     // here is an (admissible) estimation and this should be taken into account
-    std::map<int, vector<BDD>> zeroCostClosed; 
+    std::map<int, std::vector<BDD>> zeroCostClosed; 
     BDD closedTotal;             // All closed states.
 
     int hNotClosed, fNotClosed; // Bounds on h and g for those states not in closed
@@ -95,7 +95,7 @@ public:
  
 
     bool accept(int f, int h) const;
-    void getNextF(int f, pair<int, int> & upper_bound) const;
+    void getNextF(int f, std::pair<int, int> & upper_bound) const;
     const std::set<int> & getHValues(); 
     
     void cleanEvals(bool orig) {
@@ -172,7 +172,7 @@ public:
     }
 
     void write(const std::string & fname, std::ofstream & file) const;
-    void init(SymExploration * exp, SymManager * manager, const string & fname, ifstream & file); 
+    void init(SymExploration * exp, SymManager * manager, const std::string & fname, std::ifstream & file); 
 
     ADD getHeuristic(int previousMaxH = -1) const;
     void getHeuristic(std::vector<ADD> & heuristics,

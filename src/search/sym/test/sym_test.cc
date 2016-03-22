@@ -48,13 +48,13 @@ void GSTPlanStep::checkHeuristicValue(BDD states, int h, int /*f*/, SymExplorati
 }
 
 void GSTPlanStep::checkExploration(SymExploration * exp){
-  for(auto aux : exp->getOpen()){
+    for(auto aux : exp->getOpen().getOpen()){
     stringstream ss;
     ss << "open[" << aux.first << "]";
     checkBucket(aux.second, ss.str());
   }
 
-  for(auto aux : exp->getReopen()){
+    for(auto aux : exp->getOpen().getReopen()){
     stringstream ss;
     ss << "reopen[" << aux.first << "]";
     checkBucket(aux.second, ss.str());
@@ -170,9 +170,9 @@ void GSTPlan::checkExploration(SymExploration * exp){
 }
 
 
-void GSTPlan::checkClose (BDD closedStates, SymExploration * exp){
+void GSTPlan::checkClose (BDD closedStates, int gVal, SymExploration * exp){
   bool fw = exp->isFW();
-  int g = fw ? exp->getG() : f - exp->getG();
+  int g = fw ? gVal : f - gVal;
   for (auto & step : plan){
     if(!step.checkClose(closedStates, g, fw, exp)){
       checkExploration(exp);
@@ -244,7 +244,7 @@ void GSTPlan::loadPlan(string filename,
   }else{
     cout << "Test plan not found" << endl;
   }
-  //cout << "Test plan loaded: " << plan.size() << endl;
+  cout << "Test plan loaded: " << plan.size() << endl;
 }
 
 
