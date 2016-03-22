@@ -86,8 +86,17 @@ void SymEngine::initialize() {
 }
 
 void SymEngine::statistics() const {
-    search_progress.print_statistics();
-    search_space.statistics();
+    //Statistics regarding total BDD nodes
+    cout << endl << "Total BDD Nodes: " << vars->totalNodes() << endl;
+    
+    originalSearch->statistics();
+
+    for (auto ph : phs) {
+	ph->statistics();
+    }
+    
+    //search_progress.print_statistics();
+    //search_space.statistics();
 }
 
 int SymEngine::stepReturn() const{

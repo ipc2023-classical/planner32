@@ -13,12 +13,28 @@
 SymPHPDBs::SymPHPDBs(const Options &opts) : 
   SymPH(opts), strategy (LinearPDBStrategy(opts.get_enum("st"))), 
   strategy_abstract (LinearPDBStrategy(opts.get_enum("st_abs"))), 
-  var_strategy(VariableOrderType(opts.get_enum("sel_var"))) {}
+  var_strategy(MergeStrategy(opts.get_enum("sel_var"))), 
+  randomize_strategy(opts.get<bool>("randomize_abstractions")), 
+  time_relax (0){}
 
 bool SymPHPDBs::init(){ return true;}
 
+void SymPHPDBs::statistics() const {
+    cout << "PH PDBs " << var_strategy << 
+	" time relax perimeter: " << time_relax << "s " << endl;
+	 
+    for (auto & i : generatedSets){
+	auto exp = i.second->getExp();
+	if (exp) exp->statistics();       
+    }
 
-SymBDExp * SymPHPDBs::relax(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int num_relaxations){
+    cout << endl;
+}
+
+SymBDExp * SymPHPDBs::relax(SymBDExp * bdExp, 
+			    SymHNode * iniHNode, 
+			    Dir dir, int num_relaxations){
+    Timer t_relax;
   cout << ">> Abstract " << *bdExp << " total time: " << g_timer  << endl;
   vector <SymHNode *> nodes;
   SymHNode * hNode = iniHNode;
@@ -36,13 +52,15 @@ SymBDExp * SymPHPDBs::relax(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int 
       }
     }
   }
-  getListAbstraction(hNode, nodes);
+  getListAbstraction(bdExp, hNode, nodes);
+  
+  DEBUG_PHPDBS(cout << "List of abstractions created: " << nodes.size() << " total time: " << g_timer << endl;);
+
+  DEBUG_PHPDBS(cout << "List of abstractions: " << endl;
+	       for(auto node : nodes) cout << *node << endl;);
   
   //Failed to generate any more abstract state space
   if(nodes.empty()) return nullptr;
-
-  DEBUG_MSG(cout << "List of abstractions: " << endl;
-	    for(auto node : nodes) cout << *node << endl;);
 
   unique_ptr<SymBDExp> newBDExp;
   switch((iniHNode->isAbstracted() ? strategy_abstract : strategy)){
@@ -56,6 +74,7 @@ SymBDExp * SymPHPDBs::relax(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int 
     newBDExp = select_binary_search(nodes, bdExp, dir, num_relaxations);
     break;
   }
+
   SymBDExp * res = addHeuristicExploration(bdExp, move(newBDExp));
 
   if(res){
@@ -65,10 +84,12 @@ SymBDExp * SymPHPDBs::relax(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int 
     //TODO: mark exploration as not relaxable ??
     cout << ">> Abstracted not possible. total time: " << g_timer << endl;
   }
+
+  time_relax += t_relax();
   return res;
 }
 
-void SymPHPDBs::getListAbstraction(SymHNode * hNode, vector<SymHNode *> & res){
+void SymPHPDBs::getListAbstraction(SymBDExp * bdExp, SymHNode * hNode, vector<SymHNode *> & res){
   SymHNode * current = hNode;
   vector<int> remainingVars;
   if(current->getAbstraction()){
@@ -80,36 +101,47 @@ void SymPHPDBs::getListAbstraction(SymHNode * hNode, vector<SymHNode *> & res){
       remainingVars.push_back(i);
     }
   }
-  DEBUG_MSG(cout << "Remaining: ";
-  for(auto i : remainingVars){
-    cout << i << " ";
-  } cout << endl;);
-  bool is_first = generatedSets.empty();
+  DEBUG_PHPDBS(cout << "Remaining: ";
+	       for(auto i : remainingVars){
+		   cout << i << " ";
+	       } cout << endl;);
+  bool is_first = !randomize_strategy || generatedSets.empty();
   VariableOrderFinder vof (var_strategy, is_first, remainingVars);
-
   vector <int> var_ordering;
   while(!vof.done()){
     int var = vof.next();
     var_ordering.push_back(var);
-    DEBUG_MSG(cout << "Selected var:"<< var  << endl;);
+    DEBUG_PHPDBS(cout << "Selected var:"<< var  << endl;);
     if(vof.done()) break;
   }
 
   set<int> currentVars (begin(remainingVars), end(remainingVars)); 
   for(auto vit = var_ordering.rbegin(); vit != var_ordering.rend(); ++vit){
-    currentVars.erase(*vit);
+      DEBUG_PHPDBS(cout << "Removing variable: " << *vit << endl;);
+      currentVars.erase(*vit);
     //for(auto var : var_ordering){
     //currentVars.erase(var);
     if(generatedSets.count(currentVars)){
-      if(generatedSets[currentVars]->empty()){
-	current = generatedSets[currentVars];
-      }
+	if(generatedSets[currentVars]->empty()){
+	    // cout << ">>>> reusing abs!";
+	    // for (auto v : currentVars) cout << v << " ";
+	    // cout << endl;
+	    current = generatedSets[currentVars];
+	    res.push_back(current); 
+	}else if (!generatedSets[currentVars]->isUsefulFor(bdExp)){
+	    break; //Does not make sense to further abstract the search if current is not useful
+	}else {
+	    DEBUG_MSG(cout << "YES, ITS USEFUL" << endl;);
+	}
     }else{
-      SymPDB * newPDB = new SymPDB(vars, absTRsStrategy, currentVars);
-      current = engine->createHNode(current, unique_ptr<SymAbstraction> (newPDB), this);
-      generatedSets[currentVars] = current;
+	SymPDB * newPDB = new SymPDB(vars, absTRsStrategy, currentVars);
+	current = engine->createHNode(current, unique_ptr<SymAbstraction> (newPDB), this);
+	res.push_back(current); 
+	generatedSets[currentVars] = current;
+	// cout <<this << ">>>> NOT reusing abs!";
+	// for (auto v : currentVars) cout << v << " ";
+	// cout << endl;
     }
-    res.push_back(current); 
   }
 }
 
@@ -160,7 +192,8 @@ select_reverse(const vector <SymHNode *> & nodes, SymBDExp * bdExp, Dir dir, int
 }
 
 unique_ptr<SymBDExp> SymPHPDBs::
-select_binary_search(const vector <SymHNode *> & nodes, SymBDExp * bdExp, Dir dir, int num_relaxations){
+select_binary_search(const vector <SymHNode *> & nodes, 
+		     SymBDExp * bdExp, Dir dir, int num_relaxations){
   Timer time_select;
   int imin = 0; // Most informed abstraction
   int imax = nodes.size() - 1; //Most relaxed abstraction
@@ -218,7 +251,6 @@ select_binary_search(const vector <SymHNode *> & nodes, SymBDExp * bdExp, Dir di
 
 
 
-
 static SymPH *_parse(OptionParser &parser) {
   //maximum of 100 PDBs by default
   SymPH::add_options_to_parser(parser, "IND_TR_SHRINK", 100);
@@ -232,7 +264,6 @@ static SymPH *_parse(OptionParser &parser) {
     merge_strategies.push_back("MERGE_LINEAR_CG_GOAL_RANDOM");
     merge_strategies.push_back("MERGE_LINEAR_GOAL_CG_LEVEL");
     merge_strategies.push_back("MERGE_LINEAR_RANDOM");
-    merge_strategies.push_back("MERGE_DFP");
     merge_strategies.push_back("MERGE_LINEAR_LEVEL");
     merge_strategies.push_back("MERGE_LINEAR_REVERSE_LEVEL");
     parser.add_enum_option("sel_var", merge_strategies,

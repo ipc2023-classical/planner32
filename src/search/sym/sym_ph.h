@@ -84,6 +84,7 @@ class SymPH{
   virtual SymBDExp * relax(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int num_relaxations) = 0;
   virtual void dump_options() const;
 
+  virtual void statistics() const{}
 
   bool init(SymController * eng, SymVariables * v, SymManager * mgr);
 

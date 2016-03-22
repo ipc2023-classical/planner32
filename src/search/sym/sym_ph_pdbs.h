@@ -14,9 +14,12 @@ class SymPHPDBs : public SymPH {
  const LinearPDBStrategy strategy, strategy_abstract;
 
  VariableOrderType var_strategy; //Strategy to select vars
+ const bool randomize_strategy; //Whether to randomize the variable selection procedure
 
   std::map<VarSet, SymHNode *> generatedSets;
   
+  //Statistics
+  double time_relax;
  public:
   SymPHPDBs(const Options & opts);
   virtual ~SymPHPDBs(){}
@@ -25,12 +28,13 @@ class SymPHPDBs : public SymPH {
   virtual SymBDExp * relax(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int num_relaxations);
 
   virtual void dump_options() const;
+  virtual void statistics() const;
 
   virtual bool relaxGetsHarder(){
     return false;
   }
  private:
-  void getListAbstraction(SymHNode * hNode, std::vector<SymHNode *> & res);
+  void getListAbstraction(SymBDExp * bdExp, SymHNode * hNode, std::vector<SymHNode *> & res);
 
   std::unique_ptr <SymBDExp> 
     select_binary_search(const std::vector <SymHNode *> & nodes, 

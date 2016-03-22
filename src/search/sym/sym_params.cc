@@ -137,7 +137,8 @@ SymParamsSearch::SymParamsSearch(const Options & opts) :
   maxAllotedNodes (opts.get<int>   ("max_alloted_nodes")),
   ratioAllotedTime  (opts.get<double>("ratio_alloted_time")),
   ratioAllotedNodes (opts.get<double>("ratio_alloted_nodes")), 
- ratioAfterRelax (opts.get<double>("ratio_after_relax")){
+  ratioAfterRelax (opts.get<double>("ratio_after_relax")), 
+  non_stop (opts.get<bool>("non_stop")) {
 }
 
 void SymParamsSearch::print_options() const{
@@ -203,4 +204,6 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
 			    "multiplier to decide alloted nodes for a step", "2.0");
   parser.add_option<double> ("ratio_after_relax", 
 			    "multiplier to decide alloted nodes for a step", "0.8");
+ parser.add_option<bool>("non_stop", false,
+			  "Removes initial state from closed to avoid backward search to stop.");
 }

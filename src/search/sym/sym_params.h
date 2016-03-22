@@ -70,6 +70,7 @@ class SymParamsSearch{
 
   double ratioAfterRelax;
 
+    bool non_stop;
   SymParamsSearch(const Options & opts);
 
   static void add_options_to_parser(OptionParser &parser, int maxStepTime, int maxStepNodes);
@@ -89,6 +90,10 @@ class SymParamsSearch{
   void inheritParentParams(const SymParamsSearch & other){
     maxStepTime = std::min(maxStepTime, other.maxStepTime);
     maxStepNodes = std::min(maxStepNodes, other.maxStepNodes);
+    }
+
+    inline bool get_non_stop () const {
+	return non_stop;
   }
 };
 

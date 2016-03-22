@@ -56,6 +56,8 @@ class SymBDExp {
     return parent;
   }
 
+  //Prints useful statistics at the end of the search
+  void statistics () const; 
   inline const BDD & getClosedByParent(bool fw) const{
     if(fw || (parent && !parent->isAbstracted())){
 	return closedByParent;
@@ -78,12 +80,12 @@ class SymBDExp {
     return fw->isUseful() || bw->isUseful();
   }
 
-  inline bool isUsefulAfterRelax(double ratio) const{
-    return fw->getParent()->getClosed()->isUsefulAfterRelax(ratio, fw->getS()) 
-      || bw->getParent()->getClosed()->isUsefulAfterRelax(ratio, bw->getS()) ;
-    //bw->isUsefulAfterRelax(ratio);
+  inline bool isUsefulAndSearchable() const{
+      return (fw->isUseful() && fw->isSearchable()) || 
+	  (bw->isUseful() && bw->isSearchable());
   }
 
+  bool isUsefulAfterRelax(double ratio) const;
   inline bool isSearchable(){
     return isSearchableAfterRelax();
   }
@@ -157,10 +159,10 @@ class SymBDExp {
     bw->desactivate();
   }
 
-  void reactivate(){
-    fw->reactivate();
-    bw->reactivate();
-  }
+  /* void reactivate(){ */
+  /*   fw->reactivate(); */
+  /*   bw->reactivate(); */
+  /* } */
 
   friend std::ostream & operator<<(std::ostream &os, const SymBDExp & other);
 

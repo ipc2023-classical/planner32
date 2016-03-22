@@ -13,14 +13,18 @@ using namespace std;
 
 SymController::SymController(const Options &opts)
     : vars(new SymVariables()), mgrParams(opts), searchParams(opts), gamer_ordering(opts.get<bool>("gamer_ordering")){
+  VariableOrderFinder vo (mgrParams.variable_ordering);
   vector <int> var_order; 
   if(gamer_ordering) {
       InfluenceGraph::compute_gamer_ordering(var_order);
   }else{
-      for(int i = 0; i < g_variable_name.size(); i++){
-	  var_order.push_back(i);
-      }
+	while(!vo.done()){
+      var_order.push_back(vo.next());
+  	}
   }
+  cout << "Sym variable order: ";
+  for (int v : var_order) cout << v;
+  cout << endl;
   
   vars->init(var_order, mgrParams);
   mgrParams.print_options();

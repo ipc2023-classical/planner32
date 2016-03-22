@@ -4,6 +4,8 @@
 #include "../debug.h" 
 #include "sym_heuristic.h"
 #include "sym_manager.h"
+#include "sym_bucket.h"
+#include "sym_open.h"
 #include "sym_closed.h"
 #include "sym_estimate.h"
 #include "sym_util.h"
@@ -35,8 +37,34 @@ enum class TruncatedReason {
 std::ostream & operator<<(std::ostream &os, const TruncatedReason & dir);
 
 
-typedef std::vector<BDD> Bucket;
+class SymExpStatistics {
+public:
+    double image_time, image_time_failed;
+    double time_heuristic_evaluation;
+    int num_steps_succeeded; 
+    double step_time;
+
+    SymExpStatistics() :
+    image_time (0), 
+	image_time_failed  (0), time_heuristic_evaluation(0), 
+	num_steps_succeeded  (0), step_time(0) {  }
+	
+
+    void add_image_time(double t) {
+	image_time += t;
+	num_steps_succeeded += 1;
+    }
+
+    void add_image_time_failed(double t) {
+	image_time += t;
+	image_time_failed += t;
+	num_steps_succeeded += 1;
+    }
+};
+
 class SymExploration  {  
+    friend class SymOpen;
+
   //Attributes that characterize the search:
   SymBDExp * bdExp;
   SymManager * mgr;            //Symbolic manager to perform bdd operations
@@ -45,9 +73,7 @@ class SymExploration  {
   SymExploration * parent; //Parent of the search 
 
   //Current state of the search:
-  std::map<int, Bucket> open;//States in open with unkwown h-value
-  //Auxiliar open list for states that have been closed (we are sure about their optimal cost) but not expanded (truncated and then improved the heuristic value). 
-  std::map<int, Bucket> reopen; 
+  SymOpen open_list;
 
   Bucket Sfilter;   //current g-bucket without duplicates and h-classified (still not filtered mutexes)
   Bucket Smerge;    // bucket before applying merge
@@ -60,7 +86,10 @@ class SymExploration  {
 
   std::unique_ptr<SymClosed> closed;    // Closed list 
   int f, g;            // f and g value of current bucket (S, Szero, Sfilter and Smerge)
-  std::map<int, std::set<int>> acceptedValues;
+
+  //acceptedValues: f, g pairs that must be checked because there are
+  //some heuristics that may make some states to have them 
+  std::map<int, std::set<int>> acceptedValues; 
 
   //To seek the next f,g bucket, we have two different sets: hValues.
   //hValues contains all the possible h-values returned by the heuristics. 
@@ -80,6 +109,8 @@ class SymExploration  {
   bool lastStepCost; //If the last step was a cost step (to know if we are in estimationDisjCost or Zero
   SymController * engine; //Access to the bound and notification of new solutions
 
+  SymExpStatistics stats;
+
   bool bucketReady() const {
     /*cout << "bucket ready " << !(Szero.empty() && S.empty() && 
       Sfilter.empty() && Smerge.empty()) << endl;*/
@@ -98,22 +129,15 @@ class SymExploration  {
   /*
    * Check generated or closed states with other frontiers.  In the
    * original state space we obtain a solution (maybe suboptimal if
-   * the states are not closed).  In an abstract state space, it just
-   * recomputes the current S bucket to expand of less abstracted
-   * state spaces.  Returns those states that were not cut by the
-   * other search. If close_states is true, it closes the states.
+   * the states are not closed). 
    */
-  void  checkCut(Bucket & bucket, int g, bool close_states);
+  void checkCutOriginal(Bucket & bucket, int g);
+
+  void closeStates(Bucket & bucket, int g);
 
   /*Get the next set from the open list and update g and f.
     Remove duplicate and spurious states. */
   void pop();
-  void setNextG();
-  void setNextF();
-
-  void getNextFHValues(const std::map<int, std::vector<BDD>> & open, 
-		       const std::set<int> & h_values,
-		       int f, std::pair<int, int> & upper_bound) const;
 
   bool prepareBucket(/*int maxTime, int maxNodes, bool afterPop*/);
 
@@ -129,8 +153,7 @@ class SymExploration  {
   bool expand_cost(int maxTime, int maxNodes);
 
   // Returns the subset with h_value h
-  BDD compute_heuristic(const BDD & from,
-			int fVal, int hVal); 
+  BDD compute_heuristic(const BDD & from, int fVal, int hVal, bool store_eval); 
 
   void computeEstimation(bool prepare);
 
@@ -143,19 +166,15 @@ class SymExploration  {
   SymExploration(SymExploration &&) = default;
   SymExploration& operator=(const SymExploration& ) = delete;
   SymExploration& operator=(SymExploration &&) = default;
-  ~SymExploration() {DEBUG_MSG(std::cout << "DELETED EXPLORATION: " << *this << std::endl;);}
+  ~SymExploration() {DEBUG_MSG(cout << "DELETED EXPLORATION: " << *this << endl;);}
 
 
   inline bool finished() const {
-    return open.empty() && !bucketReady(); 
+      return open_list.empty() && !bucketReady(); 
   }
 
-  const std::map<int, Bucket> & getOpen() const {
-    return open;
-  }
-
-  const std::map<int, Bucket> & getReopen() const {
-    return reopen;
+  const SymOpen & getOpen() const {
+    return open_list;
   }
 
   bool stepImage(){
@@ -178,7 +197,9 @@ class SymExploration  {
   //The caller should check if expansion is feasible and useful
   //Finally, all the open list is relaxed to the new abstract state space
   bool relaxFrontier(SymManager * manager, int maxTime, int maxNodes);
-  bool relax(int maxTime, int maxNodes);
+  bool relax_open(int maxTime, int maxNodes){
+      return open_list.relax(maxTime, maxNodes);
+  }
   void relaxClosed();
 
   void addHeuristic(std::shared_ptr<SymHeuristic> heuristic);
@@ -186,7 +207,7 @@ class SymExploration  {
 
   //Adds a new heuristic to evaluate States
   void setChild(SymExploration * child){
-    closed->addChild(child->getClosed());
+      closed->addChild(child->getClosed());
   }
 
   // void getUsefulExplorations(set <SymExploration *> & explorations, double minRatioUseful);
@@ -200,7 +221,7 @@ class SymExploration  {
   void notifyNotClosed(int fValue, int hValue);
 
   void getPossiblyUsefulExplorations(std::vector <SymExploration *> & potentialExps){
-    perfectHeuristic->potentiallyUsefulFor(this, potentialExps);
+    perfectHeuristic->getUsefulExps(potentialExps);
   }
 
   bool isBetter(const SymExploration & other) const;
@@ -213,7 +234,7 @@ class SymExploration  {
   }
 
   inline bool isSearchable() const{
-    return isSearchableWithNodes(p.maxStepNodes);
+      return isSearchableWithNodes(p.maxStepNodes);
   }
 
   inline bool isSearchableAfterRelax(int num_relaxations) const{
@@ -226,13 +247,26 @@ class SymExploration  {
 
   bool isSearchableWithNodes(int maxNodes) const;
 
-  inline bool isUseful(){
+
+  bool isUseful(const std::vector<BDD> & evalStates, 
+		       const std::vector<BDD> & newFrontier, 
+		       double ratio) const;
+
+  inline bool isUseful() const {
     return isUseful(p.ratioUseful);
   }
 
-  inline bool isUseful(double ratio){
+  inline bool isUseful(double ratio) const {
     return !isAbstracted() || closed->isUseful(ratio);
   }
+
+  /* inline bool isOtherUseful(Bucket & closedAbstract,  */
+  /* 			    double ratio) const { */
+  /*     assert (!isAbstracted()); // We should only call this method */
+  /* 				//over original state space searches */
+  /*     double rUseful = ratioUseful(closedAbstract); */
+  /*     return rUseful > 0 && rUseful >= ratio  ; */
+  /* } */
 
   double ratioUseful(Bucket & bucket) const;
 
@@ -266,12 +300,31 @@ class SymExploration  {
     return S;
   }
 
+  inline void getFrontier(Bucket & res) const {
+      for(const BDD & bdd : Sfilter){
+	  res.push_back(bdd);
+      }
+      for(const BDD & bdd : Smerge){
+	  res.push_back(bdd);
+      }
+      for(const BDD & bdd : S){
+	  res.push_back(bdd);
+      }
+      for(const BDD & bdd : Szero){
+	  res.push_back(bdd);
+      }
+  }
+
   inline int getF() const{
     return f;
   }
 
   inline int getG() const{
     return g;
+  }
+
+  inline int getH() const{
+    return f-g;
   }
 
   inline bool isFW() const{
@@ -283,6 +336,11 @@ class SymExploration  {
       mgr->getAbstraction()->isAbstracted();
   }
 
+  inline bool isOriginal() const{
+      return mgr->getAbstraction() == nullptr ||
+	  !mgr->getAbstraction()->isAbstracted();
+  }
+
   SymAbstraction * getAbstraction() const{
     return mgr->getAbstraction();
     
@@ -292,123 +350,154 @@ class SymExploration  {
     return bdExp;
   }
 
-   inline BDD getClosedTotal(){
+  inline BDD getClosedTotal(){
     return closed->getClosed();
   }
 
   inline BDD notClosed(){
     return closed->notClosed();
   }
-  
 
   void desactivate(){
     closed->desactivate();
   }
 
-  void reactivate(){
-    closed->reactivate();
+  void filterMutex (Bucket & bucket) {
+      mgr->filterMutexBucket(bucket, fw, initialization(), 
+			     p.max_pop_time, p.max_pop_nodes);
+  }
+
+  void filterDuplicates(Bucket & bucket) {
+      //For each BDD in the bucket, get states with f
+      for(auto & bdd : bucket){
+	  bdd *= closed->notClosed();
+	  DEBUG_MSG(cout << ", duplicates: " << bdd.nodeCount(););
+	  if(perfectHeuristic && 
+	     perfectHeuristic->getFNotClosed() == numeric_limits<int>::max()){
+	      bdd *= perfectHeuristic->getClosed();
+	      DEBUG_MSG(cout << ", dead ends: " << bdd.nodeCount(););
+	  }
+      }
+  }
+
+  void mergeBucket(Bucket & bucket) {
+      mergeBucket(bucket, p.max_pop_time, p.max_pop_nodes);
+  }
+
+  void filterHeuristic (Bucket & bucket, int fVal, int hVal, 
+			Bucket & res, bool store_eval = true) {
+      Timer time_h;
+      for(int i = 0; i < bucket.size(); ++i){
+	  BDD bddH = bucket[i];
+	
+	  //We left in bucket all the states that have been pruned
+	  bucket[i] = compute_heuristic(bucket[i], fVal, hVal, store_eval);
+	
+	  if (!bucket[i].IsZero()) {
+	      //bddH contains all the extracted states (those that fit fVal and hVal)
+	      DEBUG_MSG(cout << "Pruning thanks to the heuristic: " << bddH.nodeCount(););
+	      bddH -= bucket[i];
+	      DEBUG_MSG(cout << " => " << bddH.nodeCount() << endl;);	
+	  }
+	
+	  DEBUG_MSG(cout << ", h="<< hVal << ", extracted: " << bddH.nodeCount() 
+		    << ", left: " << bucket[i].nodeCount() << endl;);
+	  if(!bddH.IsZero()){
+	      res.push_back(bddH);
+	  }
+      }
+      removeZero(bucket);
+
+      stats.time_heuristic_evaluation += time_h();
+  }
+
+  //Do not accept any larger value on this diagonal Only
+  //applicable on the original state space because of the
+  //usage of nipping.
+  bool rejectLargerG (int f, int g) const {
+      return !isAbstracted() && (perfectHeuristic->getHNotClosed() > f - g ||
+				 perfectHeuristic->getFNotClosed() > f);
+  }
+
+  bool acceptFG(int f, int g) const {
+      assert (f >= 0);
+      assert (g >= 0);
+      assert (f >= g);
+      return  hValuesExplicit.count(f- g) ||
+	  (acceptedValues.count(f) && acceptedValues.at(f).count(g)) ||
+	  perfectHeuristic->accept(f, f - g);
+  }
+
+  pair<int, int> getAcceptedUpperBound() {
+      pair<int, int> upper_bound {numeric_limits<int>::max(), 
+	      open_list.minG()};
+      const auto & candidates = acceptedValues.upper_bound(f);
+      acceptedValues.erase(begin(acceptedValues), candidates);
+      if(candidates != end(acceptedValues) && !candidates->second.empty()){
+	  upper_bound = {candidates->first, *(candidates->second.begin())};
+      }
+      return upper_bound;
   }
 
   long nextStepTime() const;
   long nextStepNodes() const;
   long nextStepNodesResult() const;
 
-
   //Returns the nodes that have been expanded by the algorithm (closed without the current frontier)
   BDD getExpanded() const;
   void getNotExpanded(Bucket & res) const;
 
-  void write(const std::string & file) const;
-  void init(SymBDExp * exp, SymManager * manager,  const std::string & file);
+  void write(const string & file) const;
+  void init(SymBDExp * exp, SymManager * manager,  const string & file);
 
-
-  inline void removeZero(Bucket & bucket) const{
-    bucket.erase(remove_if(begin(bucket), end(bucket),
-			   [] (BDD & bdd){ return bdd.IsZero();}),
-		 end(bucket));
-  }
 
   inline SymController * getEngine() const{
     return engine;
   }
+
+
+  void statistics() const;
   
  private: 
 
-  inline int nodeCount(const Bucket & bucket) const {
-    int sum = 0;
-    for(const BDD & bdd : bucket){
-      sum += bdd.nodeCount();
-    }
-    return sum;
-  }
-
-  inline double stateCount(const Bucket & bucket) const {
-    double sum = 0;
-    for(const BDD & bdd : bucket){
-      sum += mgr->getVars()->numStates(bdd);
-    }
-    return sum;
+  double stateCount(const Bucket & bucket) const {
+      double sum = 0;
+      for(const BDD & bdd : bucket){
+	  sum += mgr->getVars()->numStates(bdd);
+      }
+      return sum;
   }
 
 
   void shrinkBucket(Bucket & bucket, int maxNodes);
-
-  inline void moveBucket(Bucket & bucket, Bucket & res){
-    copyBucket(bucket, res);
-    Bucket().swap(bucket);
-  }
-
-  inline void copyBucket(Bucket & bucket, Bucket & res){
-    if(!bucket.empty()){
-      res.insert(end(res), begin(bucket), end(bucket));
-    }
-  }
-
 
   //  void addCountStates(SymHeuristic * h, const Bucket & bucket, double & possible, double & total) const;    
 
   //BDD closedByParents(const BDD & bdd, SymHeuristic * heur) const;
   //BDD notClosedByParents(const BDD & bdd, SymHeuristic * heur) const;
 
-  inline int minG(){
-    int minG = g;       
-    /*cout << "MIN_G" << endl;
-    for (auto & op : open){
-      cout << op.first << " ";
-    }
-    cout << endl;*/
-    if(!open.empty()){
-      minG = std::min (minG, open.begin()->first);
-    }
-    if(!mgr->hasTransitions0()){
-      //Compute the max to avoid exceed into negative numbers
-      minG = std::max(minG, minG + mgr->getMinTransitionCost());
-    }
-    return minG;
-  }
+  //Extract states with h-value from list, removing duplicates
+  /* void extract_states(Bucket & list, int fVal, int hVal, */
+  /* 		      Bucket & res, bool duplicates);  */
+
+  /* bool extract_states(Bucket & list, const Bucket & pruned, Bucket & res) const;  */
+
 
   bool mergeBucket(Bucket & bucket, int maxTime, int maxNodes){
-    auto mergeBDDs = [] (BDD bdd, BDD bdd2, int maxNodes){
-      return bdd.Or(bdd2, maxNodes);
-    };
-    merge(mgr->getVars(), bucket, mergeBDDs, maxTime, std::min(maxNodes, p.max_disj_nodes));
-    removeZero(bucket); //Be sure that we do not contain only the zero BDD
-    //cout << "BUCKET MERGED TO: " << bucket.size() << endl;
-    return maxNodes >= p.max_disj_nodes || bucket.size() <= 1;
+      auto mergeBDDs = [] (BDD bdd, BDD bdd2, int maxNodes){
+	  return bdd.Or(bdd2, maxNodes);
+      };
+      merge(mgr->getVars(), bucket, mergeBDDs, maxTime, min(maxNodes, p.max_disj_nodes));
+      removeZero(bucket); //Be sure that we do not contain only the zero BDD
+    
+      return maxNodes >= p.max_disj_nodes || bucket.size() <= 1;
   }
-
-  //Extract states with h-value from list, removing duplicates
-  void extract_states(Bucket & list, int fVal, int hVal,
-		      Bucket & res, bool duplicates); 
-
-  bool extract_states(Bucket & list, const Bucket & pruned, Bucket & res) const; 
 
 
   //Extract states without h-value from list using sym heuristic 
   /* void extract_states(Bucket & list, int fVal, int hVal, */
   /* 		      Bucket & res, SymClosed * heur);  */
 
-  void setF(int value);
 
 
   /* bool stepFDiagonal(int maxTime, int maxNodes); */
@@ -451,9 +540,11 @@ class SymExploration  {
     }
   }
 
-  void violated(TruncatedReason reason , double time, int maxTime, int maxNodes);
+  void violated(TruncatedReason reason , double time, 
+		int maxTime, int maxNodes);
 
   friend std::ostream & operator<<(std::ostream &os, const SymExploration & bdexp);
+  
 };
 #endif // SYMBOLIC_EXPLORATION
 

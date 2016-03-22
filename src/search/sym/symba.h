@@ -27,9 +27,11 @@ class SymBA : public SymEngine{
   // bool forceHeuristic; //always forces heuristic computation
   //bool heuristicAbstract;  //If abstract state spaces are allowed to use others as heuristic
 
-  inline bool forceOriginal() const {
-    return g_timer() > t_orig;
-  }
+  //Statistics; 
+  double time_step_abstract, time_step_original, time_select_exploration;
+
+
+  bool forceOriginal() const; 
 
   //Functions that determine the criterion
   //bool canExplore(const SymExploration & exp);
@@ -44,6 +46,7 @@ class SymBA : public SymEngine{
   virtual int step();
 
   virtual void print_options() const;
+  virtual void statistics() const;
 
   virtual bool proves_task_unsolvable() const {
       return true;

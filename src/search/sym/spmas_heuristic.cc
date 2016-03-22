@@ -64,7 +64,7 @@ void SPMASHeuristic::initialize() {
       tmp.swap(phs);
       for(auto ph : tmp){
 	if(ph->init(this, vars.get(), originalStateSpace->getManager())){
-	  ph->setIgnoreIfUseful();
+	    ph->setIgnoreIfUseful(); //Allows abstract search to go beyond initial state
 	  phs.push_back(ph);
 	}else{
 	  delete ph;

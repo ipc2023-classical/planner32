@@ -52,7 +52,7 @@ class SymHNode {
   void addParent(SymHNode * newNode);
 
   bool empty() const{
-    return exps.empty() && failedForExps.empty() && notUsefulForExps.empty();
+    return !exp && failedForExps.empty() && notUsefulForExps.empty();
   }
   bool hasExpFor(SymBDExp * bdExp) const;
   bool isUsefulFor(SymBDExp * bdExp) const;
@@ -83,7 +83,7 @@ class SymHNode {
   }
 
 
-  SymBDExp * relax(SymBDExp * exp) const;
+  SymBDExp * relax(SymBDExp * _exp) const;
 
   inline SymManager * getManager() const{
     return mgr.get();
@@ -95,6 +95,10 @@ class SymHNode {
 
   inline SymController * getEngine() const{
     return engine;
+  }
+
+  inline SymBDExp * getExp() const{
+      return exp.get();
   }
 
   friend std::ostream & operator<<(std::ostream &os, const SymHNode & n);

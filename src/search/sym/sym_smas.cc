@@ -18,6 +18,9 @@ using namespace std;
 
 using namespace __gnu_cxx;
 
+const int SymSMAS::PRUNED_STATE = -1;
+const int SymSMAS::DISTANCE_UNKNOWN = -2;
+
 //  TODO: We define infinity in more than a few places right now (=>
 //        grep for it). It should only be defined once.
 static const int infinity = numeric_limits<int>::max();
