@@ -1,7 +1,7 @@
 #include "sym_open.h" 
 
 #include "sym_closed.h" 
-#include "sym_exploration.h" 
+#include "sym_astar.h" 
 
 using namespace std;
 
@@ -146,7 +146,7 @@ int SymOpen::minNextG(int g) const{
 void SymOpen::extract_states(Bucket & bucket, int f, int g,
 			     Bucket & res, bool open){
     
-    exp->mergeBucket(bucket); 
+    mgr->mergeBucket(bucket); 
     
     if(exp->isOriginal()) { // Apply nipping in the original state space
 	exp->checkCutOriginal(bucket, g);
@@ -160,7 +160,7 @@ void SymOpen::extract_states(Bucket & bucket, int f, int g,
     
     if(!res.empty()){
 	exp->filterMutex(res);
-	exp->mergeBucket(res); 
+	mgr->mergeBucket(res); 
 	if(open && !res.empty()){
 	    exp->closeStates(res, g);
 	}
@@ -327,7 +327,7 @@ bool SymOpen::relax(int maxTime, int maxNodes) {
 		       nodeCount(openIt.second) << "maxTime: " << maxTime/*/reductionTime*/
 		       << " maxNodes: " << maxNodes <<  endl;);
       
-	    exp->shrinkBucket(openIt.second, maxNodes);
+	    mgr->shrinkBucket(openIt.second, maxNodes);
 	}
     }catch(BDDError e){
 	mgr->unsetTimeLimit();
@@ -412,7 +412,7 @@ bool SymOpen::test_pop_aux(Bucket buck,
 			   int fVal, int hVal, 
 			   bool duplicates) const {
     Bucket res; 
-    exp->mergeBucket(buck); 
+    mgr->mergeBucket(buck); 
 
     if (duplicates) exp->filterDuplicates (buck);
 

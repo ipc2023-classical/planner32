@@ -7,7 +7,7 @@
 #include "sym_params.h"
 #include "sym_bdexp.h"
 
-class SymExploration;
+
 class SymVariables;
 class SymHierarchy;
 class SymHNode;

@@ -4,7 +4,7 @@
 #include "sym_engine.h"
 #include <set>
 
-class SymExploration;
+class SymAstar;
 class SymHNode;
 
 class SymBA : public SymEngine{
@@ -34,9 +34,9 @@ class SymBA : public SymEngine{
   bool forceOriginal() const; 
 
   //Functions that determine the criterion
-  //bool canExplore(const SymExploration & exp);
+  //bool canExplore(const SymAstar & exp);
 
-  SymExploration * selectExploration() ;
+  SymAstar * selectExploration() ;
 
  public:
   SymBA(const Options &opts);

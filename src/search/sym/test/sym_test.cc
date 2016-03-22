@@ -3,7 +3,7 @@
 #include <fstream>
 #include "../../globals.h"
 #include "../sym_abstraction.h"
-#include "../sym_exploration.h"
+#include "../sym_astar.h"
 #include "../state_registry.h"
 #include <sstream>
 using namespace std;
@@ -16,7 +16,7 @@ void GSTPlan::checkHeuristicValue(BDD states, int h, int f){
   }
 }
 
-void GSTPlan::checkHeuristicValue(BDD states, int h, int f, SymExploration * exp){
+void GSTPlan::checkHeuristicValue(BDD states, int h, int f, SymAstar * exp){
   //cout << "# Check heuristic value: " << h << " in " << *exp << endl;
   for (auto & step : plan){
     step.checkHeuristicValue(states, h, f, exp);
@@ -30,7 +30,7 @@ void GSTPlanStep::checkHeuristicValue(BDD states, int h, int f){
     }
 }
 
-void GSTPlanStep::checkHeuristicValue(BDD states, int h, int /*f*/, SymExploration * exp){
+void GSTPlanStep::checkHeuristicValue(BDD states, int h, int /*f*/, SymAstar * exp){
   BDD c = bdd*states;
   if(!c.IsZero()){
     if(g_values.count(exp)){
@@ -47,7 +47,7 @@ void GSTPlanStep::checkHeuristicValue(BDD states, int h, int /*f*/, SymExplorati
   }
 }
 
-void GSTPlanStep::checkExploration(SymExploration * exp){
+void GSTPlanStep::checkExploration(SymAstar * exp){
     for(auto aux : exp->getOpen().getOpen()){
     stringstream ss;
     ss << "open[" << aux.first << "]";
@@ -76,7 +76,7 @@ void GSTPlanStep::checkBucket(const vector<BDD> & bucket, string name){
 }
 
 
-void GSTPlanStep::checkOpen (BDD openStates, int g_val, SymExploration * exp){
+void GSTPlanStep::checkOpen (BDD openStates, int g_val, SymAstar * exp){
   BDD coincidence = bdd*openStates;
   if(!coincidence.IsZero()){
     cout << "#Abstract state " << id << " opened by " << *exp << " with g= " << g_val << endl;
@@ -85,7 +85,7 @@ void GSTPlanStep::checkOpen (BDD openStates, int g_val, SymExploration * exp){
 
 
 bool GSTPlanStep::checkClose (BDD closedStates, int g_val,
-			 bool fw, SymExploration * exp){
+			 bool fw, SymAstar * exp){
 
  BDD coincidence = bdd*closedStates;
  //  cout << id << " " << coincidence.nodeCount() << endl;
@@ -111,7 +111,7 @@ bool GSTPlanStep::checkClose (BDD closedStates, int g_val,
       }
     }else{
       int parentValue = -1;
-      SymExploration * parent = exp->getParent();
+      SymAstar * parent = exp->getParent();
       while(parent){
 	if(g_values.count(parent)){
 	  parentValue = g_values[parent];
@@ -151,7 +151,7 @@ bool GSTPlanStep::checkClose (BDD closedStates, int g_val,
 }
 
 
-void GSTPlan::checkOpen (BDD openStates, int g, SymExploration * exp){
+void GSTPlan::checkOpen (BDD openStates, int g, SymAstar * exp){
   bool fw = exp->isFW();
   int g_val = fw ? g : f - g;
   
@@ -161,7 +161,7 @@ void GSTPlan::checkOpen (BDD openStates, int g, SymExploration * exp){
 
 }
 
-void GSTPlan::checkExploration(SymExploration * exp){
+void GSTPlan::checkExploration(SymAstar * exp){
   cout << "#Check " << *exp << " ";
   for (auto & step : plan){
     step.checkExploration(exp);
@@ -170,7 +170,7 @@ void GSTPlan::checkExploration(SymExploration * exp){
 }
 
 
-void GSTPlan::checkClose (BDD closedStates, int gVal, SymExploration * exp){
+void GSTPlan::checkClose (BDD closedStates, int gVal, SymAstar * exp){
   bool fw = exp->isFW();
   int g = fw ? gVal : f - gVal;
   for (auto & step : plan){

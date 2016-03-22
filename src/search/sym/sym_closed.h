@@ -9,6 +9,7 @@
 #include <map>
 
 
+class SymAstar;
 class SymSolution;
 class Timer;
 class SymClosed;
@@ -16,12 +17,12 @@ class SymClosed;
 //Auxiliar class to denote an heuristic evaluation
 class Evaluation {
 public:
-    SymExploration * exp;
+    SymAstar * exp;
     std::vector<BDD> bucket; // States to be evaluated
     int f, h; // h and f values needed to prune states
 
     Evaluation (const Evaluation & o) = default;
-Evaluation(SymExploration * exploration, int fval, int hval) :
+Evaluation(SymAstar * exploration, int fval, int hval) :
     exp(exploration), f(fval), h(hval){}
 
 
@@ -37,7 +38,7 @@ class SymClosed /*: public SymHeuristic */ {
     friend class Evaluation; //For using evaluate_abs_orig
 private:
     SymManager * mgr; //Symbolic manager to perform bdd operations
-    SymExploration * exploration;
+    SymAstar * exploration;
 
     std::map<int, BDD> closed;   // Mapping from cost to set of states
 
@@ -60,7 +61,7 @@ private:
     std::vector<SymClosed *> children; 
 
 
-    //std::map<SymExploration *, Evaluation> evals; 
+    //std::map<SymAstar *, Evaluation> evals; 
     // For now, searches only inform the abstract search, so it is only
     // needed to store a single Evaluation
     std::unique_ptr <Evaluation> evalOrig; 
@@ -70,9 +71,9 @@ private:
     //int num_calls_eval;
     //double time_eval_states, time_closed_states, time_pruned_states, time_prune_some, time_prune_all, time_prune_some_children;
 
-    BDD evaluate_orig_orig(const BDD & bdd, int fVal, int hVal, SymExploration * expAsking, bool store_eval);
-    BDD evaluate_abs_abs(const BDD & bdd, int fVal, int hVal, SymExploration * expAsking, bool store_eval);
-    BDD evaluate_abs_orig(const BDD & bdd, int fVal, int hVal, SymExploration * expAsking, bool store_eval);
+    BDD evaluate_orig_orig(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval);
+    BDD evaluate_abs_abs(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval);
+    BDD evaluate_abs_orig(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval);
     BDD evaluate(const BDD & bdd, int hVal);
 
     void cleanEvalOrig();
@@ -81,8 +82,8 @@ private:
 
 public:
     SymClosed();
-    void init(SymExploration * exp, SymManager * manager); 
-    void init(SymExploration * exp, SymManager * manager, const SymClosed & other);
+    void init(SymAstar * exp, SymManager * manager); 
+    void init(SymAstar * exp, SymManager * manager, const SymClosed & other);
 
     void insert (int h, const BDD & S); 
     void setHNotClosed(int h);
@@ -91,7 +92,7 @@ public:
 
 
     bool can_prune(int fVal, int hVal);
-    BDD evaluate(const BDD & bdd, int fVal, int hVal, SymExploration * expAsking, bool store_eval);
+    BDD evaluate(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval);
  
 
     bool accept(int f, int h) const;
@@ -107,13 +108,13 @@ public:
     void setOrigF(int f, int h);
     void setOppositeF(int f, int h);
 
-    void getUsefulExps(std::vector<SymExploration *> & useful_exps) const;
+    void getUsefulExps(std::vector<SymAstar *> & useful_exps) const;
     bool isUsefulAfterRelax(double ratio, 
 			    const std::vector<BDD> & newFrontier) const; 
     
     bool isUseful(double ratio); 
 
-    /* bool isUseful(const SymExploration & frontierOriginal,  */
+    /* bool isUseful(const SymAstar & frontierOriginal,  */
     /* 		const std::vector<BDD> & frontierAbstract, */
     /* 		double ratio) { */
     /*     double rUseful = frontierOriginal.ratioUseful(frontierAbstract); */
@@ -149,7 +150,7 @@ public:
 	return fNotClosed;
     }
 
-    inline SymExploration * getExploration(){
+    inline SymAstar * getExploration(){
 	return exploration;
     }
 
@@ -172,7 +173,7 @@ public:
     }
 
     void write(const std::string & fname, std::ofstream & file) const;
-    void init(SymExploration * exp, SymManager * manager, const std::string & fname, std::ifstream & file); 
+    void init(SymAstar * exp, SymManager * manager, const std::string & fname, std::ifstream & file); 
 
     ADD getHeuristic(int previousMaxH = -1) const;
     void getHeuristic(std::vector<ADD> & heuristics,
@@ -184,18 +185,4 @@ public:
 };
 
 #endif // SYM_CLOSED
-
-
-//  void extract_path(const State &state, std::vector <Operator *> & path);
-/*  
-    void storeHeuristic(const string & filename) const ;*/
-
-//Inherited from Heuristic
-//int getH (const BDD & bdd) const; 
-//std::set<int> getHValues() const; 
-//BDD getBDD(const BDD & bdd, int fVal, int hVal) const;
-//BDD getBDDUpTo(const BDD & bdd, int fVal, int hVal);
-//int getH(const State & state);
-
-//virtual void notifyToExploration(SymExploration * exploration);
 

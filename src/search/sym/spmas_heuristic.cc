@@ -48,14 +48,14 @@ void SPMASHeuristic::initialize() {
     notMutexBDDs.insert(end(notMutexBDDs), begin(nmBDD), end(nmBDD));
 
     SymBDExp * currentBDExp = originalSearch;
-    SymExploration * currentSearch = originalSearch->getBw();
+    SymAstar * currentSearch = originalSearch->getBw();
     while(!currentSearch->finished() && 
 	  g_timer() < generationTime && 
 	  vars->totalMemory() < generationMemory && 
 	  currentSearch->isSearchable() && 
 	  (!solution.solved() || 
 	   originalSearch->getF() < solution.getCost())){
-      currentSearch->stepImage();
+      currentSearch->step();
     }
     bool perimeter_considered = false;
     if(!currentSearch->finished() && (!solution.solved() || originalSearch->getF() < solution.getCost()) &&
@@ -92,7 +92,7 @@ void SPMASHeuristic::initialize() {
 	while(currentBDExp && !currentSearch->finished() && 
 	      g_timer() < generationTime && vars->totalMemory() < generationMemory){
 	    DEBUG_MSG(cout << "CHECKED " << g_timer() << endl;);
-	  if(!currentSearch->stepImage() || 
+	  if(!currentSearch->step() || 
 	     !currentSearch->isSearchable()){
 	    if(!currentSearch->finished()){
 	      

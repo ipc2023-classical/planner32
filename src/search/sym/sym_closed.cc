@@ -1,7 +1,7 @@
 #include "sym_closed.h"
 
 #include "sym_solution.h"
-#include "sym_exploration.h"
+#include "sym_astar.h"
 #include "sym_bdexp.h"
 #include "sym_util.h"
 #include "../timer.h"
@@ -50,7 +50,7 @@ SymClosed::SymClosed() : mgr(nullptr), exploration(nullptr),
 			 time_prune_some(0),  time_prune_all (0), time_prune_some_children(0) */{
 }
 
-void SymClosed::init(SymExploration * exp, SymManager * manager){
+void SymClosed::init(SymAstar * exp, SymManager * manager){
     exploration = exp;
     mgr = manager;
     set<int>().swap(h_values);
@@ -489,7 +489,7 @@ void SymClosed::write(const string & fname, ofstream & file) const{
     closedTotal.write(fname + "_closedTotal");
 }
 
-void SymClosed::init(SymExploration * exp, SymManager * manager, const string & fname, ifstream & file){
+void SymClosed::init(SymAstar * exp, SymManager * manager, const string & fname, ifstream & file){
     exploration = exp;
     mgr = manager;
     set<int>().swap(h_values);
@@ -536,7 +536,7 @@ void SymClosed::setOppositeF(int f, int h){
     }
 }
 
-void SymClosed::getUsefulExps(vector<SymExploration *> & useful_exps) const {
+void SymClosed::getUsefulExps(vector<SymAstar *> & useful_exps) const {
     if((evalOrig && !evalOrig->bucket.empty()) || !exploration->isAbstracted()){
 	//Avoid adding the original explorations more than once and	    
 	//only include explorations that are searchable
@@ -587,7 +587,7 @@ bool SymClosed::can_prune(int fVal, int hVal){
 
 //Evaluates a BDD and returns the BDD of states that are pruned
 BDD SymClosed::evaluate_orig_orig(const BDD & bdd, int fVal,
-				  int hVal, SymExploration * expAsking, bool store_eval){
+				  int hVal, SymAstar * expAsking, bool store_eval){
     DEBUG_MSG(cout << "Evaluate_orig_orig: " << bdd.nodeCount() << endl;);
     assert (!exploration->isAbstracted() && !expAsking->isAbstracted());
     assert (expAsking->isFW() != exploration->isFW());
@@ -629,7 +629,7 @@ BDD SymClosed::evaluate_orig_orig(const BDD & bdd, int fVal,
 
 
 //Evaluates a BDD and returns the BDD of states that are pruned
-BDD SymClosed::evaluate_abs_orig(const BDD & bdd, int fVal, int hVal, SymExploration * expAsking, bool store_eval){
+BDD SymClosed::evaluate_abs_orig(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval){
     assert (exploration->isAbstracted() && (!expAsking->isAbstracted()));
     assert (expAsking->isFW() != exploration->isFW());
 
@@ -712,7 +712,7 @@ BDD SymClosed::evaluate_abs_orig(const BDD & bdd, int fVal, int hVal, SymExplora
 
 //Evaluates a BDD and returns the BDD of states that are pruned
 BDD SymClosed::evaluate_abs_abs(const BDD & bdd, int fVal, int hVal,
-				SymExploration * expAsking, bool store_eval){
+				SymAstar * expAsking, bool store_eval){
     assert (exploration->isAbstracted());
     assert (expAsking->isFW() != exploration->isFW());
     DEBUG_MSG(cout << "Evaluate_abs_abs. f=" << fVal << " h=" << hVal << endl;);
@@ -744,7 +744,7 @@ BDD SymClosed::evaluate_abs_abs(const BDD & bdd, int fVal, int hVal,
 }
 
 
-BDD SymClosed::evaluate(const BDD & bdd, int fVal, int hVal, SymExploration * expAsking, bool store_eval){
+BDD SymClosed::evaluate(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval){
     if (!exploration->isAbstracted()) 
 	return evaluate_orig_orig(bdd, fVal, hVal, expAsking, store_eval);
     else return evaluate_abs_abs(bdd, fVal, hVal, expAsking, store_eval);
@@ -863,7 +863,7 @@ const std::set<int> & SymClosed::getHValues() {
 
 // //Evaluates a BDD and returns the BDD of states that are pruned
 // BDD SymClosed::evaluate(const BDD & bdd, int fVal, int hVal,
-// 			SymExploration * expAsking){
+// 			SymAstar * expAsking){
 //     // Only use evaluations for the original search or the opposite
 //     // frontiers. This should be changed in order to enable
 //     // hierarchical abstractions

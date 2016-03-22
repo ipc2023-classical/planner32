@@ -2,7 +2,7 @@
 #define SYM_BDEXP_H
 
 #include "sym_hnode.h"
-#include "sym_exploration.h"
+#include "sym_astar.h"
 
 class SymBDExp {
 
@@ -19,7 +19,7 @@ class SymBDExp {
   BDD closedByParent; 
   BDD closedByParentBw;
 
-  std::unique_ptr<SymExploration> fw, bw;
+  std::unique_ptr<SymAstar> fw, bw;
   Dir searchDir;
   bool mayRelax;   //If this is true, we forbid to abstract this exploration anymore
 
@@ -43,7 +43,7 @@ class SymBDExp {
 
 
   //Returns the best direction to search the bd exp
-  SymExploration * selectBestDirection(bool skipUseful = false) const;
+  SymAstar * selectBestDirection(bool skipUseful = false) const;
 
   bool finished() const;
   bool finishedMainDiagonal() const;
@@ -135,8 +135,8 @@ class SymBDExp {
     return res;
   }
  
-  inline std::set <SymExploration *> getExps() {
-    std::set<SymExploration *> res;
+  inline std::set <SymAstar *> getExps() {
+    std::set<SymAstar *> res;
     if(searchDir != Dir::BW) res.insert(fw.get());
     if(searchDir != Dir::FW) res.insert(bw.get());
     return res;
@@ -146,11 +146,11 @@ class SymBDExp {
     return searchDir;
   }
 
-  inline SymExploration * getFw() const{
+  inline SymAstar * getFw() const{
     return fw.get();
   }
 
-  inline SymExploration * getBw() const{
+  inline SymAstar * getBw() const{
     return bw.get();
   }
 

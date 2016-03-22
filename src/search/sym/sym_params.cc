@@ -16,7 +16,9 @@ SymParamsMgr::SymParamsMgr(const Options & opts) :
   max_tr_time(opts.get<int>("max_tr_time")),
   mutex_type(MutexType(opts.get_enum("mutex_type"))),
   max_mutex_size(opts.get<int>("max_mutex_size")),
-  max_mutex_time(opts.get<int>("max_mutex_time")) {
+  max_mutex_time(opts.get<int>("max_mutex_time")),
+  max_pop_nodes(opts.get<int>("max_pop_nodes")),
+  max_pop_time (opts.get<int>("max_pop_time")) {
 
     //Don't use edeletion with conditional effects
   if(mutex_type == MutexType::MUTEX_EDELETION && has_conditional_effects()){
@@ -48,6 +50,7 @@ void SymParamsMgr::print_options() const{
     " max_memory=" << cudd_init_available_memory << endl;
   cout << "TR(time=" << max_tr_time << ", nodes=" << max_tr_size << ")" << endl;
   cout << "Mutex(time=" << max_mutex_time << ", nodes=" << max_mutex_size << ", type=" << mutex_type << ")" << endl;
+  cout << "Pop(time=" << max_pop_time << ", nodes=" << max_pop_nodes << ")" << endl;
 }
 
 void SymParamsMgr::add_options_to_parser(OptionParser &parser){
@@ -83,6 +86,10 @@ const std::vector<std::string> VariableOrderValues {
 
   parser.add_option<int> ("max_mutex_time",
 			  "maximum time (ms) to generate mutex BDDs", "60000");
+
+  parser.add_option<int> ("max_pop_nodes", "maximum size in pop operations", "1000000");
+  parser.add_option<int> ("max_pop_time", "maximum time (ms) in pop operations", "2000");
+
 }
 
 
@@ -109,6 +116,10 @@ void SymParamsMgr::add_options_to_parser_simulation(OptionParser &parser){
 
   parser.add_option<int> ("max_mutex_time",
 			  "maximum time (ms) to generate mutex BDDs", "10000");
+
+  parser.add_option<int> ("max_pop_nodes", "maximum size in pop operations", "1000000");
+  parser.add_option<int> ("max_pop_time", "maximum time (ms) in pop operations", "2000");
+
 }
 
 
@@ -126,8 +137,6 @@ SymParamsSearch::SymParamsSearch(const Options & opts) :
   penalty_time_estimation_mult (opts.get<double>("penalty_time_estimation_mult")),
   penalty_nodes_estimation_sum (opts.get<double>("penalty_time_estimation_sum")), 
   penalty_nodes_estimation_mult(opts.get<double>("penalty_nodes_estimation_mult")), 
-  max_pop_nodes(opts.get<int>("max_pop_nodes")),
-  max_pop_time (opts.get<int>("max_pop_time")), 
   maxStepTime  (opts.get<int> ("max_step_time")), 
   maxStepNodes (opts.get<int> ("max_step_nodes")),   
   ratioUseful  (opts.get<double> ("ratio_useful")), 
@@ -148,7 +157,6 @@ void SymParamsSearch::print_options() const{
     "*("  << penalty_time_estimation_mult << ")" <<
     " nodes_penalty +(" << penalty_nodes_estimation_sum << ")" <<
     "*("  << penalty_nodes_estimation_mult << ")" << endl;
-  cout << "Pop(time=" << max_pop_time << ", nodes=" << max_pop_nodes << ")" << endl;
   cout << "MaxStep(time=" << maxStepTime << ", nodes=" << maxStepNodes << ")" << endl;
   cout << "Ratio useful: " << ratioUseful << endl;
   cout << "   Min alloted time: " << minAllotedTime << " nodes: " << minAllotedNodes << endl;
@@ -174,9 +182,6 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
 			     "nodes added when violated alloted nodes", "1000");
   parser.add_option<double> ("penalty_nodes_estimation_mult",
 			     "multiplication factor when violated alloted nodes", "2");
-
-  parser.add_option<int> ("max_pop_nodes", "maximum size in pop operations", "1000000");
-  parser.add_option<int> ("max_pop_time", "maximum time (ms) in pop operations", "2000");
 
   parser.add_option<int>("max_step_time", "allowed time to perform a step in the search", 
 			 std::to_string(maxStepTime));

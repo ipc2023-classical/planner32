@@ -35,7 +35,12 @@ class SymParamsMgr{
   int max_mutex_size;
   int max_mutex_time; 
 
-    SymParamsMgr();
+  //Time and memory bounds for auxiliary operations
+  int max_pop_nodes;
+  int max_pop_time;
+
+
+  SymParamsMgr();
   SymParamsMgr(const Options & opts);
   static void add_options_to_parser(OptionParser &parser);
   static void add_options_to_parser_simulation(OptionParser &parser);
@@ -53,10 +58,6 @@ class SymParamsSearch{
   double penalty_time_estimation_mult;
   double penalty_nodes_estimation_sum;// violated_nodes = sum + nodes*mult
   double penalty_nodes_estimation_mult;
-
-  //Time and memory bounds for auxiliary operations
-  int max_pop_nodes;
-  int max_pop_time;
 
   //Parameters to control isUseful() and isSearchable()
   int maxStepTime, maxStepNodes;

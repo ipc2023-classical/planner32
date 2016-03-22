@@ -1,7 +1,7 @@
 #include "symba.h"
 
 #include "sym_ph.h" 
-#include "sym_exploration.h"
+#include "sym_astar.h"
 #include "sym_bdexp.h"
 #include "sym_hnode.h" 
 #include "../debug.h"
@@ -21,10 +21,10 @@ void SymBA::initialize(){
 
 int SymBA::step(){
   Timer timer; 
-  SymExploration * currentSearch = selectExploration();
+  SymAstar * currentSearch = selectExploration();
   time_select_exploration += timer.reset(); 
   if(currentSearch){
-    currentSearch->stepImage();
+    currentSearch->step();
     if(!currentSearch->isAbstracted()){
 	time_step_original += timer();
       for(auto ph : phs){
@@ -40,7 +40,7 @@ int SymBA::step(){
 bool SymBA::forceOriginal() const {
     return g_timer() > t_orig || originalSearch->isSearchable();
 }
-SymExploration * SymBA::selectExploration() {
+SymAstar * SymBA::selectExploration() {
   if(forceOriginal()){ 
     // We are forced to search in the original state space because no
     // more time should be spent on abstractions
@@ -49,7 +49,7 @@ SymExploration * SymBA::selectExploration() {
 
   //I cannot explore the original state space. I must select a
   // relaxed search that is useful and explorable.
-  vector<SymExploration *> potentialExplorations;
+  vector<SymAstar *> potentialExplorations;
   //potentialExplorations.push_back(originalSearch->getFw());
   //potentialExplorations.push_back(originalSearch->getBw());
   originalSearch->getFw()->getPossiblyUsefulExplorations(potentialExplorations);
@@ -59,7 +59,7 @@ SymExploration * SymBA::selectExploration() {
   //1) Look in already generated explorations => get the easiest one
   //(gives preference to shouldSearch abstractions)
   std::sort(begin(potentialExplorations), end(potentialExplorations),
-	    [this] (const SymExploration * e1, const SymExploration * e2){
+	    [this] (const SymAstar * e1, const SymAstar * e2){
 	      return e1->isBetter (*e2); 
 	    });
   // DEBUG_PHPDBS(cout << "Potential explorations sorted" << endl;);
@@ -78,7 +78,7 @@ SymExploration * SymBA::selectExploration() {
   }
 
   //2) Select a hierarchy policy and generate a new exploration
-  // for(SymExploration * exp : potentialExplorations){
+  // for(SymAstar * exp : potentialExplorations){
   //   //Check if it is useful (because if the other direction was deemed
   //   //as no useful), then we should not try to relax it again
   //   if(!exp->isAbstracted() || !exp->getBDExp()->isRelaxable() || !exp->isUseful()) continue;

@@ -11,8 +11,8 @@ SymBDExp::SymBDExp(SymController * engine,
 		   const SymParamsSearch & params, 
 		   Dir dir) :
   hnode(nullptr), parent(nullptr), 
-  fw(new SymExploration(engine, params)),
-  bw(new SymExploration(engine, params)),
+  fw(new SymAstar(engine, params)),
+  bw(new SymAstar(engine, params)),
   searchDir(dir), mayRelax(true), fMainDiagonal (-1){
 }
 
@@ -20,8 +20,8 @@ SymBDExp::SymBDExp(SymBDExp * other,
 		   const SymParamsSearch & params, 
 		   Dir dir) : 
   hnode(nullptr), parent(other), 
-  fw(new SymExploration(other->getFw()->getEngine(), params)),
-  bw(new SymExploration(other->getFw()->getEngine(), params)),
+  fw(new SymAstar(other->getFw()->getEngine(), params)),
+  bw(new SymAstar(other->getFw()->getEngine(), params)),
   searchDir(dir), mayRelax(true),  fMainDiagonal (-1) {  
   fw->init(this, other->fw.get());
   bw->init(this, other->bw.get());
@@ -229,7 +229,7 @@ void SymBDExp::setHeuristic(SymBDExp & other){
 
 
 
-SymExploration * SymBDExp::selectBestDirection(bool skipUseful) const{
+SymAstar * SymBDExp::selectBestDirection(bool skipUseful) const{
   if(searchDir == Dir::FW){
     return fw.get();
   }else if(searchDir == Dir::BW){
@@ -275,8 +275,8 @@ void SymBDExp::write(const string & filename) const {
 SymBDExp::SymBDExp(SymController * engine, const SymParamsSearch & params,
 		   Dir dir, const string & filename, SymHNode * node) : 
   hnode(nullptr), parent(nullptr), 
-  fw(new SymExploration(engine, params)),
-  bw(new SymExploration(engine, params)),
+  fw(new SymAstar(engine, params)),
+  bw(new SymAstar(engine, params)),
   searchDir(dir), mayRelax(true),  fMainDiagonal (-1)
 {
   hnode = node;

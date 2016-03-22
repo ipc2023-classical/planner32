@@ -8,13 +8,13 @@
 
 class SymClosed;
 class SymManager;
-class SymExploration;
+class SymAstar;
 
 
 class SymOpen {
 
     SymManager * mgr;
-    SymExploration * exp;
+    SymAstar * exp;
     
     std::map<int, Bucket> open;//States in open with unkwown h-value
     //Auxiliar open list for states that have been closed (we are sure about their optimal cost) but not expanded (truncated and then improved the heuristic value). 
@@ -39,7 +39,7 @@ class SymOpen {
     SymOpen () : mgr(nullptr), exp(nullptr) {
     }
     
-    void init(SymExploration * _exp, SymManager * _mgr) {
+    void init(SymAstar * _exp, SymManager * _mgr) {
 	mgr = _mgr;
 	exp = _exp;
     } 

@@ -174,6 +174,8 @@ HEADERS += sym/sym_controller.h \
            sym/sym_closed.h \
            sym/sym_open.h \
            sym/sym_exploration.h \
+	   sym/sym_astar.h \
+	   sym/sym_breadth_first_search.h \
            sym/sym_hnode.h \
            sym/sym_bdexp.h \
            sym/sym_ph.h \
