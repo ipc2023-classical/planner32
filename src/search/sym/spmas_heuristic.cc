@@ -48,7 +48,7 @@ void SPMASHeuristic::initialize() {
     notMutexBDDs.insert(end(notMutexBDDs), begin(nmBDD), end(nmBDD));
 
     SymBDExp * currentBDExp = originalSearch;
-    SymAstar * currentSearch = originalSearch->getBw();
+    SymExploration * currentSearch = originalSearch->getBw();
     while(!currentSearch->finished() && 
 	  g_timer() < generationTime && 
 	  vars->totalMemory() < generationMemory && 
@@ -95,8 +95,7 @@ void SPMASHeuristic::initialize() {
 	  if(!currentSearch->step() || 
 	     !currentSearch->isSearchable()){
 	    if(!currentSearch->finished()){
-	      
-	      currentSearch->getClosed()->getHeuristic(sp.heuristicADDs, sp.max_heuristic_value);
+	      currentSearch->getHeuristic(sp.heuristicADDs, sp.max_heuristic_value);
 	      currentBDExp = ph->relax(currentBDExp, Dir::BW);
 	      if(currentBDExp){
 		currentBDExp->desactivate();
@@ -108,7 +107,7 @@ void SPMASHeuristic::initialize() {
 
 	cout << "Finished with explorations of PH: " << endl;
 	if(currentBDExp){
-	  currentSearch->getClosed()->getHeuristic(sp.heuristicADDs, sp.max_heuristic_value);
+	  currentSearch->getHeuristic(sp.heuristicADDs, sp.max_heuristic_value);
 	}
 
 	for(const auto & heur : ph->get_intermediate_heuristics_fw()){

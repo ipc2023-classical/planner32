@@ -133,7 +133,7 @@ class SymAstar : public SymExploration  {
   ~SymAstar() {}
 
 
-  inline bool finished() const {
+  virtual bool finished() const {
       return open_list.empty() && !bucketReady(); 
   }
 
@@ -168,6 +168,12 @@ class SymAstar : public SymExploration  {
   //Adds a new heuristic to evaluate States
   void setChild(SymAstar * child){
       closed->addChild(child->getClosed());
+  }
+
+
+  virtual void getHeuristic(std::vector<ADD> & heuristics,
+			    std::vector <int> & maxHeuristicValues) const {
+      closed->getHeuristic(heuristics, maxHeuristicValues);
   }
 
   // void getUsefulExplorations(set <SymAstar *> & explorations, double minRatioUseful);

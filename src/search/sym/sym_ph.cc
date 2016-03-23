@@ -71,7 +71,7 @@ bool SymPH::askHeuristic(SymBDExp * originalSearch, double allotedTime){
 	      vars->totalMemory() < phMemory && 
 	      t_gen_heuristic() < allotedTime){
 
-	    SymAstar * selectedExp = abstractExp->selectBestDirection(false);
+	    auto * selectedExp = abstractExp->selectBestDirection(false);
 	    
 	    if (selectedExp->isSearchable()){
 		selectedExp->step();

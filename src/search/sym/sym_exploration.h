@@ -102,6 +102,12 @@ protected:
   virtual long nextStepNodes() const = 0;
   virtual long nextStepNodesResult() const = 0;
 
+  virtual bool finished() const = 0;
+
+  virtual void getHeuristic(std::vector<ADD> & heuristics,
+			    std::vector <int> & maxHeuristicValues) const = 0;
+
+
   void statistics() const;
 
 

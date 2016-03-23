@@ -30,8 +30,14 @@ class SymBreadthFirstSearch : public SymExploration  {
 
   BDD pop();
 
-  inline bool finished() const {
+  virtual bool finished() const {
     return open.empty(); 
+  }
+
+
+  virtual void getHeuristic(std::vector<ADD> & /*heuristics*/,
+			    std::vector <int> & /*maxHeuristicValues*/) const {
+      
   }
 
   virtual bool stepImage(int maxTime, int maxNodes);
