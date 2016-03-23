@@ -8,15 +8,29 @@
 #include "sym_exploration.h"
 
 class SymBreadthFirstSearch : public SymExploration  {  
-  Bucket open;   // States in open 
-  Bucket closed; // States in closed
-  SymStepCostEstimation estimation;
+    Bucket open;   // States in open 
+    //Bucket closed; // States in closed
+    BDD closedTotal;
+    
+    SymStepCostEstimation estimation;
 
-  void filterDuplicates(Bucket & bucket) {
-      for (BDD & bdd : bucket)
-	  for(const BDD & c : closed)
-	      bdd *=  !c;
-  }
+    SymBreadthFirstSearch * parent;
+
+    void filterDuplicates(BDD & bdd) {
+	/* for(const BDD & c : closed) */
+	bdd *=  !closedTotal;
+    }
+    
+    void filterDuplicates(Bucket & bucket) {
+	for (BDD & bdd : bucket)
+	    filterDuplicates(bdd);
+    }
+
+    void close (const BDD & bdd) {
+	closedTotal += bdd;
+	//closed.push_back(bdd);
+	//mgr->mergeBucket(closed);
+    }
  public:
   SymBreadthFirstSearch(const SymParamsSearch & params);
   SymBreadthFirstSearch(const SymBreadthFirstSearch & ) = delete;
@@ -25,15 +39,35 @@ class SymBreadthFirstSearch : public SymExploration  {
   SymBreadthFirstSearch& operator=(SymBreadthFirstSearch &&) = default;
   ~SymBreadthFirstSearch() {}
 
-
   bool init(SymManager * manager, bool forward);
+
+  bool init(SymBreadthFirstSearch * other, SymManager * manager, 
+	    int maxRelaxTime, int maxRelaxNoes);
+
 
   BDD pop();
 
   virtual bool finished() const {
     return open.empty(); 
   }
+  
+  BDD getUnreachableStates() const ;
 
+  bool foundSolution () const {
+      if (parent && parent->foundSolution()) return true;
+
+      BDD target = (fw ? mgr->getGoal() : mgr->getInitialState());
+      return !((closedTotal*target).IsZero()); 
+      /* for (auto & bdd : closed) { */
+      /* 	  if (!((bdd*target).IsZero())) { */
+      /* 	      return true; */
+      /* 	  } */
+      /* } */
+  }
+
+  bool isBetter(const SymBreadthFirstSearch & other) const{
+      return nextStepTime() < other.nextStepTime();
+  }
 
   virtual void getHeuristic(std::vector<ADD> & /*heuristics*/,
 			    std::vector <int> & /*maxHeuristicValues*/) const {

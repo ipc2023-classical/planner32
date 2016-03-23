@@ -15,25 +15,26 @@ SymBA::SymBA(const Options &opts) :
 }
 
 void SymBA::initialize(){
-  print_options();
-  SymEngine::initialize();
+    print_options();
+    SymEngine::initialize();
 }
 
 int SymBA::step(){
-  Timer timer; 
-  SymAstar * currentSearch = selectExploration();
-  time_select_exploration += timer.reset(); 
-  if(currentSearch){
-    currentSearch->step();
-    if(!currentSearch->isAbstracted()){
-	time_step_original += timer();
-      for(auto ph : phs){
-	ph->operate(originalSearch);
-      }
-    }else{
-	time_step_abstract += timer();	
+    Timer timer; 
+    SymAstar * currentSearch = selectExploration();
+    time_select_exploration += timer.reset(); 
+    if(currentSearch){
+	currentSearch->step();
+    
+	if(!currentSearch->isAbstracted()){
+	    time_step_original += timer();
+	    for(auto ph : phs){
+		ph->operate(originalSearch);
+	    }
+	}else{
+	    time_step_abstract += timer();	
+	}
     }
-  }
   return stepReturn();
 }
 

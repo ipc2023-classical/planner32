@@ -159,6 +159,7 @@ HEADERS += pdbs/canonical_pdbs_heuristic.h \
 HEADERS += sym/sym_controller.h \
 	   sym/sym_engine.h \
            sym/symba.h \
+           sym/symba_unsat.h \
            sym/sym_variables.h \
            sym/sym_manager.h \
            sym/sym_util.h \

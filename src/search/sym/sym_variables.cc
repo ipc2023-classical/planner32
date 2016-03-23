@@ -286,9 +286,9 @@ BDD SymVariables::getCube(const set <int> & vars, const vector<vector<int>> & v_
 
 
 void
-exceptionError(string message)
+exceptionError(string /*message*/)
 {
-  cout << message << endl;
+  //cout << message << endl;
   throw BDDError();
 }
 

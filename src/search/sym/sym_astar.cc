@@ -713,7 +713,7 @@ void SymAstar::notifyNotClosed(int fValue, int hValue){
 	    // }
 	}
     } else {
-	cout << "Don't need to do anything" << endl;
+	//cout << "Don't need to do anything" << endl;
     }
 }
 

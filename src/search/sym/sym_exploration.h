@@ -80,11 +80,11 @@ protected:
   }
 
   inline bool isSearchable() const {
-      return isSearchableWithNodes(p.maxStepNodes);
+      return isSearchableWithNodes(p.getMaxStepNodes());
   }
 
   inline bool isSearchableAfterRelax(int num_relaxations) const {
-    double maxNodes = p.maxStepNodes;
+      double maxNodes = p.getMaxStepNodes();
     if(num_relaxations){
       maxNodes *= pow(p.ratioAfterRelax, num_relaxations);
     }

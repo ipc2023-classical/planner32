@@ -2,6 +2,8 @@
 
 #include "../operator.h"
 #include "../globals.h"
+#include "../timer.h"
+
 #include "../option_parser.h"
 
 #include <vector>
@@ -138,7 +140,9 @@ SymParamsSearch::SymParamsSearch(const Options & opts) :
   penalty_nodes_estimation_sum (opts.get<double>("penalty_time_estimation_sum")), 
   penalty_nodes_estimation_mult(opts.get<double>("penalty_nodes_estimation_mult")), 
   maxStepTime  (opts.get<int> ("max_step_time")), 
-  maxStepNodes (opts.get<int> ("max_step_nodes")),   
+  maxStepNodes (opts.get<int> ("max_step_nodes")),
+  maxStepNodesPerPlanningSecond (opts.get<int> ("max_step_nodes_per_planning_second")),   
+  maxStepNodesMin (opts.get<int> ("max_step_nodes_min")),
   ratioUseful  (opts.get<double> ("ratio_useful")), 
   minAllotedTime  (opts.get<int>   ("min_alloted_time")),  
   minAllotedNodes (opts.get<int>   ("min_alloted_nodes")), 
@@ -157,7 +161,7 @@ void SymParamsSearch::print_options() const{
     "*("  << penalty_time_estimation_mult << ")" <<
     " nodes_penalty +(" << penalty_nodes_estimation_sum << ")" <<
     "*("  << penalty_nodes_estimation_mult << ")" << endl;
-  cout << "MaxStep(time=" << maxStepTime << ", nodes=" << maxStepNodes << ")" << endl;
+  cout << "MaxStep(time=" << maxStepTime << ", nodes=" << maxStepNodes<< ", nodes_per_planning_second=" << maxStepNodesPerPlanningSecond  << ")" << endl;
   cout << "Ratio useful: " << ratioUseful << endl;
   cout << "   Min alloted time: " << minAllotedTime << " nodes: " << minAllotedNodes << endl;
   cout << "   Max alloted time: " << maxAllotedTime << " nodes: " << maxAllotedNodes << endl;
@@ -188,6 +192,12 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
   parser.add_option<int>("max_step_nodes", "allowed nodes to perform a step in the search", 
 			 std::to_string(maxStepNodes));
 
+  parser.add_option<int>("max_step_nodes_per_planning_second", "allowed nodes to perform a step in the search. Starts at 0 and increases by x per second.", 
+			 "5000");
+
+  parser.add_option<int>("max_step_nodes_min", "allowed nodes to perform a step in the search. minimum value.", 
+			 "100000");
+
   parser.add_option<double>("ratio_useful",
 			    "Percentage of nodes that can potentially prune in the frontier for an heuristic to be useful",
 			    "0.0");
@@ -209,5 +219,14 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
 			    "multiplier to decide alloted nodes for a step", "2.0");
   parser.add_option<double> ("ratio_after_relax", 
 			    "multiplier to decide alloted nodes for a step", "0.8");
- parser.add_option<bool>("non_stop", "Removes initial state from closed to avoid backward search to stop.", "false");
+  
+  parser.add_option<bool>("non_stop",
+			  "Removes initial state from closed to avoid backward search to stop.",
+			  "false");
+}
+
+int SymParamsSearch::getMaxStepNodes() const{
+    return std::max<double>(maxStepNodesMin, 
+			    std::min<double>(maxStepNodes, 
+					     maxStepNodesPerPlanningSecond*g_timer()));
 }
