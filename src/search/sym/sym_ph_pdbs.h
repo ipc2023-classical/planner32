@@ -37,13 +37,13 @@ class SymPHPDBs : public SymPH {
   void getListAbstraction(SymBDExp * bdExp, SymHNode * hNode, std::vector<SymHNode *> & res);
 
   std::unique_ptr <SymBDExp> 
-    select_binary_search(const std::vector <SymHNode *> & nodes, 
-			 SymBDExp * bdExp, Dir dir, int num_relaxations);
+      select_binary_search(const std::vector <SymHNode *> & nodes, 
+			   SymBDExp * bdExp, Dir dir, int num_relaxations);
   
   std::unique_ptr<SymBDExp> select_linear(const std::vector <SymHNode *> & nodes,
-				     SymBDExp * bdExp, Dir dir, int num_relaxations);
+					  SymBDExp * bdExp, Dir dir, int num_relaxations);
   
   std::unique_ptr<SymBDExp> select_reverse(const std::vector <SymHNode *> & nodes,
-				      SymBDExp * bdExp, Dir dir, int num_relaxations);
+					   SymBDExp * bdExp, Dir dir, int num_relaxations);
 };
 #endif

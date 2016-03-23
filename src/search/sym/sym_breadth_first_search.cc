@@ -114,7 +114,7 @@ bool SymBreadthFirstSearch::stepImage(int maxTime, int maxNodes){
 	cout << ">> Step: original";
     cout << (fw ? " fw " : " bw ");
     cout << " frontierNodes: " << nodeCount(open) << " [" << open.size() << "]"  << " total time: " << g_timer 
-	 << " total nodes: " << mgr->totalNodes() << " total memory: " << mgr->totalMemory();
+	 << " total nodes: " << mgr->totalNodes() << " total memory: " << mgr->totalMemory()/1000000 << "M";
     
     mgr->init_transitions(); // Ensure that transitions have been initialized
     Timer step_time;

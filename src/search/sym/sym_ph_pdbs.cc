@@ -275,6 +275,9 @@ static SymPH *_parse(OptionParser &parser) {
   parser.add_enum_option("st_abs", LinearPDBStrategyValues,
 			 "relax strategy for abstractions", "level");
 
+  parser.add_option<bool>("randomize_abstractions", 
+			  "allow to use randomized orderings to use more than one strategy", "true");
+
   Options opts = parser.parse();
 
   SymPH *policy = 0;
