@@ -1,17 +1,17 @@
-#ifndef SYM_OPEN_H
-#define SYM_OPEN_H
+#ifndef SYM_ASTAR_OPEN_H
+#define SYM_ASTAR_OPEN_H
 
 #include <map> 
 #include "sym_bucket.h" 
 
 #include "test/sym_test.h"
 
-class SymClosed;
+class SymAstarClosed;
 class SymManager;
 class SymAstar;
 
 
-class SymOpen {
+class SymAstarOpen {
 
     SymManager * mgr;
     SymAstar * exp;
@@ -36,7 +36,7 @@ class SymOpen {
     bool test_pop_aux(Bucket buck, int fVal, int hVal, bool duplicates) const;
 
    public:
-    SymOpen () : mgr(nullptr), exp(nullptr) {
+    SymAstarOpen () : mgr(nullptr), exp(nullptr) {
     }
     
     void init(SymAstar * _exp, SymManager * _mgr) {
@@ -51,7 +51,7 @@ class SymOpen {
     std::pair <int, int> pop(int f, int g, bool use_heur) const;
 
     //1) open <-- other.open*notClosed() 2) open <-- other.reopen 
-    void insert(const SymOpen & other, const SymClosed & closed);
+    void insert(const SymAstarOpen & other, const SymAstarClosed & closed);
     void insert(const Bucket & bucket, int g);
     void insert(const BDD & bdd, int g);
 
@@ -82,7 +82,7 @@ class SymOpen {
     bool relax(int maxTime, int maxNodes);
     
 
-    friend std::ostream & operator<<(std::ostream &os, const SymOpen & bdexp);
+    friend std::ostream & operator<<(std::ostream &os, const SymAstarOpen & bdexp);
 
     const std::map<int, Bucket> & getOpen() const {
 	return open;

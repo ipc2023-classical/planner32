@@ -1,5 +1,5 @@
-#ifndef SYM_CLOSED_H
-#define SYM_CLOSED_H
+#ifndef SYM_ASTAR_CLOSED_H
+#define SYM_ASTAR_CLOSED_H
 
 #include "../debug.h"
 #include "sym_manager.h"
@@ -12,7 +12,7 @@
 class SymAstar;
 class SymSolution;
 class Timer;
-class SymClosed;
+class SymAstarClosed;
 
 //Auxiliar class to denote an heuristic evaluation
 class Evaluation {
@@ -30,11 +30,11 @@ Evaluation(SymAstar * exploration, int fval, int hval) :
     // pruned with this search as heuristic
     void updateClosed (const BDD & S, int hClosed);
     
-    void evaluate (SymClosed * c) const ;
+    void evaluate (SymAstarClosed * c) const ;
 };
 
 
-class SymClosed /*: public SymHeuristic */ {  
+class SymAstarClosed /*: public SymHeuristic */ {  
     friend class Evaluation; //For using evaluate_abs_orig
 private:
     SymManager * mgr; //Symbolic manager to perform bdd operations
@@ -53,12 +53,12 @@ private:
     std::map<int, BDD> closedUpTo;  // Disjunction of BDDs in closed  (auxiliar useful to take the maximum between several BDDs)
     std::set<int> h_values; //Set of h_values of the heuristic
 
-    SymClosed * parent;
+    SymAstarClosed * parent;
     // children: Related heuristics derived from relaxations of this
     // search. We need this because we will only use my children to
     // evaluate a state if I do not have a value (otherwise could be
     // non-admissible due to the initialization of the closed list).
-    std::vector<SymClosed *> children; 
+    std::vector<SymAstarClosed *> children; 
 
 
     //std::map<SymAstar *, Evaluation> evals; 
@@ -81,9 +81,9 @@ private:
     void checkEval(Evaluation * eval);
 
 public:
-    SymClosed();
+    SymAstarClosed();
     void init(SymAstar * exp, SymManager * manager); 
-    void init(SymAstar * exp, SymManager * manager, const SymClosed & other);
+    void init(SymAstar * exp, SymManager * manager, const SymAstarClosed & other);
 
     void insert (int h, const BDD & S); 
     void setHNotClosed(int h);
@@ -154,7 +154,7 @@ public:
 	return exploration;
     }
 
-    void addChild(SymClosed * c); 
+    void addChild(SymAstarClosed * c); 
 
     void desactivate(){
 	if(parent)
@@ -181,7 +181,7 @@ public:
 
     void statistics () const; 
 
-    friend std::ostream & operator<<(std::ostream &os, const SymClosed & c);
+    friend std::ostream & operator<<(std::ostream &os, const SymAstarClosed & c);
 };
 
 #endif // SYM_CLOSED

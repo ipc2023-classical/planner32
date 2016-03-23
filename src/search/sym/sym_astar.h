@@ -6,8 +6,8 @@
 #include "sym_heuristic.h"
 #include "sym_manager.h"
 #include "sym_bucket.h"
-#include "sym_open.h"
-#include "sym_closed.h"
+#include "sym_astar_open.h"
+#include "sym_astar_closed.h"
 #include "sym_estimate.h"
 #include "sym_util.h"
 #include <vector>
@@ -32,12 +32,12 @@ class SymController;
 class SymBDExp;
 
 class SymAstar : public SymExploration  {  
-    friend class SymOpen;
+    friend class SymAstarOpen;
     SymAstar * parent; //Parent of the search
     SymBDExp * bdExp;
 
   //Current state of the search:
-  SymOpen open_list;
+  SymAstarOpen open_list;
 
   Bucket Sfilter;   //current g-bucket without duplicates and h-classified (still not filtered mutexes)
   Bucket Smerge;    // bucket before applying merge
@@ -48,7 +48,7 @@ class SymAstar : public SymExploration  {
   //For each BDD in Szero or S, stores a map with pairs <cost, resImage>
   std::vector<std::map<int, Bucket>> Simg;
 
-  std::unique_ptr<SymClosed> closed;    // Closed list 
+  std::unique_ptr<SymAstarClosed> closed;    // Closed list 
   int f, g;            // f and g value of current bucket (S, Szero, Sfilter and Smerge)
 
   //acceptedValues: f, g pairs that must be checked because there are
@@ -58,7 +58,7 @@ class SymAstar : public SymExploration  {
   //To seek the next f,g bucket, we have two different sets: hValues.
   //hValues contains all the possible h-values returned by the heuristics. 
   //std::set<int> hValues;   //Possible h-values 
-  SymClosed * perfectHeuristic;                  //The perfect heuristic for this state space
+  SymAstarClosed * perfectHeuristic;                  //The perfect heuristic for this state space
   std::vector <std::shared_ptr<SymHeuristic> > heuristics;  //List of non-perfect heuristics
   std::set<int> hValuesExplicit;
   
@@ -137,7 +137,7 @@ class SymAstar : public SymExploration  {
       return open_list.empty() && !bucketReady(); 
   }
 
-  const SymOpen & getOpen() const {
+  const SymAstarOpen & getOpen() const {
     return open_list;
   }
 
@@ -163,7 +163,7 @@ class SymAstar : public SymExploration  {
   void relaxClosed();
 
   void addHeuristic(std::shared_ptr<SymHeuristic> heuristic);
-  void setPerfectHeuristic(SymClosed * h);
+  void setPerfectHeuristic(SymAstarClosed * h);
 
   //Adds a new heuristic to evaluate States
   void setChild(SymAstar * child){
@@ -174,8 +174,8 @@ class SymAstar : public SymExploration  {
 
   //double computeRatioUseful(SymHeuristic * h) const;
 
-  //void notifyH(SymClosed * heur, int value, bool isNotClosed);
-  //void notifyF(SymClosed * heur, int value);
+  //void notifyH(SymAstarClosed * heur, int value, bool isNotClosed);
+  //void notifyF(SymAstarClosed * heur, int value);
   void notifyPrunedBy(int fVal, int gVal);
   void notify(const Bucket & bucket, int fNotClosed = 0); //May prune  
   void notifyNotClosed(int fValue, int hValue);
@@ -216,7 +216,7 @@ class SymAstar : public SymExploration  {
   double ratioUseful(Bucket & bucket) const;
 
   // Pointer to the closed list Used to set as heuristic of other explorations.
-  inline SymClosed * getClosed() const{
+  inline SymAstarClosed * getClosed() const{
     return closed.get();
   }
 

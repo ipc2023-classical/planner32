@@ -1,11 +1,11 @@
-#include "sym_open.h" 
+#include "sym_astar_open.h" 
 
-#include "sym_closed.h" 
+#include "sym_astar_closed.h" 
 #include "sym_astar.h" 
 
 using namespace std;
 
-pair<int, int> SymOpen::pop(int f, int g, bool use_heur) const {
+pair<int, int> SymAstarOpen::pop(int f, int g, bool use_heur) const {
     int prevF = f;
     int prevG = g;
     assert(test_open());
@@ -34,7 +34,7 @@ pair<int, int> SymOpen::pop(int f, int g, bool use_heur) const {
 
 //1) open <-- other.open*notClosed()
 //2) open <-- other.reopen 
-void SymOpen::insert(const SymOpen & other, const SymClosed & closed){
+void SymAstarOpen::insert(const SymAstarOpen & other, const SymAstarClosed & closed){
     assert(test_open());
 
     for(auto openIt : other.open){
@@ -58,21 +58,21 @@ void SymOpen::insert(const SymOpen & other, const SymClosed & closed){
 
 }
 
-void SymOpen::insert(const Bucket & bucket, int g) {
+void SymAstarOpen::insert(const Bucket & bucket, int g) {
     assert(!bucket.empty());
     assert(test_open());
     copyBucket(bucket, open[g]);
     assert(test_open());
 }
 
-void SymOpen::insert(const BDD & bdd, int g) {
+void SymAstarOpen::insert(const BDD & bdd, int g) {
     assert(!bdd.IsZero());  
     assert(test_open());
     open[g].push_back(bdd);
     assert(test_open());
 }
 
-void SymOpen::insert_reopen(const BDD & bdd, int g) {
+void SymAstarOpen::insert_reopen(const BDD & bdd, int g) {
     assert (!bdd.IsZero());
     assert(test_open());
     reopen[g].push_back(bdd);
@@ -83,7 +83,7 @@ void SymOpen::insert_reopen(const BDD & bdd, int g) {
     assert(test_open());
 }
 
-void SymOpen::insert_reopen(const Bucket &bucket, int g) {
+void SymAstarOpen::insert_reopen(const Bucket &bucket, int g) {
     assert(test_open());
     assert(!bucket.empty());
     
@@ -96,7 +96,7 @@ void SymOpen::insert_reopen(const Bucket &bucket, int g) {
 
 }
 
-void SymOpen::reevaluate (Bucket & S, int f, int g) {
+void SymAstarOpen::reevaluate (Bucket & S, int f, int g) {
     assert(test_open());
     assert(!S.empty());
     
@@ -116,7 +116,7 @@ void SymOpen::reevaluate (Bucket & S, int f, int g) {
     assert(test_open());
 }
 
-void SymOpen::extract_and_insert (Bucket & S, int f, int g, Bucket & res) {
+void SymAstarOpen::extract_and_insert (Bucket & S, int f, int g, Bucket & res) {
     assert(!S.empty());
     assert(test_open());
     extract_states(S, f, g, res, true);
@@ -130,7 +130,7 @@ void SymOpen::extract_and_insert (Bucket & S, int f, int g, Bucket & res) {
 
 }
 
-int SymOpen::minNextG(int g) const{
+int SymAstarOpen::minNextG(int g) const{
     int minG = g;       
 
     if(!open.empty()){
@@ -143,7 +143,7 @@ int SymOpen::minNextG(int g) const{
     return minG;
 }
 
-void SymOpen::extract_states(Bucket & bucket, int f, int g,
+void SymAstarOpen::extract_states(Bucket & bucket, int f, int g,
 			     Bucket & res, bool open){
     
     mgr->mergeBucket(bucket); 
@@ -167,7 +167,7 @@ void SymOpen::extract_states(Bucket & bucket, int f, int g,
     }
 }
 
-void SymOpen::extract_states_directly (int g, Bucket & res){
+void SymAstarOpen::extract_states_directly (int g, Bucket & res){
     assert(test_open());
 
     if (open.count(g)){
@@ -188,7 +188,7 @@ void SymOpen::extract_states_directly (int g, Bucket & res){
 
 
 
-void SymOpen::closeMinOpen() {
+void SymAstarOpen::closeMinOpen() {
     assert (minG() <= minNextG(exp->g)); 
     assert(test_open()); 
     int ming = minG();
@@ -221,7 +221,7 @@ void SymOpen::closeMinOpen() {
 
 
 
-int SymOpen::getNextG(int f, int g) const {
+int SymAstarOpen::getNextG(int f, int g) const {
     DEBUG_MSG(cout << "SET NEXT G greater than " << g  << " with f=" << f << ": ";);
 	      
     for (auto nextGBucket = open.upper_bound(g); nextGBucket != open.end(); ++nextGBucket){
@@ -234,7 +234,7 @@ int SymOpen::getNextG(int f, int g) const {
 }
 
 
-pair<int, int> SymOpen::getNextF(int f) const {
+pair<int, int> SymAstarOpen::getNextF(int f) const {
     //We look for min f' = g' + h' > f so that g' is in open and h' is
     //in hValues
     DEBUG_MSG(cout << "Get nextF" << endl;);
@@ -265,7 +265,7 @@ pair<int, int> SymOpen::getNextF(int f) const {
     return upper_bound;
 }
 	
-void SymOpen::getNextFHValues(const set<int> & h_values,
+void SymAstarOpen::getNextFHValues(const set<int> & h_values,
 			      int f, pair<int, int> & upper_bound) const {
     //If we do not have any option for g or f, then the values are already set.
     if(open.empty() || (upper_bound.first == f+1 &&
@@ -294,7 +294,7 @@ void SymOpen::getNextFHValues(const set<int> & h_values,
     }
 }
 
-void SymOpen::extract_states (int f, int g, Bucket & res){
+void SymAstarOpen::extract_states (int f, int g, Bucket & res){
     assert(test_open());
     // Extract from open
     extract_states(open[g], f, g, res, true);
@@ -316,7 +316,7 @@ void SymOpen::extract_states (int f, int g, Bucket & res){
 // Remove closed states from open and shrink it.  
 //This can have prunning power because it is performed before the
 // shrinking.
-bool SymOpen::relax(int maxTime, int maxNodes) {
+bool SymAstarOpen::relax(int maxTime, int maxNodes) {
     assert(test_open());
     DEBUG_MSG(cout << "RELAX OPEN" << endl;);
     mgr->setTimeLimit(maxTime);
@@ -346,7 +346,7 @@ bool SymOpen::relax(int maxTime, int maxNodes) {
     return true;
 }
 
-bool SymOpen::test_pop(int f, int g) const{    
+bool SymAstarOpen::test_pop(int f, int g) const{    
     for (const auto & bucket : open){   //For each g' in open
 	int gop = bucket.first;
 	if (gop >= g){
@@ -376,12 +376,12 @@ bool SymOpen::test_pop(int f, int g) const{
     return true;
 }
 
-bool SymOpen::test_manual_pop(int prevF, int prevG, int f, int g) const{
+bool SymAstarOpen::test_manual_pop(int prevF, int prevG, int f, int g) const{
     pair<int, int>  manual = manual_pop(prevF, prevG);
     return f < manual.first || (f == manual.first && g <= manual.second);
 }
 
-pair<int, int> SymOpen::manual_pop(int f, int g) const{
+pair<int, int> SymAstarOpen::manual_pop(int f, int g) const{
     cout << ">> MANUAL POP: f="<< f << " g=" << g << endl;
     if(open.empty()) return pair<int, int> (numeric_limits<int>::max(), numeric_limits<int>::max());
     do {
@@ -399,7 +399,7 @@ pair<int, int> SymOpen::manual_pop(int f, int g) const{
 }
 
 //Tests whether there are states that can be poped with f and g
-bool SymOpen::test_pop_aux(int fVal, int gVal) const {
+bool SymAstarOpen::test_pop_aux(int fVal, int gVal) const {
     cout << "> Testing pop: f=" << fVal << " g=" << gVal << endl;
     if (!open.count(gVal)) return false;
     return test_pop_aux(open.at(gVal), fVal, fVal-gVal, true) ||  
@@ -408,7 +408,7 @@ bool SymOpen::test_pop_aux(int fVal, int gVal) const {
 }
 
 
-bool SymOpen::test_pop_aux(Bucket buck, 
+bool SymAstarOpen::test_pop_aux(Bucket buck, 
 			   int fVal, int hVal, 
 			   bool duplicates) const {
     Bucket res; 
@@ -422,7 +422,7 @@ bool SymOpen::test_pop_aux(Bucket buck,
     return !res.empty();
 }
 
-bool SymOpen::test_open() const {
+bool SymAstarOpen::test_open() const {
     for (auto & k : open) {
 	int g = k.first;
 	if (k.second.empty()) {
@@ -470,7 +470,7 @@ bool SymOpen::test_open() const {
     return true;
 }
 
-std::ostream & operator<<(std::ostream &os, const SymOpen & exp){
+std::ostream & operator<<(std::ostream &os, const SymAstarOpen & exp){
     os << " open{"; 
     for (auto & o : exp.open){ 
         os << o.first << " ";

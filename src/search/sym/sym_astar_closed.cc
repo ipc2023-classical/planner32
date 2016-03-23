@@ -1,4 +1,4 @@
-#include "sym_closed.h"
+#include "sym_astar_closed.h"
 
 #include "sym_solution.h"
 #include "sym_astar.h"
@@ -28,7 +28,7 @@ void Evaluation::updateClosed (const BDD & S, int hClosed) {
     removeZero(bucket); //Delete zero values
 }
 
-void Evaluation::evaluate (SymClosed * c) const {
+void Evaluation::evaluate (SymAstarClosed * c) const {
     std::vector<BDD> prunedStates; 
     for (auto bdd : bucket){
 	assert(!bdd.IsZero());
@@ -44,13 +44,13 @@ void Evaluation::evaluate (SymClosed * c) const {
     }
 }
 
-SymClosed::SymClosed() : mgr(nullptr), exploration(nullptr),
+SymAstarClosed::SymAstarClosed() : mgr(nullptr), exploration(nullptr),
 			 parent(nullptr) /*num_calls_eval(0), time_eval_states(0),
 			 time_closed_states(0),  time_pruned_states(0),
 			 time_prune_some(0),  time_prune_all (0), time_prune_some_children(0) */{
 }
 
-void SymClosed::init(SymAstar * exp, SymManager * manager){
+void SymAstarClosed::init(SymAstar * exp, SymManager * manager){
     exploration = exp;
     mgr = manager;
     set<int>().swap(h_values);
@@ -76,14 +76,14 @@ void SymClosed::init(SymAstar * exp, SymManager * manager){
     }
 }
 
-void SymClosed::newHValue(int h_value){
+void SymAstarClosed::newHValue(int h_value){
     if(!h_values.count(h_value)){
 	h_values.insert(h_value);
 	if(parent) parent->newHValue(h_value);
     }
 }
 
-// BDD SymClosed::getBDD(const BDD & bdd, int /*fVal*/, int hVal) const {
+// BDD SymAstarClosed::getBDD(const BDD & bdd, int /*fVal*/, int hVal) const {
 //   if (closed.count(hVal)){
 //     return bdd*closed.at(hVal);
 //   }else{
@@ -91,7 +91,7 @@ void SymClosed::newHValue(int h_value){
 //   }
 // }
 
-void SymClosed::insert(int h, const BDD & S){
+void SymAstarClosed::insert(int h, const BDD & S){
     DEBUG_MSG(cout << "Inserting on closed " << *this << " " << (exploration->isFW() ? " fw " : " bw ") 
 	      << "g=" << h << ": " << S.nodeCount() << " nodes and "
 	      << mgr->getVars()->numStates(S) << " states" << endl;);
@@ -128,7 +128,7 @@ void SymClosed::insert(int h, const BDD & S){
 
 }
 
-void SymClosed::checkEval(Evaluation * eval) {
+void SymAstarClosed::checkEval(Evaluation * eval) {
     assert(eval != nullptr);
     assert (exploration->isAbstracted());
 
@@ -151,7 +151,7 @@ void SymClosed::checkEval(Evaluation * eval) {
     }
 }
 
-void SymClosed::setHNotClosed(int newHNotClosed){
+void SymAstarClosed::setHNotClosed(int newHNotClosed){
     DEBUG_MSG(cout << "H NOT CLOSED SET TO " << newHNotClosed << " in " << *this << endl;);
     if (newHNotClosed > hNotClosed){
 	hNotClosed = newHNotClosed;
@@ -166,7 +166,7 @@ void SymClosed::setHNotClosed(int newHNotClosed){
     }
 }
 
-void SymClosed::setFNotClosed(int f){
+void SymAstarClosed::setFNotClosed(int f){
     DEBUG_MSG(cout <<"CALL SET F NOT CLOSED: " << *this << endl;);
     if (f > fNotClosed){
 	fNotClosed = f;
@@ -180,7 +180,7 @@ void SymClosed::setFNotClosed(int f){
     }
 }
 
-void SymClosed::extract_path(const BDD & c, int h, bool fw,
+void SymAstarClosed::extract_path(const BDD & c, int h, bool fw,
 			     vector <const Operator *> & path) const{
     if(!mgr) return;
     DEBUG_MSG(cout << "Sym closed extract path h="<< h << " notClosed: " << hNotClosed << endl;
@@ -334,7 +334,7 @@ void SymClosed::extract_path(const BDD & c, int h, bool fw,
     DEBUG_MSG(cout << "Sym closed extracted path" << endl;);
 }
 
-SymSolution SymClosed::checkCut(const BDD & states, int g, bool fw) const{
+SymSolution SymAstarClosed::checkCut(const BDD & states, int g, bool fw) const{
     BDD cut_candidate = states*closedTotal;
     if(cut_candidate.IsZero()){ 
 	return SymSolution(); //No solution yet :(
@@ -357,12 +357,12 @@ SymSolution SymClosed::checkCut(const BDD & states, int g, bool fw) const{
     exit(-1);
 }
 
-std::ostream & operator<<(std::ostream &os, const SymClosed & c){
+std::ostream & operator<<(std::ostream &os, const SymAstarClosed & c){
     return os << "Heuristic of: "<< *(c.exploration);
 }
 
 
-void SymClosed::getHeuristic(vector<ADD> & heuristics,
+void SymAstarClosed::getHeuristic(vector<ADD> & heuristics,
 			     vector <int> & maxHeuristicValues) const {  
     int previousMaxH = 0; //Get the previous value of max h
     if(!maxHeuristicValues.empty()){
@@ -387,7 +387,7 @@ void SymClosed::getHeuristic(vector<ADD> & heuristics,
 }
 
 
-ADD SymClosed::getHeuristic(int previousMaxH /*= -1*/) const {
+ADD SymAstarClosed::getHeuristic(int previousMaxH /*= -1*/) const {
     /* When zero cost operators have been expanded, all the states in non reached 
        have a h-value strictly greater than frontierCost.
        They can be frontierCost + min_action_cost or the least bucket in open. */
@@ -428,7 +428,7 @@ ADD SymClosed::getHeuristic(int previousMaxH /*= -1*/) const {
     return h;
 }
 
-// void SymClosed::storeHeuristic(const string & filename) const {
+// void SymAstarClosed::storeHeuristic(const string & filename) const {
 //    // When zero cost operators have been expanded, all the states in non reached 
 //    // have a h-value strictly greater than frontierCost.
 //    // They can be frontierCost + min_action_cost or the least bucket in open.
@@ -469,7 +469,7 @@ ADD SymClosed::getHeuristic(int previousMaxH /*= -1*/) const {
 //   cout << "Heuristic with maxValue: " << hNotClosed << endl;
 // }
 
-// int SymClosed::getH (const BDD & bdd) const {
+// int SymAstarClosed::getH (const BDD & bdd) const {
 //   for (auto & bh : closed){
 //     BDD conj = bdd*bh.second;
 //     if(!conj.IsZero()){
@@ -481,7 +481,7 @@ ADD SymClosed::getHeuristic(int previousMaxH /*= -1*/) const {
 
 
 
-void SymClosed::write(const string & fname, ofstream & file) const{
+void SymAstarClosed::write(const string & fname, ofstream & file) const{
     file << "hNotClosed: " << hNotClosed << endl;
     file << "fNotClosed: " << fNotClosed << endl;
     mgr->getVars()->writeMapBucket(fname + "zeroCostClosed", file, zeroCostClosed);
@@ -489,7 +489,7 @@ void SymClosed::write(const string & fname, ofstream & file) const{
     closedTotal.write(fname + "_closedTotal");
 }
 
-void SymClosed::init(SymAstar * exp, SymManager * manager, const string & fname, ifstream & file){
+void SymAstarClosed::init(SymAstar * exp, SymManager * manager, const string & fname, ifstream & file){
     exploration = exp;
     mgr = manager;
     set<int>().swap(h_values);
@@ -505,7 +505,7 @@ void SymClosed::init(SymAstar * exp, SymManager * manager, const string & fname,
     closedTotal = mgr->getVars()->readBDD(fname + "_closedTotal");
 }
 
-void SymClosed::cleanEvalOrig() {
+void SymAstarClosed::cleanEvalOrig() {
     DEBUG_MSG(cout << "Clean eval orig " << endl;); 
     evalOrig.reset();
     
@@ -518,7 +518,7 @@ void SymClosed::cleanEvalOrig() {
 }
 
 
-void SymClosed::setOrigF(int f, int h){
+void SymAstarClosed::setOrigF(int f, int h){
     if(evalOrig){
 	evalOrig->f = f;
 	evalOrig->h = h;
@@ -529,14 +529,14 @@ void SymClosed::setOrigF(int f, int h){
 }
 
 
-void SymClosed::setOppositeF(int f, int h){
+void SymAstarClosed::setOppositeF(int f, int h){
     if(evalOpposite){
 	evalOpposite->f = f;
 	evalOpposite->h = h;
     }
 }
 
-void SymClosed::getUsefulExps(vector<SymAstar *> & useful_exps) const {
+void SymAstarClosed::getUsefulExps(vector<SymAstar *> & useful_exps) const {
     if((evalOrig && !evalOrig->bucket.empty()) || !exploration->isAbstracted()){
 	//Avoid adding the original explorations more than once and	    
 	//only include explorations that are searchable
@@ -550,7 +550,7 @@ void SymClosed::getUsefulExps(vector<SymAstar *> & useful_exps) const {
     }
 }
 
-bool SymClosed::isUsefulAfterRelax(double ratio, 
+bool SymAstarClosed::isUsefulAfterRelax(double ratio, 
 				   const std::vector<BDD> & newFrontier) const {
     if (evalOrig){ //I am useful only I can prune the non-abstract search.
 	return evalOrig->exp->isUseful (evalOrig->bucket, newFrontier, ratio);
@@ -559,7 +559,7 @@ bool SymClosed::isUsefulAfterRelax(double ratio,
     return false;    
 }
 
-bool SymClosed::isUseful(double ratio){
+bool SymAstarClosed::isUseful(double ratio){
     if (evalOrig) {//I am useful only I can prune the non-abstract search.
 	//Filters all the states that are no useful anymore
 	double rUseful = evalOrig->exp->ratioUseful(evalOrig->bucket);
@@ -571,7 +571,7 @@ bool SymClosed::isUseful(double ratio){
     return false;
 }
 
-bool SymClosed::can_prune(int fVal, int hVal){
+bool SymAstarClosed::can_prune(int fVal, int hVal){
     if (hVal < hNotClosed || fVal < fNotClosed){
 	return true;
     }
@@ -586,7 +586,7 @@ bool SymClosed::can_prune(int fVal, int hVal){
 
 
 //Evaluates a BDD and returns the BDD of states that are pruned
-BDD SymClosed::evaluate_orig_orig(const BDD & bdd, int fVal,
+BDD SymAstarClosed::evaluate_orig_orig(const BDD & bdd, int fVal,
 				  int hVal, SymAstar * expAsking, bool store_eval){
     DEBUG_MSG(cout << "Evaluate_orig_orig: " << bdd.nodeCount() << endl;);
     assert (!exploration->isAbstracted() && !expAsking->isAbstracted());
@@ -629,7 +629,7 @@ BDD SymClosed::evaluate_orig_orig(const BDD & bdd, int fVal,
 
 
 //Evaluates a BDD and returns the BDD of states that are pruned
-BDD SymClosed::evaluate_abs_orig(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval){
+BDD SymAstarClosed::evaluate_abs_orig(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval){
     assert (exploration->isAbstracted() && (!expAsking->isAbstracted()));
     assert (expAsking->isFW() != exploration->isFW());
 
@@ -711,7 +711,7 @@ BDD SymClosed::evaluate_abs_orig(const BDD & bdd, int fVal, int hVal, SymAstar *
 
 
 //Evaluates a BDD and returns the BDD of states that are pruned
-BDD SymClosed::evaluate_abs_abs(const BDD & bdd, int fVal, int hVal,
+BDD SymAstarClosed::evaluate_abs_abs(const BDD & bdd, int fVal, int hVal,
 				SymAstar * expAsking, bool store_eval){
     assert (exploration->isAbstracted());
     assert (expAsking->isFW() != exploration->isFW());
@@ -744,13 +744,13 @@ BDD SymClosed::evaluate_abs_abs(const BDD & bdd, int fVal, int hVal,
 }
 
 
-BDD SymClosed::evaluate(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval){
+BDD SymAstarClosed::evaluate(const BDD & bdd, int fVal, int hVal, SymAstar * expAsking, bool store_eval){
     if (!exploration->isAbstracted()) 
 	return evaluate_orig_orig(bdd, fVal, hVal, expAsking, store_eval);
     else return evaluate_abs_abs(bdd, fVal, hVal, expAsking, store_eval);
 }
 
-BDD SymClosed::evaluate(const BDD & bdd, int hVal){
+BDD SymAstarClosed::evaluate(const BDD & bdd, int hVal){
     //Return the ones closed with more than hVal
     BDD closedUp = mgr->zeroBDD();
   
@@ -786,7 +786,7 @@ BDD SymClosed::evaluate(const BDD & bdd, int hVal){
     return bdd*(!closedUp);
 }
 
-void SymClosed::addChild(SymClosed * c) {
+void SymAstarClosed::addChild(SymAstarClosed * c) {
     assert (c->parent == nullptr || c->parent == this);
     if(!evalOrig) return; //We will not use this heuristic (in this direction)
     
@@ -802,7 +802,7 @@ void SymClosed::addChild(SymClosed * c) {
 }
 
 
-bool SymClosed::accept(int f, int h) const {
+bool SymAstarClosed::accept(int f, int h) const {
     assert (f >= 0);
     assert (h >= 0);
     DEBUG_MSG(cout << "accepting f=" << f << ", h=" << h << endl;);
@@ -822,7 +822,7 @@ bool SymClosed::accept(int f, int h) const {
 
 //Obtains f' > f such that is a possible f-value and sets it in
 //upper_bound.first
-void SymClosed::getNextF(int f, pair<int, int> & upper_bound) const{
+void SymAstarClosed::getNextF(int f, pair<int, int> & upper_bound) const{
     for(auto c : children){
 	DEBUG_MSG(cout << "I am " << *this << endl
 		  << "Check child " << c << endl << " is: " << *c << endl;);
@@ -836,13 +836,13 @@ void SymClosed::getNextF(int f, pair<int, int> & upper_bound) const{
 }
 
 
-void SymClosed::statistics () const {
+void SymAstarClosed::statistics () const {
     // cout << "h (eval " << num_calls_eval << ", not_closed" << time_eval_states << "s, closed " << time_closed_states
     // 	 << "s, pruned " << time_pruned_states << "s, some " << time_prune_some  
     // 	 << "s, all " << time_prune_all  << ", children " << time_prune_some_children << "s)";
 }
 
-const std::set<int> & SymClosed::getHValues() {
+const std::set<int> & SymAstarClosed::getHValues() {
     if(!exploration->isAbstracted()){
 	for( auto it = h_values.begin(); it != h_values.end(); /* blank */ ) {
 	    if( *it < hNotClosed ) {
@@ -862,7 +862,7 @@ const std::set<int> & SymClosed::getHValues() {
 
 
 // //Evaluates a BDD and returns the BDD of states that are pruned
-// BDD SymClosed::evaluate(const BDD & bdd, int fVal, int hVal,
+// BDD SymAstarClosed::evaluate(const BDD & bdd, int fVal, int hVal,
 // 			SymAstar * expAsking){
 //     // Only use evaluations for the original search or the opposite
 //     // frontiers. This should be changed in order to enable

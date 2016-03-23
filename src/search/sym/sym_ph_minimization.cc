@@ -1,5 +1,6 @@
 #include "sym_ph_minimization.h"
 
+#include "sym_manager.h"
 #include "sym_engine.h" 
 #include "sym_hnode.h"
 #include "sym_bdexp.h"

@@ -2,15 +2,15 @@
 #define SYM_EXPLORATION_H
 
 #include "../debug.h" 
-#include "sym_heuristic.h"
+
 #include "sym_manager.h"
-#include "sym_open.h"
-#include "sym_closed.h"
 #include "sym_estimate.h"
 #include "sym_util.h"
 #include <vector>
 #include <map>
 #include <memory>
+
+class SymManager;
 
 //We use this enumerate to know why the current operation was truncated
 enum class TruncatedReason {

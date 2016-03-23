@@ -20,7 +20,7 @@ using namespace std;
 
 SymAstar::SymAstar(SymController * eng,
 		   const SymParamsSearch & params): SymExploration(params), 
-     parent(nullptr),bdExp(nullptr), closed(new SymClosed()),
+     parent(nullptr),bdExp(nullptr), closed(new SymAstarClosed()),
     f(0), g(0), perfectHeuristic(nullptr), 
     estimationCost(params), estimationZero(params),
     //estimationDisjCost(params), estimationDisjZero(params),
@@ -136,7 +136,7 @@ void SymAstar::init2(SymAstar * /*opposite*/){
 }
 
 
-void SymAstar::setPerfectHeuristic(SymClosed * h){
+void SymAstar::setPerfectHeuristic(SymAstarClosed * h){
     if(!parent || !parent->isAbstracted()){
 	perfectHeuristic = h; //Do not use any heuristic for
 			      //abstractions
