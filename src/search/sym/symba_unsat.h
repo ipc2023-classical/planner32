@@ -5,7 +5,6 @@
 #include <set>
 
 class SymBreadthFirstSearch;
-class SymHNode;
 
 class SymBAUnsat : public SymEngine{
   int currentPH;

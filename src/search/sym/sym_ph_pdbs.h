@@ -31,9 +31,9 @@ class SymPHPDBs : public SymPH {
   virtual void statistics() const;
 
   virtual bool relaxGetsHarder(){
-    return false;
+      return false;
   }
- private:
+private:
   void getListAbstraction(SymBDExp * bdExp, SymHNode * hNode, std::vector<SymHNode *> & res);
 
   std::unique_ptr <SymBDExp> 

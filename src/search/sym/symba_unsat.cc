@@ -6,6 +6,8 @@
 #include "../debug.h"
 #include "../option_parser.h"
 #include "../plugin.h"
+#include "../globals.h"
+#include "../rng.h"
 
 SymBAUnsat::SymBAUnsat(const Options &opts) : 
     SymEngine(opts),
@@ -88,16 +90,18 @@ SymBreadthFirstSearch * SymBAUnsat::selectExploration() {
 	    return exp.get();
 	}
     }
-
+    
+    //Pick one exploration that seems "promising". For now: random
+    /*int random = g_rng.next(ongoing_searches.size());
+    SymBreadthFirstSearch * searchToAbstract = ongoing_searches[random].get();
+    */
     //3) Ask hierarchy policies to generate new heuristics/explorations
     for(int i = 0; i < phs.size(); i++){ //Once per heuristic
-	//bool didSomething = phs[currentPH]->askHeuristic();
+	//bool didSomething = phs[currentPH]->askHeuristic(searchToAbstract);
 	currentPH ++;
 	if(currentPH >= phs.size()){
 	    currentPH = 0;
 	}
-	//We did something so repeat the process to try to select a potential exploration.
-	//if(didSomething) return nullptr;
     }
 
     return ongoing_searches.front().get(); 

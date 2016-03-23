@@ -122,6 +122,15 @@ void SymParamsMgr::add_options_to_parser_simulation(OptionParser &parser){
   parser.add_option<int> ("max_pop_nodes", "maximum size in pop operations", "1000000");
   parser.add_option<int> ("max_pop_time", "maximum time (ms) in pop operations", "2000");
 
+const std::vector<std::string> VariableOrderValues {
+    "CG_GOAL_LEVEL", "CG_GOAL_RANDOM",
+	"GOAL_CG_LEVEL", "RANDOM",
+	"LEVEL", "REVERSE_LEVEL"};
+
+  parser.add_enum_option("var_order", VariableOrderValues,
+			 "variable ordering for the symbolic manager", "REVERSE_LEVEL");
+
+
 }
 
 

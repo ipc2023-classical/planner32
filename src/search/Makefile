@@ -31,6 +31,7 @@ HEADERS = \
           globals.h \
           heuristic.h \
           prune_heuristic.h \
+          mutex_pruning.h \
           int_packer.h \
           ipc_max_heuristic.h \
           iterated_search.h \
