@@ -15,7 +15,7 @@ protected:
       std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
 //std::unique_ptr<SymManager> mgr;    //The symbolic manager to handle mutex BDDs
 
-      std::vector<BDD> mutex_bdds;
+      std::vector<BDD> not_mutex_bdds;
 
 public:
     MutexPruning(const Options &options);

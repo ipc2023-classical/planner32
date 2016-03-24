@@ -21,7 +21,11 @@ void MutexPruning::initialize() {
         vars->init(var_order, mgrParams);
 	//mgr = unique_ptr<SymManager>(new SymManager (vars.get(), nullptr, mgrParams));
 	SymManager mgr  (vars.get(), nullptr, mgrParams);
-	mutex_bdds = mgr.getNotMutexBDDs(true);
+	not_mutex_bdds = mgr.getNotMutexBDDs(true);
+	if(is_dead_end(g_initial_state())) {
+	    cout << "Initial state is unsolvable" << endl;
+	    exit_with(EXIT_UNSOLVABLE);
+	}
     }
 }
 
@@ -44,8 +48,8 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 static Plugin<PruneHeuristic> _plugin("mutex", _parse);
 
 bool MutexPruning::is_dead_end(const State &state){
-    for (BDD & bdd : mutex_bdds) {
-	if(vars->isIn(state, bdd)) {
+    for (BDD & bdd : not_mutex_bdds) {
+	if(!vars->isIn(state, bdd)) {
 	    return true;
 	}
     }
