@@ -67,8 +67,8 @@ void SymManager::init_states(){
     DEBUG_MSG(cout << "INIT STATES ABS" << endl;);
     initialState = abstraction->getInitialState();
     goal = abstraction->getGoal();
-    initialState.print(0, 1);
-    goal.print(0,1);
+    //initialState.print(0, 1);
+    //goal.print(0,1);
   }else{
     DEBUG_MSG(cout << "INIT STATES NO ABS" << endl;);
     initialState = vars->getStateBDD(g_initial_state());

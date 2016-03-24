@@ -42,7 +42,7 @@ class SymBreadthFirstSearch : public SymExploration  {
   bool init(SymManager * manager, bool forward);
 
   bool init(SymBreadthFirstSearch * other, SymManager * manager, 
-	    int maxRelaxTime, int maxRelaxNoes);
+	    int maxRelaxTime, int maxRelaxNodes);
 
 
   BDD pop();

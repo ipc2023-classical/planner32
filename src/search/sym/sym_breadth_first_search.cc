@@ -20,6 +20,9 @@ bool SymBreadthFirstSearch::init(SymManager * manager, bool forward){
     }else{
 	open.push_back(mgr->getGoal());
     }
+
+    mgr->filterMutex(open, fw, true);
+
     closedTotal = mgr->zeroBDD();
     
     return true;
@@ -64,6 +67,8 @@ bool SymBreadthFirstSearch::init(SymBreadthFirstSearch * other, SymManager * man
     }
 
     mgr->mergeBucket(open);
+
+    estimation.recalculate(other->estimation,nodeCount(open)); 
     
     return success;
 }
@@ -77,9 +82,6 @@ BDD SymBreadthFirstSearch::getUnreachableStates () const {
     }
     return !res;
 }
-
-
-
 
 long SymBreadthFirstSearch::nextStepTime() const{
     return estimation.time();
@@ -165,6 +167,7 @@ bool SymBreadthFirstSearch::stepImage(int maxTime, int maxNodes){
 	// }
 
 	mgr->filterMutex(pairCostBDDs.second, fw, false);
+
 	filterDuplicates(pairCostBDDs.second);
 
 	for(auto & bdd : pairCostBDDs.second){  

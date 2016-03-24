@@ -189,6 +189,7 @@ HEADERS += sym/sym_controller.h \
 	   sym/test/sym_test.h \
 	   sym/test/sym_test_mutex.h \
 	   sym/sym_prune_heuristic.h \
+	   sym/sym_uct_pdbs.h \
            #sym/sym_ph_smas.h \
            sym/smas_shrink_bisimulation.h \
            sym/smas_shrink_bucket_based.h \

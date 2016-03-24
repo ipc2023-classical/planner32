@@ -1,33 +1,79 @@
 #ifndef SYM_SYMBA_UNSAT_H
 #define SYM_SYMBA_UNSAT_H
 
-#include "sym_engine.h"
+#include "../search_engine.h"
+#include "sym_controller.h"
+#include "sym_hnode.h"
+#include "sym_bdexp.h"
+
 #include <set>
+#include <map>
+#include <memory>
 
 class SymBreadthFirstSearch;
+class UCTNode;
 
-class SymBAUnsat : public SymEngine{
-  int currentPH;
+class SymBAUnsat : public SearchEngine, public SymController{
+  Dir searchDir; //Direction of search in the original state space
+  
+//Common parameters to every hierarchy policy
+  const SymParamsMgr mgrParams; 
+  const SymParamsSearch searchParams; //Parameters to perform the abstract searches
+  const double phTime, phMemory;
+
+//Maximum time and nodes to perform the whole? step? relaxation process 
+  const int maxRelaxTime, maxRelaxNodes;
+ 
+//How to compute the TRs of the abstract state space.
+  const AbsTRsStrategy absTRsStrategy;
+ 
+//Parameters to decide the relaxation 
+  const bool perimeterPDBs;  //Initializes explorations with the one being relaxed.
+  const double ratioRelaxTime, ratioRelaxNodes; 
+
+//Whether the ph should use mutexes
+  const bool use_mutex_in_abstraction;
+
+  const double shouldAbstractRatio;
+  const int maxNumAbstractions;
+
+  //Constant for UCT formula
+  double UCT_C;
+
+
+  int numAbstractions;
+  // List of hierarchy policies to derive new abstractions
+  //std::vector <SymPH *> phs;
+  //std::unique_ptr<UCTTree> ph;
+
+  std::vector<std::unique_ptr<UCTNode> > nodes;
+  std::map<std::set<int>, UCTNode *> nodesByPattern;
+
+  bool askHeuristic();  
 
   //Statistics; 
   double time_step_abstract, time_step_original, time_select_exploration;
 
-  std::vector<std::unique_ptr<SymBreadthFirstSearch> > ongoing_searches;
+  std::vector<SymBreadthFirstSearch *> ongoing_searches;
 
   SymBreadthFirstSearch * selectExploration();
 
   std::vector <BDD> dead_end_fw, dead_end_bw;
 
-  void insertDeadEnds(BDD bdd, bool isFW) {
-      if(isFW){
-	  dead_end_fw.push_back(bdd);
-      } else {
-	  dead_end_bw.push_back(bdd);
-      }
-      
+  void insertDeadEnds(BDD bdd, bool isFW);
+
+  std::pair<UCTNode *, bool> relax();
+  std::pair<UCTNode *, bool> relax(UCTNode * node,  bool fw); 
+
+  UCTNode * getRoot () {
+      return nodes[0].get();
   }
 
+ void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch);
  public:
+
+UCTNode * getUCTNode (UCTNode * parent, const std::set<int> & pattern);
+
   SymBAUnsat(const Options &opts);
   virtual ~SymBAUnsat(){}
 

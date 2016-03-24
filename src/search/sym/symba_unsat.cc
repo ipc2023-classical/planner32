@@ -1,36 +1,108 @@
 #include "symba_unsat.h"
 
-#include "sym_ph.h" 
 #include "sym_breadth_first_search.h"
-#include "sym_hnode.h" 
+#include "sym_uct_pdbs.h"
+
 #include "../debug.h"
 #include "../option_parser.h"
 #include "../plugin.h"
 #include "../globals.h"
 #include "../rng.h"
 
+
 SymBAUnsat::SymBAUnsat(const Options &opts) : 
-    SymEngine(opts),
-    currentPH(0), time_step_abstract(0), time_step_original(0), time_select_exploration(0) {  
+    SearchEngine(opts), SymController(opts),
+    searchDir(Dir(opts.get_enum("search_dir"))),
+    mgrParams(opts), searchParams(opts), 
+    phTime(opts.get<double> ("ph_time")), phMemory(opts.get<double> ("ph_memory")), 
+    maxRelaxTime(opts.get<int> ("max_relax_time")), 
+    maxRelaxNodes(opts.get<int> ("max_relax_nodes")), 
+    absTRsStrategy (AbsTRsStrategy(opts.get_enum("tr_st"))),
+    perimeterPDBs (opts.get<bool>("perimeter_pdbs")), 
+    ratioRelaxTime(opts.get<double> ("relax_ratio_time")), 
+    ratioRelaxNodes(opts.get<double> ("relax_ratio_nodes")),
+    use_mutex_in_abstraction(opts.get<bool> ("use_mutex_in_abstraction")), 
+    shouldAbstractRatio(opts.get<double> ("should_abstract_ratio")), 
+    maxNumAbstractions(opts.get<int> ("max_abstractions")), 
+    UCT_C(opts.get<double> ("uct_c")),
+    numAbstractions(0), 
+    time_step_abstract(0),
+    time_step_original(0), 
+    time_select_exploration(0) {  
 }
+
+UCTNode * SymBAUnsat::getUCTNode (UCTNode * parent, const std::set<int> & pattern) {
+    if (!nodesByPattern.count(pattern)) {
+	UCTNode * newNode = new UCTNode(vars.get(), mgrParams, parent->getMgr(),  
+					absTRsStrategy, pattern);
+	nodes.push_back(unique_ptr<UCTNode> (newNode));
+	nodesByPattern[pattern] = newNode;
+
+	return newNode;
+    }
+
+    return nodesByPattern[pattern];
+    
+}
+
 
 void SymBAUnsat::initialize(){
     print_options();
-    SymEngine::initialize();
-
-    if (searchDir != Dir::BW){
-	unique_ptr<SymBreadthFirstSearch> fw_orig (new SymBreadthFirstSearch (getSearchParams()));
-	fw_orig->init(originalStateSpace->getManager(), true);
-	ongoing_searches.push_back(std::move(fw_orig));
+   
+    nodes.push_back(unique_ptr<UCTNode> (new UCTNode(vars.get(), mgrParams)));
+    
+    if (searchDir != Dir::BW) {
+	ongoing_searches.push_back(getRoot()->initSearch(true, searchParams));
     }
 
     if (searchDir != Dir::FW){
-	unique_ptr<SymBreadthFirstSearch> bw_orig (new SymBreadthFirstSearch (getSearchParams()));
-	bw_orig->init(originalStateSpace->getManager(), false);
-	ongoing_searches.push_back(std::move(bw_orig));
+	ongoing_searches.push_back(getRoot()->initSearch(false, searchParams));
     }
 }
 
+void SymBAUnsat::insertDeadEnds(BDD bdd, bool isFW) {
+    if(isFW){
+	dead_end_fw.push_back(bdd);
+    } else {
+	dead_end_bw.push_back(bdd);
+    }
+    //TODO: propagate to ongoing searches
+}
+
+
+std::pair<UCTNode *, bool> SymBAUnsat::relax() {
+    bool fw = false;
+    if(g_rng.next31()% 2) fw = true;
+
+    return relax(getRoot(), fw);  
+}
+
+std::pair<UCTNode *, bool> SymBAUnsat::relax(UCTNode * node,
+					     bool fw) {
+    SymBreadthFirstSearch * searchToRelax = node->getSearch(fw);
+
+    while(node && node->isAbstractable()) {
+	node = node->getChild(fw, this);
+
+	if (node->getSearch(fw)) {
+	    searchToRelax = node->getSearch(fw);
+	    continue;
+	}
+
+	auto res = node->relax(searchToRelax, searchParams, 
+			       maxRelaxTime, maxRelaxNodes,
+			       ratioRelaxTime, ratioRelaxNodes, 
+			       perimeterPDBs);
+
+
+	if (res) return std::pair<UCTNode *, bool>(node, fw);
+    }
+
+    return std::pair<UCTNode *, bool>(nullptr, fw);
+}
+    
+
+    
 int SymBAUnsat::step(){
     Timer timer; 
     SymBreadthFirstSearch * currentSearch = selectExploration();
@@ -50,24 +122,15 @@ int SymBAUnsat::step(){
 		} else {
 		    return FAILED; 
 		} 
-	    }
-	    for(auto ph : phs){
-		ph->operate(originalSearch);
-	    }
+	    }	
 	}else{
 	    if (currentSearch->finished()) {
-		if (!currentSearch->foundSolution()){
-		    return FAILED; 
-		} else {
-		    BDD newDeadEnds = currentSearch->getUnreachableStates();
-		    bool dirFw = currentSearch->isFW();
+		notifyFinishedAbstractSearch(currentSearch);
+		auto it = std::find(begin(ongoing_searches), 
+				    end(ongoing_searches), 
+				    currentSearch);
 
-		    auto it = std::find_if(begin(ongoing_searches), end(ongoing_searches), [&](std::unique_ptr<SymBreadthFirstSearch> const& p) {
-			    return p.get() == currentSearch;
-			});
-		    ongoing_searches.erase(it);
-		    insertDeadEnds(newDeadEnds, !dirFw);
-		}
+		ongoing_searches.erase(it);
 	    }
 
 	    time_step_abstract += timer();	
@@ -76,56 +139,153 @@ int SymBAUnsat::step(){
     return IN_PROGRESS;
 }
 
+
+void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch){
+    if (!currentSearch->foundSolution()){
+	exit_with(EXIT_UNSOLVABLE); 
+    } else {
+	BDD newDeadEnds = currentSearch->getUnreachableStates();
+	bool dirFw = currentSearch->isFW();
+
+	insertDeadEnds(newDeadEnds, !dirFw);
+    }
+
+} 
+
+
 SymBreadthFirstSearch * SymBAUnsat::selectExploration() {
     //DEBUG_PHPDBS(cout << "We have " << ongoing_searches.size() << " ongoing_searches" << endl;);
     //1) Look in already generated explorations => get the easiest one
     //(gives preference to shouldSearch abstractions)
     std::sort(begin(ongoing_searches), end(ongoing_searches),
-    	      [this] (const unique_ptr<SymBreadthFirstSearch> & e1, const unique_ptr<SymBreadthFirstSearch> & e2){
-    		  return e1->isBetter (*(e2.get())); 
+    	      [this] (SymBreadthFirstSearch * e1, 
+		      SymBreadthFirstSearch * e2){
+    		  return e1->isBetter (*e2); 
     	      });
 
-    for(auto & exp : ongoing_searches){
+    for(auto exp : ongoing_searches){
 	if(exp->isSearchable()){
-	    return exp.get();
+	    return exp;
 	}
     }
     
-    //Pick one exploration that seems "promising". For now: random
-    /*int random = g_rng.next(ongoing_searches.size());
-    SymBreadthFirstSearch * searchToAbstract = ongoing_searches[random].get();
-    */
     //3) Ask hierarchy policies to generate new heuristics/explorations
-    for(int i = 0; i < phs.size(); i++){ //Once per heuristic
-	//bool didSomething = phs[currentPH]->askHeuristic(searchToAbstract);
-	currentPH ++;
-	if(currentPH >= phs.size()){
-	    currentPH = 0;
+    if (askHeuristic()) return nullptr;
+    else return ongoing_searches.front(); 
+}
+
+
+bool SymBAUnsat::askHeuristic() {
+    Timer t_gen_heuristic;
+    cout << "Ask heuristic" << endl;
+    while(t_gen_heuristic() < phTime && 
+	  vars->totalMemory() < phMemory &&
+	  numAbstractions < maxNumAbstractions){	
+	numAbstractions++;
+
+	//1) Generate a new abstract exploration
+	auto resRelax = relax();
+	UCTNode * abstractNode = resRelax.first;
+	if(!abstractNode) return false;
+	SymBreadthFirstSearch * abstractExp = abstractNode->getSearch(resRelax.second);
+
+	//2) Search the new exploration
+	while(abstractExp &&
+	      !abstractExp->finished() &&
+	      vars->totalMemory() < phMemory && 
+	      t_gen_heuristic() < phTime){
+	    
+	    if (abstractExp->isSearchable()){
+		abstractExp->step();
+		if(abstractExp->finished()) {
+		    notifyFinishedAbstractSearch(abstractExp); 
+		    return true;
+		}
+	    } else {
+		//If we cannot continue the search, we relax it even more
+		resRelax = relax(resRelax.first, resRelax.second);
+		abstractNode = resRelax.first;
+		if(!abstractNode) return true;
+		abstractExp = abstractNode->getSearch(resRelax.second);
+	    }
 	}
     }
-
-    return ongoing_searches.front().get(); 
+    
+    //I did not generate any heuristic
+    return false;
 }
 
 void SymBAUnsat::print_options() const{
     cout << "SymBAUnsat* " << endl;
     cout << "   Search dir: " << searchDir <<   cout << endl;
-    for(auto ph : phs){
-	ph->dump_options();
-    }
+
+    cout << "  Max num abstractions: " << maxNumAbstractions << endl;
+    cout << "   Abs TRs Strategy: " << absTRsStrategy << endl;
+    cout << "   PH time: " << phTime << ", memory: " << phMemory << endl;
+    cout << "   Relax time: " << maxRelaxTime << ", nodes: " << maxRelaxNodes << endl;
+    cout << "   Ratio relax time: " <<  ratioRelaxTime << ", nodes: " << ratioRelaxNodes << endl;
+    cout << "   Perimeter Abstractions: " << (perimeterPDBs ? "yes" : "no") << endl;
+    cout << "   ShouldAbstract ratio: " << shouldAbstractRatio << endl;
+
+    mgrParams.print_options();
+    searchParams.print_options();
 }
 
 void SymBAUnsat::statistics() const{
-    SymEngine::statistics();
-    
+    cout << endl << "Total BDD Nodes: " << vars->totalNodes() << endl;
+
     cout << "Total time spent in original search: " << time_step_original << endl;
     cout << "Total time spent in abstract searches: " << time_step_abstract<<  endl;
     cout << "Total time spent relaxing: " << time_select_exploration << endl;
 }
 
 static SearchEngine *_parse(OptionParser &parser) {
-    SymEngine::add_options_to_parser(parser);
+
+    SearchEngine::add_options_to_parser(parser);
+    SymController::add_options_to_parser(parser, 45e3, 1e7);
+
+    parser.add_enum_option("search_dir", DirValues,
+			   "search direction", "BIDIR");
+
+    SymParamsMgr::add_options_to_parser(parser);
+    SymParamsSearch::add_options_to_parser(parser, 30e3, 1e7);
+
+    parser.add_option<int>("max_abstractions",
+			   "maximum number of calls to askHeuristic", "1000");
+
+    parser.add_option<double>("ph_time", 
+			      "allowed time to use the ph", "500");
+    parser.add_option<double>("ph_memory",
+			      "allowed memory to use the ph", to_string(3.0e9));
+
+    parser.add_option<int>("max_relax_time",
+			   "allowed time to relax the search", to_string(10e3));
+    parser.add_option<int>("max_relax_nodes",
+			   "allowed nodes to relax the search", to_string(10e7));
+    parser.add_option<double>("relax_ratio_time",
+			      "allowed time to accept the abstraction after relaxing the search.", 
+			      "0.75");
+    parser.add_option<double>("relax_ratio_nodes",
+			      "allowed nodes to accept the abstraction after relaxing the search.", "0.75");
+  
+    parser.add_enum_option("tr_st", AbsTRsStrategyValues,
+			   "abstraction TRs strategy", "IND_TR_SHRINK");
+  
+    parser.add_option<bool>("perimeter_pdbs",  "initializes explorations with the one being relaxed", "true");
+
+    parser.add_option<bool>("use_mutex_in_abstraction", 
+			    "uses mutex to prune abstract states in the abstraction procedure", "true");
+
+    parser.add_option<double>("should_abstract_ratio", "relax the search when has more than this estimated time/nodes· If it is zero, it abstract the current perimeter (when askHeuristic is called)", "0");
+    parser.add_option<double>("ratio_increase", 
+			      "maxStepTime is multiplied by ratio to the number of abstractions", "2");
+
+    parser.add_option<double>("uct_c", 
+			      "constant for uct formula", "0.5");
+
     Options opts = parser.parse();
+
+
   
     SearchEngine *policy = 0;
     if (!parser.dry_run()) {
