@@ -1,6 +1,7 @@
 #include "sym_breadth_first_search.h"
 
 #include "sym_bucket.h"
+#include "../utilities.h"
 
 using namespace std;
 
@@ -110,20 +111,24 @@ BDD SymBreadthFirstSearch::pop (){
 }
 
 bool SymBreadthFirstSearch::stepImage(int maxTime, int maxNodes){
-    if(mgr->getAbstraction())
-	cout << ">> Step: " << *(mgr->getAbstraction());
-    else
-	cout << ">> Step: original";
-    cout << (fw ? " fw " : " bw ");
-    cout << " frontierNodes: " << nodeCount(open) << " [" << open.size() << "]"  << " total time: " << g_timer 
-	 << " total nodes: " << mgr->totalNodes() << " total memory: " << mgr->totalMemory()/1000000 << "M";
-    
     mgr->init_transitions(); // Ensure that transitions have been initialized
+
     Timer step_time;
 
     BDD S = pop();
-    cout << "  Expanding " << S.nodeCount() << endl;
     close(S);
+
+    if (p.debug) {
+	if(mgr->getAbstraction())
+	    cout << ">> Step: " << *(mgr->getAbstraction());
+	else
+	    cout << ">> Step: original";
+	cout << (fw ? " fw " : " bw ");
+	cout << " frontierNodes: " << S.nodeCount() << " [" << nodeCount(open) << "]"  << " total time: " << g_timer 
+	     << " total nodes: " << mgr->totalNodes() << " total memory: " << mgr->totalMemory()/1000000 << "M" << " " 
+	     << get_peak_memory_in_kb() << "k" << endl;
+    }
+
     
     int nodesStep = S.nodeCount();
     //double statesStep = mgr->getVars()->numStates(S);
@@ -206,4 +211,21 @@ bool SymBreadthFirstSearch::isSearchableWithNodes(int maxNodes) const{
 
 bool SymBreadthFirstSearch::isUseful(double /*ratio*/) const {
     return true;
+}
+
+
+void SymBreadthFirstSearch::notifyMutexes (const BDD & mutex_bdd) {
+
+    int nodesBefore =  nodeCount(open);
+
+    for (BDD & bdd : open) {
+	bdd *= !mutex_bdd;
+    }
+
+    estimation.recalculate(estimation, nodeCount(open)); 
+
+    if(isOriginal() && nodeCount(open) != nodesBefore) {
+	cout << "Applying mutexes to orig search " << (fw? "fw: "  : "bw: ") 
+	     << nodesBefore << " => " << nodeCount(open) << endl;
+    }
 }

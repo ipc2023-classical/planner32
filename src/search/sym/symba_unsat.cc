@@ -31,10 +31,9 @@ SymBAUnsat::SymBAUnsat(const Options &opts) :
     time_select_exploration(0) {  
 }
 
-UCTNode * SymBAUnsat::getUCTNode (UCTNode * parent, const std::set<int> & pattern) {
+UCTNode * SymBAUnsat::getUCTNode (const std::set<int> & pattern) {
     if (!nodesByPattern.count(pattern)) {
-	UCTNode * newNode = new UCTNode(vars.get(), mgrParams, parent->getMgr(),  
-					absTRsStrategy, pattern);
+	UCTNode * newNode = new UCTNode(pattern);
 	nodes.push_back(unique_ptr<UCTNode> (newNode));
 	nodesByPattern[pattern] = newNode;
 
@@ -66,7 +65,9 @@ void SymBAUnsat::insertDeadEnds(BDD bdd, bool isFW) {
     } else {
 	dead_end_bw.push_back(bdd);
     }
-    //TODO: propagate to ongoing searches
+
+    //Propagate to symbolic managers
+    getRoot()->propagateNewDeadEnds(bdd, isFW);   
 }
 
 
@@ -80,14 +81,27 @@ std::pair<UCTNode *, bool> SymBAUnsat::relax() {
 std::pair<UCTNode *, bool> SymBAUnsat::relax(UCTNode * node,
 					     bool fw) {
     SymBreadthFirstSearch * searchToRelax = node->getSearch(fw);
-
+    SymManager * parentMgr = node->getMgr(); 
+    
     while(node && node->isAbstractable()) {
-	node = node->getChild(fw, this);
+	node->initChildren(this);
+	
+	node = node->getChild(fw);
+	
+	if(!node) break; 
 
 	if (node->getSearch(fw)) {
 	    searchToRelax = node->getSearch(fw);
 	    continue;
 	}
+
+
+	if(!node->getMgr()) {	    
+	    node->init(vars.get(), mgrParams, parentMgr, absTRsStrategy);
+	}
+	parentMgr =node->getMgr(); 
+
+
 
 	auto res = node->relax(searchToRelax, searchParams, 
 			       maxRelaxTime, maxRelaxNodes,
@@ -95,7 +109,10 @@ std::pair<UCTNode *, bool> SymBAUnsat::relax(UCTNode * node,
 			       perimeterPDBs);
 
 
-	if (res) return std::pair<UCTNode *, bool>(node, fw);
+	if (res) {
+	    node->getMgr()->addDeadEndStates(dead_end_fw, dead_end_bw);
+	    return std::pair<UCTNode *, bool>(node, fw);
+	}
     }
 
     return std::pair<UCTNode *, bool>(nullptr, fw);
@@ -141,13 +158,33 @@ int SymBAUnsat::step(){
 
 
 void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch){
+    cout << "Finished abstract search: " << ((currentSearch->isFW()? "fw" : "bw"))  << " in " << *(currentSearch->getAbstraction())<< ": " ;
     if (!currentSearch->foundSolution()){
+	cout << "proved task unsolvable!" << endl; 
 	exit_with(EXIT_UNSOLVABLE); 
     } else {
 	BDD newDeadEnds = currentSearch->getUnreachableStates();
-	bool dirFw = currentSearch->isFW();
 
-	insertDeadEnds(newDeadEnds, !dirFw);
+	try {
+	    newDeadEnds = getRoot()->getMgr()->filter_mutex(newDeadEnds, !currentSearch->isFW(), 100000, true);
+	} catch(BDDError e) {
+	    cout << "Could not remove other dead ends ";
+	}
+
+	getRoot()->removeSubsets(currentSearch->getAbstraction()->getFullVars(), currentSearch->isFW());
+
+	if (!newDeadEnds.IsZero()) {
+	    cout << "found " << vars->numStates(newDeadEnds) << " dead ends." << endl; 
+
+	    insertDeadEnds(newDeadEnds, !currentSearch->isFW());
+	
+	//getRoot()->notifyReward (vars->numStates(newDeadEnds), 
+	//			 currentSearch->getAbstraction()->getFullVars());
+
+	} else {
+	    cout <<  "  with no results "  << endl; 
+
+	}
     }
 
 } 
@@ -177,7 +214,7 @@ SymBreadthFirstSearch * SymBAUnsat::selectExploration() {
 
 bool SymBAUnsat::askHeuristic() {
     Timer t_gen_heuristic;
-    cout << "Ask heuristic" << endl;
+    //cout << "Ask heuristic" << endl;
     while(t_gen_heuristic() < phTime && 
 	  vars->totalMemory() < phMemory &&
 	  numAbstractions < maxNumAbstractions){	
@@ -188,7 +225,6 @@ bool SymBAUnsat::askHeuristic() {
 	UCTNode * abstractNode = resRelax.first;
 	if(!abstractNode) return false;
 	SymBreadthFirstSearch * abstractExp = abstractNode->getSearch(resRelax.second);
-
 	//2) Search the new exploration
 	while(abstractExp &&
 	      !abstractExp->finished() &&
@@ -202,6 +238,7 @@ bool SymBAUnsat::askHeuristic() {
 		    return true;
 		}
 	    } else {
+		ongoing_searches.push_back(abstractExp); //Store ongoing searches
 		//If we cannot continue the search, we relax it even more
 		resRelax = relax(resRelax.first, resRelax.second);
 		abstractNode = resRelax.first;
@@ -264,9 +301,9 @@ static SearchEngine *_parse(OptionParser &parser) {
 			   "allowed nodes to relax the search", to_string(10e7));
     parser.add_option<double>("relax_ratio_time",
 			      "allowed time to accept the abstraction after relaxing the search.", 
-			      "0.75");
+			      "0.5");
     parser.add_option<double>("relax_ratio_nodes",
-			      "allowed nodes to accept the abstraction after relaxing the search.", "0.75");
+			      "allowed nodes to accept the abstraction after relaxing the search.", "0.5");
   
     parser.add_enum_option("tr_st", AbsTRsStrategyValues,
 			   "abstraction TRs strategy", "IND_TR_SHRINK");

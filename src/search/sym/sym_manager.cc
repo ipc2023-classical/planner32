@@ -484,10 +484,10 @@ BDD SymManager::filter_mutex(const BDD & bdd, bool fw,
 			     int nodeLimit, bool initialization) {  
   BDD res = bdd;
   //if(fw) return bdd; //Only filter mutex in backward direction
-  const vector<BDD> & deadEndBDDs = (fw ? deadEndFw : deadEndBw);
-  for(const BDD & deadEnd : deadEndBDDs){
-    DEBUG_MSG(cout << "Filter: " << res.nodeCount()  << " and dead end " <<  deadEnd.nodeCount()  << flush;);
-    res = res.And(!deadEnd, nodeLimit);
+  const vector<BDD> & notDeadEndBDDs = ((fw || abstraction) ? notDeadEndFw : notDeadEndBw);
+  for(const BDD & notDeadEnd : notDeadEndBDDs){
+    DEBUG_MSG(cout << "Filter: " << res.nodeCount()  << " and dead end " <<  notDeadEnd.nodeCount()  << flush;);
+    res = res.And(notDeadEnd, nodeLimit);
     DEBUG_MSG(cout << ": " << res.nodeCount() << endl;);
   }
   const vector<BDD> & notMutexBDDs = (fw ? notMutexBDDsFw : notMutexBDDsBw);

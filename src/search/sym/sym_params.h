@@ -76,6 +76,9 @@ public:
     double ratioAfterRelax;
 
     bool non_stop;
+
+    bool debug; 
+
     SymParamsSearch(const Options & opts);
 
     static void add_options_to_parser(OptionParser &parser, int maxStepTime, int maxStepNodes);

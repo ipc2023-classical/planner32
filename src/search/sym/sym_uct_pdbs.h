@@ -17,21 +17,21 @@ class SymBAUnsat;
 class UCTNode {
 private:
     std::set<int> pattern;
+    
 
     std::unique_ptr<SymPDB> pdb;
     std::unique_ptr<SymManager> mgr;
 
-    std::vector <UCTNode *> children; //Nodes more abstracted
-    std::vector <UCTNode *> parents; //Nodes less abstracted
+    std::vector <UCTNode *> children, children_fw, children_bw; //Nodes more abstracted
+    //std::vector <UCTNode *> parents; //Nodes less abstracted
 
     std::unique_ptr<SymBreadthFirstSearch> fw_search, bw_search;
   
     double reward_fw, reward_bw, visits_fw, visits_bw;
+    bool redundant_fw, redundant_bw;
 public:
     UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams); // Constructor for the original state space
-    UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams,  
-	    SymManager * omgr, AbsTRsStrategy absTRsStrategy, 
-	    const std::set<int> & pattern_); // Constructor for abstract state space
+    UCTNode(const std::set<int> & pattern_); // Constructor for abstract state space
 
     UCTNode(const UCTNode & o) = delete;
     UCTNode(UCTNode &&) = default;
@@ -39,8 +39,16 @@ public:
     UCTNode & operator=(UCTNode &&) = default;
     ~UCTNode() = default; 
 
+    void init(SymVariables * vars, const SymParamsMgr & mgrParams,
+	      SymManager * omgr, AbsTRsStrategy absTRsStrategy);
+
     SymBreadthFirstSearch * initSearch(bool fw, 
 				       const SymParamsSearch & searchParams);
+
+    void initChildren(SymBAUnsat * manager);
+
+    void refine_pattern (const std::set<int> & pattern, std::vector<std::set<int>> & patterns) const;
+
 
     SymBreadthFirstSearch * relax(SymBreadthFirstSearch * search, 
 				  const SymParamsSearch & searchParams,
@@ -55,7 +63,7 @@ public:
     }
 
 
-    UCTNode * getChild (bool fw, SymBAUnsat * manager);
+    UCTNode * getChild (bool fw);
 
     double uct_value(bool fw, int visits_parent, double UCT_C) const;
 
@@ -66,6 +74,37 @@ public:
     bool isAbstractable () const {
 	return pattern.size() > 1;
     }
+
+    void propagateNewDeadEnds(BDD bdd, bool isFW);
+
+    //void notifyReward (double numDeadEndsFound, const set<int> & pattern);
+
+
+    bool existsFinishedSuperset(const std::set<int> & pat, 
+				std::pair<bool, bool> & redundant, 
+				std::set<UCTNode *> & cache);
+
+    bool existsFinishedSuperset(const std::set<int> & pat, 
+				std::pair<bool, bool> & redundant) {
+	std::set<UCTNode *> cache;
+	return existsFinishedSuperset(pat, redundant, cache);
+    }
+
+
+    void removeSubsets(const std::set<int> & pat, bool fw, 
+		       std::set<UCTNode *> & cache);
+
+    void removeSubsets(const std::set<int> & pat, bool fw) {
+	std::set<UCTNode *> cache;
+	removeSubsets(pat, fw, cache);
+    }
+
+    bool isSubset (const std::set<int> & p1, const std::set<int> & p2);
+
+
+    friend std::ostream & operator<<(std::ostream &os, const UCTNode & node);
+    
+
 };
 
 #endif

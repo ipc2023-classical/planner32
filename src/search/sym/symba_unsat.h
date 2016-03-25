@@ -65,14 +65,10 @@ class SymBAUnsat : public SearchEngine, public SymController{
   std::pair<UCTNode *, bool> relax();
   std::pair<UCTNode *, bool> relax(UCTNode * node,  bool fw); 
 
-  UCTNode * getRoot () {
-      return nodes[0].get();
-  }
-
  void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch);
  public:
 
-UCTNode * getUCTNode (UCTNode * parent, const std::set<int> & pattern);
+ UCTNode * getUCTNode (const std::set<int> & pattern);
 
   SymBAUnsat(const Options &opts);
   virtual ~SymBAUnsat(){}
@@ -86,6 +82,11 @@ UCTNode * getUCTNode (UCTNode * parent, const std::set<int> & pattern);
   virtual bool proves_task_unsolvable() const {
       return true;
   }
+
+  UCTNode * getRoot () {
+      return nodes[0].get();
+  }
+
 };
 
 

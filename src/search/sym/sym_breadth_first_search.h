@@ -84,5 +84,7 @@ class SymBreadthFirstSearch : public SymExploration  {
   virtual bool isSearchableWithNodes(int maxNodes) const; 
   void violated(TruncatedReason reason , double time, int maxTime, int maxNodes);
 
+  void notifyMutexes (const BDD & bdd);
+
 };
 #endif 

@@ -109,12 +109,12 @@ shrinkTransitions(const std::map<int, std::vector <SymTransition> > & trs,
     }
   }
 
-  cout << "Generated abstract TRs" << endl;
+  /*cout << "Generated abstract TRs: ";
   for(const auto & t : res){
     cout << "TRs cost=" << t.first << ": ";
     for(const auto & tran : t.second){
       cout <<" "<< tran.nodeCount();
     }
     cout << endl;
-  }
+    }*/
 }

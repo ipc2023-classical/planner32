@@ -44,7 +44,7 @@ class SymManager{
   
   //Dead ends for fw and bw searches. They are always removed in
   //filter_mutex (it does not matter which mutex_type we are using).
-  std::vector<BDD> deadEndFw, deadEndBw; 
+  std::vector<BDD> notDeadEndFw, notDeadEndBw; 
 
   //notMutex relative for each fluent 
   std::vector<std::vector<BDD>> notMutexBDDsByFluentFw, notMutexBDDsByFluentBw;
@@ -127,21 +127,58 @@ class SymManager{
   }
 
 
-  void addDeadEndStates(bool fw, const BDD & bdd) {
+  void addDeadEndStates(bool fw, BDD bdd) {
       //There are several options here, we could follow with edeletion
       //and modify the TRs, so that the new spurious states are never
       //generated. However, the TRs are already merged and the may get
       //too large. Therefore we just keep this states in another vectors
       //and spurious states are always removed. TODO: this could be
       //improved.
-      if(fw) {
-	  deadEndFw.push_back(bdd);
-	  mergeBucket(deadEndFw);
+      if(fw || abstraction) {
+	  if (abstraction) bdd = shrinkForall(bdd);
+	  notDeadEndFw.push_back(!bdd);
+	  mergeBucket(notDeadEndFw);
       }else{
-	  deadEndBw.push_back(bdd);
-	  mergeBucket(deadEndBw);
+	  notDeadEndBw.push_back(!bdd);
+	  mergeBucket(notDeadEndBw);
       }
   }
+
+  void addDeadEndStates(const std::vector<BDD> & fw_dead_ends,
+			const std::vector<BDD> & bw_dead_ends) {
+      if(abstraction) {
+	  for (BDD bdd : fw_dead_ends){
+	      bdd = shrinkForall(bdd);
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+
+	  for (BDD bdd : bw_dead_ends){
+	      bdd = shrinkForall(bdd);
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucket(notDeadEndFw);
+      } else {
+	  for (BDD bdd : fw_dead_ends){
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucket(notDeadEndFw);
+	  
+
+	  for (BDD bdd : bw_dead_ends){
+	      if(!bdd.IsZero()) {
+		  notDeadEndBw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucket(notDeadEndBw);
+      }
+  }
+
  
   inline BDD shrinkExists(const BDD & bdd, int maxNodes) const{
     return abstraction->shrinkExists(bdd, maxNodes);
@@ -150,6 +187,19 @@ class SymManager{
   inline BDD shrinkForall(const BDD & bdd, int maxNodes) const{
     return abstraction->shrinkForall(bdd, maxNodes);
   }
+
+  inline BDD shrinkForall(const BDD & bdd) {
+    setTimeLimit(p.max_pop_time);
+    try{
+      BDD res = abstraction->shrinkForall(bdd, p.max_pop_nodes); 
+      unsetTimeLimit();
+      return res;
+    }catch(BDDError e){
+      unsetTimeLimit();
+    }
+    return zeroBDD();
+  }
+
 
   inline long totalNodes() const{
     return vars->totalNodes();

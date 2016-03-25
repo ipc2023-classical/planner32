@@ -159,8 +159,9 @@ SymParamsSearch::SymParamsSearch(const Options & opts) :
   maxAllotedNodes (opts.get<int>   ("max_alloted_nodes")),
   ratioAllotedTime  (opts.get<double>("ratio_alloted_time")),
   ratioAllotedNodes (opts.get<double>("ratio_alloted_nodes")), 
-  ratioAfterRelax (opts.get<double>("ratio_after_relax")), 
-  non_stop (opts.get<bool>("non_stop")) {
+  ratioAfterRelax (opts.get<double>("ratio_after_relax")),
+  non_stop (opts.get<bool>("non_stop")), 
+  debug (opts.get<bool>("debug")) {
 }
 
 void SymParamsSearch::print_options() const{
@@ -202,10 +203,10 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
 			 std::to_string(maxStepNodes));
 
   parser.add_option<int>("max_step_nodes_per_planning_second", "allowed nodes to perform a step in the search. Starts at 0 and increases by x per second.", 
-			 "5000");
+			 "100");
 
   parser.add_option<int>("max_step_nodes_min", "allowed nodes to perform a step in the search. minimum value.", 
-			 "100000");
+			 "10000");
 
   parser.add_option<double>("ratio_useful",
 			    "Percentage of nodes that can potentially prune in the frontier for an heuristic to be useful",
@@ -231,6 +232,10 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
   
   parser.add_option<bool>("non_stop",
 			  "Removes initial state from closed to avoid backward search to stop.",
+			  "false");
+
+  parser.add_option<bool>("debug",
+			  "print debug trace",
 			  "false");
 }
 
