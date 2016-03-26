@@ -152,6 +152,7 @@ SymParamsSearch::SymParamsSearch(const Options & opts) :
   maxStepNodes (opts.get<int> ("max_step_nodes")),
   maxStepNodesPerPlanningSecond (opts.get<int> ("max_step_nodes_per_planning_second")),   
   maxStepNodesMin (opts.get<int> ("max_step_nodes_min")),
+  maxStepNodesTimeStartIncrement (opts.get<int> ("max_step_nodes_time_start_increment")),
   ratioUseful  (opts.get<double> ("ratio_useful")), 
   minAllotedTime  (opts.get<int>   ("min_alloted_time")),  
   minAllotedNodes (opts.get<int>   ("min_alloted_nodes")), 
@@ -208,6 +209,10 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
   parser.add_option<int>("max_step_nodes_min", "allowed nodes to perform a step in the search. minimum value.", 
 			 "10000");
 
+  parser.add_option<int>("max_step_nodes_time_start_increment", "max_step_nodes_min until this time", 
+			 "300");
+
+
   parser.add_option<double>("ratio_useful",
 			    "Percentage of nodes that can potentially prune in the frontier for an heuristic to be useful",
 			    "0.0");
@@ -240,7 +245,8 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
 }
 
 int SymParamsSearch::getMaxStepNodes() const{
-    return std::max<double>(maxStepNodesMin, 
-			    std::min<double>(maxStepNodes, 
-					     maxStepNodesPerPlanningSecond*g_timer()));
+    if(g_timer() < maxStepNodesTimeStartIncrement) return maxStepNodesMin;
+    else return std::min<double>(maxStepNodes,
+				 maxStepNodesMin + maxStepNodesPerPlanningSecond*
+				 (g_timer() - maxStepNodesTimeStartIncrement));
 }

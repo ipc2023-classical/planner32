@@ -73,6 +73,24 @@ std::ostream & operator<<(std::ostream &os, const AbsMinimizationType & a){
     exit(-1);
   }
 }
+
+
+std::ostream & operator<<(std::ostream &os, const UCTRewardType & a){
+  switch(a){
+  case UCTRewardType::STATES: return os << "states";
+  case UCTRewardType::STATES_TIME: return os << "states_time";
+  case UCTRewardType::NODES: return os << "nodes";
+  case UCTRewardType::NODES_TIME: return os << "nodes_time";    
+  case UCTRewardType::NONE: return os << "none";    
+  default:
+    std::cerr << "Name of AbsMinimizationType not known";
+    exit(-1);
+  }
+}
+
+
+
+
 const std::vector<std::string> MutexTypeValues {
   "MUTEX_NOT", "MUTEX_AND", "MUTEX_RESTRICT",
   "MUTEX_NPAND", "MUTEX_CONSTRAIN", "MUTEX_LICOMP", "MUTEX_EDELETION"
@@ -97,3 +115,11 @@ const std::vector<std::string> DirValues {
 const std::vector<std::string> AbsMinimizationTypeValues {
     "APPROX", "REMAP_UNDER_APPROX", "HEAVY_BRANCH", "SHORT_PATHS"
 };
+
+
+
+const std::vector<std::string> UCTRewardTypeValues {
+    "STATES", "NODES", "STATES_TIME", "NODES_TIME", "NONE"
+};
+
+

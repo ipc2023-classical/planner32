@@ -100,6 +100,10 @@ class SymManager{
       mergeBucket(bucket, p.max_pop_time, p.max_pop_nodes);
   }
 
+  void mergeBucketAnd(Bucket & bucket) {
+      mergeBucketAnd(bucket, p.max_pop_time, p.max_pop_nodes);
+  }
+
   double stateCount(const Bucket & bucket) const {
       double sum = 0;
       for(const BDD & bdd : bucket){
@@ -126,58 +130,20 @@ class SymManager{
       return bucket.size() <= 1;
   }
 
-
-  void addDeadEndStates(bool fw, BDD bdd) {
-      //There are several options here, we could follow with edeletion
-      //and modify the TRs, so that the new spurious states are never
-      //generated. However, the TRs are already merged and the may get
-      //too large. Therefore we just keep this states in another vectors
-      //and spurious states are always removed. TODO: this could be
-      //improved.
-      if(fw || abstraction) {
-	  if (abstraction) bdd = shrinkForall(bdd);
-	  notDeadEndFw.push_back(!bdd);
-	  mergeBucket(notDeadEndFw);
-      }else{
-	  notDeadEndBw.push_back(!bdd);
-	  mergeBucket(notDeadEndBw);
-      }
+  bool mergeBucketAnd(Bucket & bucket, int maxTime, int maxNodes){
+      auto mergeBDDs = [] (BDD bdd, BDD bdd2, int maxNodes){
+	  return bdd.And(bdd2, maxNodes);
+      };
+      merge(vars, bucket, mergeBDDs, maxTime, maxNodes);
+      removeZero(bucket); //Be sure that we do not contain only the zero BDD
+    
+      return bucket.size() <= 1;
   }
+
+  void addDeadEndStates(bool fw, BDD bdd);
 
   void addDeadEndStates(const std::vector<BDD> & fw_dead_ends,
-			const std::vector<BDD> & bw_dead_ends) {
-      if(abstraction) {
-	  for (BDD bdd : fw_dead_ends){
-	      bdd = shrinkForall(bdd);
-	      if(!bdd.IsZero()) {
-		  notDeadEndFw.push_back(!bdd);
-	      }
-	  }
-
-	  for (BDD bdd : bw_dead_ends){
-	      bdd = shrinkForall(bdd);
-	      if(!bdd.IsZero()) {
-		  notDeadEndFw.push_back(!bdd);
-	      }
-	  }
-	  mergeBucket(notDeadEndFw);
-      } else {
-	  for (BDD bdd : fw_dead_ends){
-	      if(!bdd.IsZero()) {
-		  notDeadEndFw.push_back(!bdd);
-	      }
-	  }
-	  mergeBucket(notDeadEndFw);
-	  
-
-	  for (BDD bdd : bw_dead_ends){
-	      if(!bdd.IsZero()) {
-		  notDeadEndBw.push_back(!bdd);
-	      }
-	  }
-	  mergeBucket(notDeadEndBw);
-      }
-  }
+			const std::vector<BDD> & bw_dead_ends);
 
  
   inline BDD shrinkExists(const BDD & bdd, int maxNodes) const{

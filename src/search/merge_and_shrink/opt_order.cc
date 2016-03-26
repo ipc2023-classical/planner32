@@ -27,10 +27,9 @@ void InfluenceGraph::compute_gamer_ordering(std::vector <int> & var_order){
 
     ig_partitions.get_ordering(var_order);
 
-
-    cout << "Var ordering: ";
-    for(int v : var_order) cout << v << " ";
-    cout  << endl;    
+    // cout << "Var ordering: ";
+    // for(int v : var_order) cout << v << " ";
+    // cout  << endl;
 }
 
 

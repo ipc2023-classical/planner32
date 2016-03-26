@@ -37,4 +37,9 @@ enum AbsMinimizationType {APPROX, REMAP_UNDER_APPROX, HEAVY_BRANCH, SHORT_PATHS}
 std::ostream & operator<<(std::ostream &os, const AbsMinimizationType & dir);
 extern const std::vector<std::string> AbsMinimizationTypeValues; 
 
+enum UCTRewardType {STATES, NODES, STATES_TIME, NODES_TIME, NONE};
+std::ostream & operator<<(std::ostream &os, const UCTRewardType & dir);
+extern const std::vector<std::string> UCTRewardTypeValues; 
+
+
 #endif

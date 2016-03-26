@@ -3,6 +3,8 @@
 #include "sym_breadth_first_search.h"
 #include "sym_uct_pdbs.h"
 
+#include "../timer.h"
+#include "../globals.h"
 #include "../debug.h"
 #include "../option_parser.h"
 #include "../plugin.h"
@@ -11,6 +13,7 @@
 SymBAUnsat::SymBAUnsat(const Options &opts) : 
     SearchEngine(opts), SymController(opts),
     searchDir(Dir(opts.get_enum("search_dir"))),
+    abstractDir(Dir(opts.get_enum("abstract_dir"))),
     mgrParams(opts), searchParams(opts), 
     phTime(opts.get<double> ("ph_time")), phMemory(opts.get<double> ("ph_memory")), 
     maxRelaxTime(opts.get<int> ("max_relax_time")), 
@@ -23,10 +26,11 @@ SymBAUnsat::SymBAUnsat(const Options &opts) :
     shouldAbstractRatio(opts.get<double> ("should_abstract_ratio")), 
     maxNumAbstractions(opts.get<int> ("max_abstractions")), 
     UCT_C(opts.get<double> ("uct_c")),
+    rewardType (UCTRewardType(opts.get_enum("reward_type"))), 
     numAbstractions(0), 
-    time_step_abstract(0),
-    time_step_original(0), 
-    time_select_exploration(0) {  
+    time_step_abstract(0), time_step_original(0), 
+    time_select_exploration(0),  time_notify_mutex(0), 
+    time_init(0) {  
 }
 
 UCTNode * SymBAUnsat::getUCTNode (const std::set<int> & pattern) {
@@ -55,13 +59,16 @@ void SymBAUnsat::initialize(){
     if (searchDir != Dir::FW){
 	ongoing_searches.push_back(getRoot()->initSearch(false, searchParams));
     }
+    time_init = g_timer();
 }
 
 void SymBAUnsat::insertDeadEnds(BDD bdd, bool isFW) {
     if(isFW){
 	dead_end_fw.push_back(bdd);
+	getRoot()->getMgr()->mergeBucket(dead_end_fw);
     } else {
 	dead_end_bw.push_back(bdd);
+	getRoot()->getMgr()->mergeBucket(dead_end_bw);
     }
 
     //Propagate to symbolic managers
@@ -72,6 +79,7 @@ void SymBAUnsat::insertDeadEnds(BDD bdd, bool isFW) {
 UCTNode * SymBAUnsat::relax(UCTNode * node,
 			    bool fw,  
 			    std::vector<UCTNode *> & uct_trace) {
+    Timer t_relax;
     SymBreadthFirstSearch * searchToRelax = node->getSearch(fw);
     SymManager * parentMgr = node->getMgr(); 
     
@@ -102,20 +110,22 @@ UCTNode * SymBAUnsat::relax(UCTNode * node,
 
 	if (res) {
 	    node->getMgr()->addDeadEndStates(dead_end_fw, dead_end_bw);
+	    time_select_exploration += t_relax();
 	    return node;
 	}
     }
 
+    time_select_exploration += t_relax();
     return nullptr;
 }
     
 
     
 int SymBAUnsat::step(){
-    Timer timer; 
+    
     SymBreadthFirstSearch * currentSearch = selectExploration();
 
-    time_select_exploration += timer.reset(); 
+    Timer timer; 
     if(currentSearch){
 	currentSearch->step();
     
@@ -148,40 +158,63 @@ int SymBAUnsat::step(){
 }
 
 
-void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, const vector<UCTNode *> & uct_trace){
-    cout << "Finished abstract search: " << ((currentSearch->isFW()? "fw" : "bw"))  << " in " << *(currentSearch->getAbstraction())<< ": " ;
+void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, double time_spent, 
+					      const vector<UCTNode *> & uct_trace){
+    Timer t_notify;
+    cout << "Finished abstract search: " << ((currentSearch->isFW()? "fw" : "bw"))  << " in " << *(currentSearch->getAbstraction())<< ": " << flush;
     if (!currentSearch->foundSolution()){
-	cout << "proved task unsolvable!" << endl; 
+	cout << "proved task unsolvable!" << endl;
+	statistics(); 
 	exit_with(EXIT_UNSOLVABLE); 
     } else {
 	BDD newDeadEnds = currentSearch->getUnreachableStates();
-	cout << " newDeadEnds without filter: " <<  vars->numStates(newDeadEnds); 
+	//cout << " deadends " <<  vars->percentageNumStates(newDeadEnds) << flush; 
 	try {
-	    newDeadEnds = getRoot()->getMgr()->filter_mutex(newDeadEnds, !currentSearch->isFW(), 100000, true);
+	    
+	    newDeadEnds = getRoot()->getMgr()->filter_mutex(newDeadEnds, !currentSearch->isFW(), 1000000, true);
+	    newDeadEnds = newDeadEnds*vars->validStates();
+	    // cout << "  removed:  " << newDeadEnds.nodeCount() << endl;
+	    
 	} catch(BDDError e) {
 	    cout << "  could not remove other dead ends " << endl;
 	}
 
-	double numNewDeadEnds = vars->numStates(newDeadEnds);
-	getRoot()->removeSubsets(currentSearch->getAbstraction()->getFullVars(), currentSearch->isFW());
+       	getRoot()->removeSubsets(currentSearch->getAbstraction()->getFullVars(), currentSearch->isFW());
 	
 	if (!newDeadEnds.IsZero()) {
-	    cout << "  found " << vars->numStates(newDeadEnds) << " dead ends." << endl; 
+	    cout << "  found dead ends: " << newDeadEnds.nodeCount() << endl; 
 
-	    insertDeadEnds(newDeadEnds, !currentSearch->isFW());
-
+	    insertDeadEnds(newDeadEnds, currentSearch->isFW());
 	} else {
 	    cout <<  "  with no results "  << endl; 
-
 	}
+
+	double reward = computeReward(newDeadEnds, time_spent);
 
 	for (UCTNode * node : uct_trace) {
-	    node->notifyReward(currentSearch->isFW(), numNewDeadEnds, uct_trace.back()->getPattern());
+	    node->notifyReward(currentSearch->isFW(), reward, uct_trace.back()->getPattern());
 	}
     }
-
+    
+    time_notify_mutex += t_notify();
 } 
 
+
+double SymBAUnsat::computeReward (const BDD & bdd, double time_spent) const {
+    switch(rewardType) {
+    case STATES: 
+	return vars->percentageNumStates(bdd);
+    case NODES: 
+	return bdd.nodeCount()/100000.0;
+    case STATES_TIME:
+	return vars->percentageNumStates(bdd) * 1800.0/time_spent; 
+    case NODES_TIME:
+	return (bdd.nodeCount()/100000.0) * 1800.0/time_spent;
+    case NONE: 
+	return 0;
+    }
+    return 0;
+} 
 
 SymBreadthFirstSearch * SymBAUnsat::selectExploration() {
     //DEBUG_PHPDBS(cout << "We have " << ongoing_searches.size() << " ongoing_searches" << endl;);
@@ -205,6 +238,16 @@ SymBreadthFirstSearch * SymBAUnsat::selectExploration() {
 }
 
 
+bool SymBAUnsat::chooseDirection() const {
+    if (abstractDir ==  Dir::FW) {
+	return  true;
+    }else if (abstractDir == Dir::BW) {
+	return false;	
+    }
+
+    return getRoot()->chooseDirection(UCT_C);
+}
+
 bool SymBAUnsat::askHeuristic() {
     Timer t_gen_heuristic;
     //cout << "Ask heuristic" << endl;
@@ -216,7 +259,7 @@ bool SymBAUnsat::askHeuristic() {
 	vector<UCTNode *> uct_trace;
 	uct_trace.push_back(getRoot());
 
-	bool fw = getRoot()->chooseDirection();
+	bool fw = chooseDirection();
 	    
 	//1) Generate a new abstract exploration
 	UCTNode * abstractNode = relax(getRoot(), fw, uct_trace);
@@ -231,11 +274,14 @@ bool SymBAUnsat::askHeuristic() {
 	      !abstractExp->finished() &&
 	      vars->totalMemory() < phMemory && 
 	      t_gen_heuristic() < phTime){
-	    
 	    if (abstractExp->isSearchable()){
+		Timer t_step;
 		abstractExp->step();
+		time_step_abstract += t_step();
+		
+		
 		if(abstractExp->finished()) {
-		    notifyFinishedAbstractSearch(abstractExp, uct_trace); 
+		    notifyFinishedAbstractSearch(abstractExp, t_gen_heuristic(), uct_trace); 
 		    return true;
 		}
 	    } else {
@@ -258,6 +304,7 @@ bool SymBAUnsat::askHeuristic() {
 void SymBAUnsat::print_options() const{
     cout << "SymBAUnsat* " << endl;
     cout << "   Search dir: " << searchDir <<   cout << endl;
+    cout << "   Abstract dir: " << abstractDir <<   cout << endl;
 
     cout << "  Max num abstractions: " << maxNumAbstractions << endl;
     cout << "   Abs TRs Strategy: " << absTRsStrategy << endl;
@@ -273,10 +320,14 @@ void SymBAUnsat::print_options() const{
 
 void SymBAUnsat::statistics() const{
     cout << endl << "Total BDD Nodes: " << vars->totalNodes() << endl;
-
+    cout << "Initialization time: " << time_init << endl;
     cout << "Total time spent in original search: " << time_step_original << endl;
     cout << "Total time spent in abstract searches: " << time_step_abstract<<  endl;
     cout << "Total time spent relaxing: " << time_select_exploration << endl;
+    cout << "Total time spent notifying mutexes: " << time_notify_mutex << endl;
+
+    cout << "Total time: " << g_timer() << endl;
+
 }
 
 static SearchEngine *_parse(OptionParser &parser) {
@@ -286,6 +337,9 @@ static SearchEngine *_parse(OptionParser &parser) {
 
     parser.add_enum_option("search_dir", DirValues,
 			   "search direction", "BIDIR");
+
+    parser.add_enum_option("abstract_dir", DirValues,
+			   "search direction in abstract searches", "BIDIR");
 
     SymParamsMgr::add_options_to_parser(parser);
     SymParamsSearch::add_options_to_parser(parser, 30e3, 1e7);
@@ -321,7 +375,11 @@ static SearchEngine *_parse(OptionParser &parser) {
 			      "maxStepTime is multiplied by ratio to the number of abstractions", "2");
 
     parser.add_option<double>("uct_c", 
-			      "constant for uct formula", "0.5");
+			      "constant for uct formula", "0.2");
+
+    parser.add_enum_option("reward_type", UCTRewardTypeValues,
+			   "type of reward function", "STATES");
+
 
     Options opts = parser.parse();
 

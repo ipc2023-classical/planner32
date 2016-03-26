@@ -160,6 +160,10 @@ double SymVariables::numStates(const BDD & bdd) const{
   return bdd.CountMinterm(numBDDVars);
 }
 
+double SymVariables::numStates() const{
+    return numStates(validBDD);
+}
+
 void SymVariables::writeBucket(const string & fname,
 			       ofstream & filenames,
 			       const vector<BDD> & bucket) const{

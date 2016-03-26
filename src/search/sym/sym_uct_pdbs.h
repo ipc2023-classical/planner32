@@ -86,7 +86,7 @@ public:
 	return pattern;
     }
 
-    bool chooseDirection() const;
+    bool chooseDirection(double UCT_C) const;
 
     void propagateNewDeadEnds(BDD bdd, bool isFW);
 

@@ -269,6 +269,59 @@ void SymManager::init_mutex(const std::vector<MutexGroup> & mutex_groups,
   //gst_mutex.check_mutexes(*this);
 }
 
+void SymManager::addDeadEndStates(bool fw, BDD bdd) {
+      //There are several options here, we could follow with edeletion
+      //and modify the TRs, so that the new spurious states are never
+      //generated. However, the TRs are already merged and the may get
+      //too large. Therefore we just keep this states in another vectors
+      //and spurious states are always removed. TODO: this could be
+      //improved.
+      if(fw || abstraction) {
+	  if (abstraction) bdd = shrinkForall(bdd);
+	  notDeadEndFw.push_back(!bdd);
+	  mergeBucketAnd(notDeadEndFw);
+      }else{
+	  notDeadEndBw.push_back(!bdd);
+	  mergeBucketAnd(notDeadEndBw);
+      }
+  }
+
+
+void SymManager::addDeadEndStates(const std::vector<BDD> & fw_dead_ends,
+			const std::vector<BDD> & bw_dead_ends) {
+      if(abstraction) {
+	  for (BDD bdd : fw_dead_ends){
+	      bdd = shrinkForall(bdd);
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+
+	  for (BDD bdd : bw_dead_ends){
+	      bdd = shrinkForall(bdd);
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucketAnd(notDeadEndFw);
+      } else {
+	  for (BDD bdd : fw_dead_ends){
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucketAnd(notDeadEndFw);
+	  
+
+	  for (BDD bdd : bw_dead_ends){
+	      if(!bdd.IsZero()) {
+		  notDeadEndBw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucketAnd(notDeadEndBw);
+      }
+  }
+
 
 void SymManager::dumpMutexBDDs(bool fw) const {
   if(fw){
@@ -487,10 +540,15 @@ BDD SymManager::filter_mutex(const BDD & bdd, bool fw,
   const vector<BDD> & notDeadEndBDDs = ((fw || abstraction) ? notDeadEndFw : notDeadEndBw);
   for(const BDD & notDeadEnd : notDeadEndBDDs){
     DEBUG_MSG(cout << "Filter: " << res.nodeCount()  << " and dead end " <<  notDeadEnd.nodeCount()  << flush;);
+    //cout << "Filter: " << res.nodeCount()  << " and dead end " <<  notDeadEnd.nodeCount()  << flush;
     res = res.And(notDeadEnd, nodeLimit);
+    //cout << ": " << res.nodeCount() << endl;
     DEBUG_MSG(cout << ": " << res.nodeCount() << endl;);
   }
+
   const vector<BDD> & notMutexBDDs = (fw ? notMutexBDDsFw : notMutexBDDsBw);
+
+
   switch (p.mutex_type){
   case MutexType::MUTEX_NOT:
     break;

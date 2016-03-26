@@ -64,7 +64,7 @@ public:
 
     //Allows to scale maxStepNodes with planning time (starts at 100*x
     //during 100s and then grows at a rate of 1x)
-    int maxStepNodesPerPlanningSecond, maxStepNodesMin;   
+    int maxStepNodesPerPlanningSecond, maxStepNodesMin, maxStepNodesTimeStartIncrement;   
     double ratioUseful;
 
     // Parameters to decide the alloted time for a step

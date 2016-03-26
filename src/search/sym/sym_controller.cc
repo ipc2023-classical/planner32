@@ -23,7 +23,7 @@ SymController::SymController(const Options &opts)
       }
   }
   cout << "Sym variable order: ";
-  for (int v : var_order) cout << v;
+  for (int v : var_order) cout << v << " ";
   cout << endl;
   
   vars->init(var_order, mgrParams);

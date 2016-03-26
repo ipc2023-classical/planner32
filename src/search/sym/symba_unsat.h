@@ -5,6 +5,7 @@
 #include "sym_controller.h"
 #include "sym_hnode.h"
 #include "sym_bdexp.h"
+#include "sym_enums.h"
 
 #include <set>
 #include <map>
@@ -15,7 +16,8 @@ class UCTNode;
 
 class SymBAUnsat : public SearchEngine, public SymController{
   Dir searchDir; //Direction of search in the original state space
-  
+  Dir abstractDir; //Direction of search in the abstract state space
+
 //Common parameters to every hierarchy policy
   const SymParamsMgr mgrParams; 
   const SymParamsSearch searchParams; //Parameters to perform the abstract searches
@@ -39,7 +41,7 @@ class SymBAUnsat : public SearchEngine, public SymController{
 
   //Constant for UCT formula
   double UCT_C;
-
+  UCTRewardType rewardType;
 
   int numAbstractions;
   // List of hierarchy policies to derive new abstractions
@@ -52,7 +54,9 @@ class SymBAUnsat : public SearchEngine, public SymController{
   bool askHeuristic();  
 
   //Statistics; 
-  double time_step_abstract, time_step_original, time_select_exploration;
+  double time_step_abstract, time_step_original, 
+      time_select_exploration, time_notify_mutex, 
+      time_init;
 
   std::vector<SymBreadthFirstSearch *> ongoing_searches;
 
@@ -65,11 +69,16 @@ class SymBAUnsat : public SearchEngine, public SymController{
   //std::pair<UCTNode *, bool> relax(std::vector<UCTNode *> & uct_trace);
   UCTNode * relax(UCTNode * node,  bool fw, std::vector<UCTNode *> & uct_trace); 
 
-  void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, const std::vector<UCTNode *> & uct_trace); 
+  void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, double time_spent,
+				    const std::vector<UCTNode *> & uct_trace); 
 
   void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch) {
-      return notifyFinishedAbstractSearch(currentSearch, std::vector<UCTNode *> ());
+      return notifyFinishedAbstractSearch(currentSearch, 0, std::vector<UCTNode *> ());
   }
+
+  double computeReward (const BDD & bdd, double time_spent) const; 
+
+  bool chooseDirection() const;
  public:
 
  UCTNode * getUCTNode (const std::set<int> & pattern);
@@ -87,7 +96,7 @@ class SymBAUnsat : public SearchEngine, public SymController{
       return true;
   }
 
-  UCTNode * getRoot () {
+  UCTNode * getRoot () const {
       return nodes[0].get();
   }
 

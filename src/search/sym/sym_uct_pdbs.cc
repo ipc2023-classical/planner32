@@ -227,19 +227,22 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C)  {
     for(auto c : children_list) {
 	total_visits += (fw ? c->visits_fw : c->visits_bw);
     } 
-
     
     double best_value = numeric_limits<double>::min();
-    UCTNode * best_child = nullptr;
+    vector<UCTNode *> best_children;
     for(auto c : children_list) {
 	double c_val = uct_value(fw, total_visits, UCT_C);
-	if(best_value < c_val) {
-	    best_value = c_val;
-	    best_child = c;
+	if(best_value <= c_val) {
+	    if(best_value < c_val){
+		best_value = c_val;
+		best_children.clear();
+	    }
+
+	    best_children.push_back(c);
 	}
     }
-    
-    return best_child;	
+    int num_selected = g_rng.next(best_children.size()); 
+    return best_children[num_selected];	
 } 
 
 
@@ -284,7 +287,7 @@ void UCTNode::propagateNewDeadEnds(BDD bdd, bool isFW) {
 	    
 	}
 	if(!bdd.IsZero()){
-	    mgr->addDeadEndStates(isFW, bdd);
+	    mgr->addDeadEndStates(!isFW, bdd);
 
 	    if((isFW || pdb) && fw_search) {
 		fw_search->notifyMutexes (bdd);
@@ -295,23 +298,28 @@ void UCTNode::propagateNewDeadEnds(BDD bdd, bool isFW) {
 	    } 
 	}
     }
-
-    
     
     for(auto c : children) {
 	if (c) c->propagateNewDeadEnds(bdd, isFW);
     }
 }
 
-bool UCTNode::chooseDirection() const {
-    return g_rng.next31()% 2;
+bool UCTNode::chooseDirection(double UCT_C) const {
+    if(visits_fw == 0 && visits_bw == 0) return g_rng.next31()% 2;
+    if(visits_bw == 0) return false;
+    if(visits_fw == 0) return false;
+    
+    double rfw = reward_fw + UCT_C*sqrt(log((double)visits_fw + (double)visits_bw)/(double)visits_fw); 
+    double rbw = reward_bw + UCT_C*sqrt(log((double)visits_fw + (double)visits_bw)/(double)visits_bw);
+//    cout << "Choosing " << visits_fw << " " << visits_bw << " " << rfw << " " <<  rbw << endl;
+    if (rfw == rbw) return g_rng.next31()% 2;
+    return rfw > rbw;
 }
 
 
-void UCTNode::notifyReward (bool fw, double numDeadEndsFound, const std::set<int> & /*pattern*/) {
-    double new_reward = log(numDeadEndsFound);
+void UCTNode::notifyReward (bool fw, double new_reward, const std::set<int> & /*pattern*/) {
     double & reward = (fw? reward_fw : reward_bw);
     int & n = (fw? visits_fw : visits_bw);
-    reward = (reward *n + new_reward) / n+1;
+    reward = (reward *n + new_reward) / (n+1);
     n++;
 }
