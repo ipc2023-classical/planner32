@@ -18,17 +18,24 @@ class UCTNode {
 private:
     std::set<int> pattern;
     
-
     std::unique_ptr<SymPDB> pdb;
     std::unique_ptr<SymManager> mgr;
 
     std::vector <UCTNode *> children, children_fw, children_bw; //Nodes more abstracted
+    int num_children_explored_fw, num_children_explored_bw;
+
     //std::vector <UCTNode *> parents; //Nodes less abstracted
 
     std::unique_ptr<SymBreadthFirstSearch> fw_search, bw_search;
   
-    double reward_fw, reward_bw, visits_fw, visits_bw;
+    double reward_fw, reward_bw;
+    int visits_fw, visits_bw;
     bool redundant_fw, redundant_bw;
+
+    bool isExplored (bool fw) const {
+	return (fw && visits_fw > 0) || (!fw && visits_bw > 0);
+    }
+
 public:
     UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams); // Constructor for the original state space
     UCTNode(const std::set<int> & pattern_); // Constructor for abstract state space
@@ -63,7 +70,7 @@ public:
     }
 
 
-    UCTNode * getChild (bool fw);
+    UCTNode * getChild (bool fw, double UCT_C);
 
     double uct_value(bool fw, int visits_parent, double UCT_C) const;
 
@@ -75,10 +82,15 @@ public:
 	return pattern.size() > 1;
     }
 
+    const std::set<int> & getPattern() const {
+	return pattern;
+    }
+
+    bool chooseDirection() const;
+
     void propagateNewDeadEnds(BDD bdd, bool isFW);
 
-    //void notifyReward (double numDeadEndsFound, const set<int> & pattern);
-
+    void notifyReward (bool fw, double numDeadEndsFound, const std::set<int> & pattern);
 
     bool existsFinishedSuperset(const std::set<int> & pat, 
 				std::pair<bool, bool> & redundant, 

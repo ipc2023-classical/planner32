@@ -62,10 +62,14 @@ class SymBAUnsat : public SearchEngine, public SymController{
 
   void insertDeadEnds(BDD bdd, bool isFW);
 
-  std::pair<UCTNode *, bool> relax();
-  std::pair<UCTNode *, bool> relax(UCTNode * node,  bool fw); 
+  //std::pair<UCTNode *, bool> relax(std::vector<UCTNode *> & uct_trace);
+  UCTNode * relax(UCTNode * node,  bool fw, std::vector<UCTNode *> & uct_trace); 
 
- void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch);
+  void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, const std::vector<UCTNode *> & uct_trace); 
+
+  void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch) {
+      return notifyFinishedAbstractSearch(currentSearch, std::vector<UCTNode *> ());
+  }
  public:
 
  UCTNode * getUCTNode (const std::set<int> & pattern);

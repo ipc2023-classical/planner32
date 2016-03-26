@@ -15,13 +15,17 @@ using namespace std;
 
 UCTNode::UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams) :  pdb (nullptr),
 									 mgr(new SymManager(vars, nullptr, mgrParams)), 
-									 reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0), redundant_fw(false), redundant_bw(false) {
+									 num_children_explored_fw (0), num_children_explored_bw (0),  
+									 reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0),
+									 redundant_fw(false), redundant_bw(false) {
     for (int i = 0; i < g_variable_domain.size(); ++i) pattern.insert(i);
 }
 
 UCTNode::UCTNode(const std::set<int> & pattern_) : pattern (pattern_), 
 						   pdb(nullptr), mgr(nullptr), 
-						   reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0), redundant_fw(false), redundant_bw(false) { 
+						   num_children_explored_fw (0), num_children_explored_bw (0),  
+						   reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0), 
+						   redundant_fw(false), redundant_bw(false) { 
 
 }
 
@@ -202,27 +206,46 @@ std::ostream & operator<<(std::ostream &os, const UCTNode & node){
 }
 
 
-UCTNode * UCTNode::getChild (bool fw)  {
-    
-    if (fw) {
-	if(children_fw.empty()) return nullptr;
-	int num_selected = g_rng.next(children_fw.size());
-    
-	return children_fw [num_selected]; 
-    } else {
-	if(children_bw.empty()) return nullptr;
-
-	int num_selected = g_rng.next(children_bw.size());
-    
-	return children_bw [num_selected];
+UCTNode * UCTNode::getChild (bool fw, double UCT_C)  {    
+    const auto & children_list = (fw ? children_fw : children_bw);
+    if(children_list.empty()) return nullptr;
+    auto & num_children_explored = (fw ? num_children_explored_fw : num_children_explored_bw);
+     
+    if(num_children_explored < children_list.size()) {
+	int num_selected = g_rng.next(children_list.size() - num_children_explored);
+	num_children_explored ++;
+	for (auto c : children_list) {
+	    if (c->isExplored(fw)) continue;
+	    if(num_selected-- == 0) return c; 
+	} 
+	assert(false);
     }
 
+    //auto & total_visits = (fw ? visits_fw : visits_bw);
+
+    int total_visits = 0;
+    for(auto c : children_list) {
+	total_visits += (fw ? c->visits_fw : c->visits_bw);
+    } 
+
+    
+    double best_value = numeric_limits<double>::min();
+    UCTNode * best_child = nullptr;
+    for(auto c : children_list) {
+	double c_val = uct_value(fw, total_visits, UCT_C);
+	if(best_value < c_val) {
+	    best_value = c_val;
+	    best_child = c;
+	}
+    }
+    
+    return best_child;	
 } 
 
 
 double UCTNode::uct_value(bool fw, int visits_parent, double UCT_C) const {
-    if(fw) return reward_fw/visits_fw + UCT_C*sqrt(log(visits_parent)/visits_fw); 
-    else   return reward_bw/visits_bw + UCT_C*sqrt(log(visits_parent)/visits_bw); 
+    if(fw) return reward_fw + UCT_C*sqrt(log(visits_parent)/visits_fw); 
+    else   return reward_bw + UCT_C*sqrt(log(visits_parent)/visits_bw); 
 }
 
 
@@ -278,4 +301,17 @@ void UCTNode::propagateNewDeadEnds(BDD bdd, bool isFW) {
     for(auto c : children) {
 	if (c) c->propagateNewDeadEnds(bdd, isFW);
     }
+}
+
+bool UCTNode::chooseDirection() const {
+    return g_rng.next31()% 2;
+}
+
+
+void UCTNode::notifyReward (bool fw, double numDeadEndsFound, const std::set<int> & /*pattern*/) {
+    double new_reward = log(numDeadEndsFound);
+    double & reward = (fw? reward_fw : reward_bw);
+    int & n = (fw? visits_fw : visits_bw);
+    reward = (reward *n + new_reward) / n+1;
+    n++;
 }

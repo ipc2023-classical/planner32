@@ -6,8 +6,6 @@
 #include "../debug.h"
 #include "../option_parser.h"
 #include "../plugin.h"
-#include "../globals.h"
-#include "../rng.h"
 
 
 SymBAUnsat::SymBAUnsat(const Options &opts) : 
@@ -71,37 +69,30 @@ void SymBAUnsat::insertDeadEnds(BDD bdd, bool isFW) {
 }
 
 
-std::pair<UCTNode *, bool> SymBAUnsat::relax() {
-    bool fw = false;
-    if(g_rng.next31()% 2) fw = true;
-
-    return relax(getRoot(), fw);  
-}
-
-std::pair<UCTNode *, bool> SymBAUnsat::relax(UCTNode * node,
-					     bool fw) {
+UCTNode * SymBAUnsat::relax(UCTNode * node,
+			    bool fw,  
+			    std::vector<UCTNode *> & uct_trace) {
     SymBreadthFirstSearch * searchToRelax = node->getSearch(fw);
     SymManager * parentMgr = node->getMgr(); 
     
     while(node && node->isAbstractable()) {
 	node->initChildren(this);
 	
-	node = node->getChild(fw);
+	node = node->getChild(fw, UCT_C);
 	
 	if(!node) break; 
+
+	uct_trace.push_back(node);
 
 	if (node->getSearch(fw)) {
 	    searchToRelax = node->getSearch(fw);
 	    continue;
 	}
 
-
 	if(!node->getMgr()) {	    
 	    node->init(vars.get(), mgrParams, parentMgr, absTRsStrategy);
 	}
 	parentMgr =node->getMgr(); 
-
-
 
 	auto res = node->relax(searchToRelax, searchParams, 
 			       maxRelaxTime, maxRelaxNodes,
@@ -111,11 +102,11 @@ std::pair<UCTNode *, bool> SymBAUnsat::relax(UCTNode * node,
 
 	if (res) {
 	    node->getMgr()->addDeadEndStates(dead_end_fw, dead_end_bw);
-	    return std::pair<UCTNode *, bool>(node, fw);
+	    return node;
 	}
     }
 
-    return std::pair<UCTNode *, bool>(nullptr, fw);
+    return nullptr;
 }
     
 
@@ -157,33 +148,35 @@ int SymBAUnsat::step(){
 }
 
 
-void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch){
+void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, const vector<UCTNode *> & uct_trace){
     cout << "Finished abstract search: " << ((currentSearch->isFW()? "fw" : "bw"))  << " in " << *(currentSearch->getAbstraction())<< ": " ;
     if (!currentSearch->foundSolution()){
 	cout << "proved task unsolvable!" << endl; 
 	exit_with(EXIT_UNSOLVABLE); 
     } else {
 	BDD newDeadEnds = currentSearch->getUnreachableStates();
-
+	cout << " newDeadEnds without filter: " <<  vars->numStates(newDeadEnds); 
 	try {
 	    newDeadEnds = getRoot()->getMgr()->filter_mutex(newDeadEnds, !currentSearch->isFW(), 100000, true);
 	} catch(BDDError e) {
-	    cout << "Could not remove other dead ends ";
+	    cout << "  could not remove other dead ends " << endl;
 	}
 
+	double numNewDeadEnds = vars->numStates(newDeadEnds);
 	getRoot()->removeSubsets(currentSearch->getAbstraction()->getFullVars(), currentSearch->isFW());
-
+	
 	if (!newDeadEnds.IsZero()) {
-	    cout << "found " << vars->numStates(newDeadEnds) << " dead ends." << endl; 
+	    cout << "  found " << vars->numStates(newDeadEnds) << " dead ends." << endl; 
 
 	    insertDeadEnds(newDeadEnds, !currentSearch->isFW());
-	
-	//getRoot()->notifyReward (vars->numStates(newDeadEnds), 
-	//			 currentSearch->getAbstraction()->getFullVars());
 
 	} else {
 	    cout <<  "  with no results "  << endl; 
 
+	}
+
+	for (UCTNode * node : uct_trace) {
+	    node->notifyReward(currentSearch->isFW(), numNewDeadEnds, uct_trace.back()->getPattern());
 	}
     }
 
@@ -220,11 +213,19 @@ bool SymBAUnsat::askHeuristic() {
 	  numAbstractions < maxNumAbstractions){	
 	numAbstractions++;
 
+	vector<UCTNode *> uct_trace;
+	uct_trace.push_back(getRoot());
+
+	bool fw = getRoot()->chooseDirection();
+	    
 	//1) Generate a new abstract exploration
-	auto resRelax = relax();
-	UCTNode * abstractNode = resRelax.first;
-	if(!abstractNode) return false;
-	SymBreadthFirstSearch * abstractExp = abstractNode->getSearch(resRelax.second);
+	UCTNode * abstractNode = relax(getRoot(), fw, uct_trace);
+	if(!abstractNode) {
+	    for (auto node : uct_trace) node->notifyReward(fw, 0, uct_trace.back()->getPattern());
+	    continue;
+	}
+
+	SymBreadthFirstSearch * abstractExp = abstractNode->getSearch(fw);
 	//2) Search the new exploration
 	while(abstractExp &&
 	      !abstractExp->finished() &&
@@ -234,16 +235,18 @@ bool SymBAUnsat::askHeuristic() {
 	    if (abstractExp->isSearchable()){
 		abstractExp->step();
 		if(abstractExp->finished()) {
-		    notifyFinishedAbstractSearch(abstractExp); 
+		    notifyFinishedAbstractSearch(abstractExp, uct_trace); 
 		    return true;
 		}
 	    } else {
 		ongoing_searches.push_back(abstractExp); //Store ongoing searches
 		//If we cannot continue the search, we relax it even more
-		resRelax = relax(resRelax.first, resRelax.second);
-		abstractNode = resRelax.first;
-		if(!abstractNode) return true;
-		abstractExp = abstractNode->getSearch(resRelax.second);
+		abstractNode = relax(abstractNode, fw, uct_trace);
+		if(!abstractNode){
+		    for (auto node : uct_trace) node->notifyReward(fw, 0, uct_trace.back()->getPattern());
+		    return true;
+		}
+		abstractExp = abstractNode->getSearch(fw);
 	    }
 	}
     }
