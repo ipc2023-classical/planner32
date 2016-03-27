@@ -51,7 +51,7 @@ UCTNode * SymBAUnsat::getUCTNode (const std::set<int> & pattern) {
 void SymBAUnsat::initialize(){
     print_options();
    
-    nodes.push_back(unique_ptr<UCTNode> (new UCTNode(vars.get(), mgrParams)));
+    nodes.push_back(unique_ptr<UCTNode> (new UCTNode(vars.get(), mgrParams, cost_type)));
     
     if (searchDir != Dir::BW) {
 	ongoing_searches.push_back(getRoot()->initSearch(true, searchParams));

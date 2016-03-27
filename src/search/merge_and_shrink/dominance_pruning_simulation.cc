@@ -54,7 +54,7 @@ void DominancePruningSimulation::initialize() {
 
         vars->init(var_order, mgrParams);
         if(remove_spurious_dominated_states){
-            mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams));
+            mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams, cost_type));
             mgr->init();
         }
         mgrParams.print_options();

@@ -14,7 +14,7 @@ SymHNode::
 SymHNode(SymController * eng, const SymParamsMgr & params) : 
   engine(eng), ph(nullptr), abstraction(nullptr), 
   mgr(new SymManager(eng->getVars(), abstraction.get(),
-		     params)){
+		     params, OperatorCost::NORMAL)){
 }
 
 SymHNode::

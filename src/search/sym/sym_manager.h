@@ -7,6 +7,8 @@
 #include "sym_transition.h"
 #include "sym_params.h"
 #include "sym_util.h"
+#include "../operator_cost.h"
+
 #include <vector>
 #include <map>
 #include <memory> 
@@ -24,6 +26,7 @@ class SymManager{
   SymVariables * vars;
   SymAbstraction *abstraction;
   SymParamsMgr p;
+  OperatorCost cost_type;
 
   //Useful for initialization of mutexes and TRs by relaxation
   SymManager * parentMgr; 
@@ -62,7 +65,7 @@ class SymManager{
   
  public:
   SymManager(SymManager * mgr, SymAbstraction * abs, const SymParamsMgr & params);
-  SymManager(SymVariables * v, SymAbstraction * abs, const SymParamsMgr & params);
+  SymManager(SymVariables * v, SymAbstraction * abs, const SymParamsMgr & params, OperatorCost cost_type_);
 
   /* SymManager (const SymManager & o) = delete; */
   /* SymManager (SymManager && ) = default; */

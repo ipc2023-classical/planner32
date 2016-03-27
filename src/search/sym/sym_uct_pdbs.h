@@ -2,6 +2,7 @@
 #define SYM_UCT_PDBS_H
 
 #include "../option_parser.h"
+#include "../operator_cost.h"
 #include "sym_abstraction.h"
 #include "sym_enums.h" 
 #include "sym_params.h"
@@ -36,7 +37,7 @@ private:
     }
 
 public:
-    UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams); // Constructor for the original state space
+    UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams, OperatorCost cost_type); // Constructor for the original state space
     UCTNode(const std::set<int> & pattern_); // Constructor for abstract state space
 
     UCTNode(const UCTNode & o) = delete;

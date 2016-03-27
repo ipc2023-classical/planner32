@@ -20,7 +20,7 @@ void MutexPruning::initialize() {
 	InfluenceGraph::compute_gamer_ordering(var_order);
         vars->init(var_order, mgrParams);
 	//mgr = unique_ptr<SymManager>(new SymManager (vars.get(), nullptr, mgrParams));
-	SymManager mgr  (vars.get(), nullptr, mgrParams);
+	SymManager mgr  (vars.get(), nullptr, mgrParams, cost_type);
 	not_mutex_bdds = mgr.getNotMutexBDDs(true);
 	if(is_dead_end(g_initial_state())) {
 	    cout << "Initial state is unsolvable" << endl;

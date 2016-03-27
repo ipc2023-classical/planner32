@@ -12,8 +12,8 @@
 using namespace std;
 
 
-UCTNode::UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams) :  pdb (nullptr),
-									 mgr(new SymManager(vars, nullptr, mgrParams)),  
+UCTNode::UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams, OperatorCost cost_type) :  pdb (nullptr),
+									 mgr(new SymManager(vars, nullptr, mgrParams, cost_type)),  
 									 reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0),
 									 redundant_fw(false), redundant_bw(false) {
     for (int i = 0; i < g_variable_domain.size(); ++i) pattern.insert(i);

@@ -16,29 +16,34 @@ using namespace std;
 
 SymManager::SymManager(SymVariables * v,
 		       SymAbstraction * abs,
-		       const SymParamsMgr & params) : vars(v), abstraction(abs), p(params), parentMgr(nullptr),
+		       const SymParamsMgr & params, 
+		       OperatorCost cost_type_) : vars(v), abstraction(abs), p(params),
+    cost_type(cost_type_), parentMgr(nullptr),
 						      initialState(v->zeroBDD()), 
 						      goal(v->zeroBDD()), 
 						      min_transition_cost(0), hasTR0(false), 
 						      mutexInitialized(false), 
 						      mutexByFluentInitialized(false), 
-						      prune_heuristic(nullptr)  {
+						  prune_heuristic(nullptr)  {
 
-  for(const auto & op : g_operators){
-      if (op.is_dead()) continue;       
+    for(const auto & op : g_operators){
+	if (op.is_dead()) continue;       
       
-      if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
-	  min_transition_cost = op.get_cost();      
-      }
-      if(op.get_cost() == 0){
-	  hasTR0 = true;
-      }
-  }
-						      }
+	if(min_transition_cost == 0 || min_transition_cost > get_adjusted_action_cost(op, cost_type)){
+	    min_transition_cost = get_adjusted_action_cost(op, cost_type);      
+	}
+	if(get_adjusted_action_cost(op, cost_type) == 0){
+	    hasTR0 = true;
+	}
+    }
+						   
+
+}
 
 SymManager::SymManager(SymManager * mgr,
 		       SymAbstraction * abs,
-		       const SymParamsMgr & params) : vars(mgr->getVars()), abstraction(abs), p(params), parentMgr(mgr),
+		       const SymParamsMgr & params) : vars(mgr->getVars()), abstraction(abs), p(params), 
+						      cost_type(mgr->cost_type), parentMgr(mgr),
 						      initialState(mgr->zeroBDD()), 
 						      goal(mgr->zeroBDD()), 
 						      min_transition_cost(0), hasTR0(false), 
@@ -51,10 +56,10 @@ SymManager::SymManager(SymManager * mgr,
     for(const auto & op : g_operators){
       if (op.is_dead()) continue; 
 
-      if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
-	min_transition_cost = op.get_cost();      
+      if(min_transition_cost == 0 || min_transition_cost >  get_adjusted_action_cost(op, cost_type)){
+	min_transition_cost = get_adjusted_action_cost(op, cost_type);      
       }
-      if(op.get_cost() == 0){
+      if(get_adjusted_action_cost(op, cost_type) == 0){
 	hasTR0 = true;
       }
     }
@@ -433,7 +438,7 @@ const map<int, vector <SymTransition> > & SymManager::getIndividualTRs(){
 	if (op->is_dead()){ 
 	  continue;
 	}
-	int cost = op->get_cost(); 
+	int cost = get_adjusted_action_cost(*op, cost_type); 
 	DEBUG_MSG(cout << "Creating TR of op " << i << " of cost " << cost << endl;);
 	indTRs[cost].push_back(move(SymTransition(vars, op, cost)));
 	if(p.mutex_type ==MutexType::MUTEX_EDELETION){
