@@ -86,7 +86,11 @@ UCTNode * SymBAUnsat::relax(UCTNode * node,
     while(node && node->isAbstractable()) {
 	node->initChildren(this);
 	
-	node = node->getChild(fw, UCT_C);
+	if (rewardType == UCTRewardType::RAND) {
+	    node = node->getRandomChild(fw);
+	} else {
+	    node = node->getChild(fw, UCT_C);
+	}
 	
 	if(!node) break; 
 
@@ -190,6 +194,7 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	}
 
 	double reward = computeReward(newDeadEnds, time_spent);
+	cout << "Reward: " << reward << endl;
 
 	for (UCTNode * node : uct_trace) {
 	    node->notifyReward(currentSearch->isFW(), reward, uct_trace.back()->getPattern());
@@ -207,10 +212,11 @@ double SymBAUnsat::computeReward (const BDD & bdd, double time_spent) const {
     case NODES: 
 	return bdd.nodeCount()/100000.0;
     case STATES_TIME:
-	return vars->percentageNumStates(bdd) * 1800.0/time_spent; 
+	return vars->percentageNumStates(bdd) * 1800.0/(1 + time_spent); 
     case NODES_TIME:
-	return (bdd.nodeCount()/100000.0) * 1800.0/time_spent;
+	return (bdd.nodeCount()/100000.0) * 1800.0/(1+ time_spent);
     case NONE: 
+    case RAND:
 	return 0;
     }
     return 0;

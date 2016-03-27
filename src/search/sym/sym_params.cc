@@ -137,10 +137,6 @@ const std::vector<std::string> VariableOrderValues {
 
 
 
-
-
-
-
 SymParamsSearch::SymParamsSearch(const Options & opts) : 
   max_disj_nodes (opts.get<int>("max_disj_nodes")), 
   min_estimation_time (opts.get<double>("min_estimation_time")), 

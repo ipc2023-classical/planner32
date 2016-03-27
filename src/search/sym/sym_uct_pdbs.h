@@ -22,7 +22,6 @@ private:
     std::unique_ptr<SymManager> mgr;
 
     std::vector <UCTNode *> children, children_fw, children_bw; //Nodes more abstracted
-    int num_children_explored_fw, num_children_explored_bw;
 
     //std::vector <UCTNode *> parents; //Nodes less abstracted
 
@@ -71,6 +70,7 @@ public:
 
 
     UCTNode * getChild (bool fw, double UCT_C);
+    UCTNode * getRandomChild (bool fw);
 
     double uct_value(bool fw, int visits_parent, double UCT_C) const;
 

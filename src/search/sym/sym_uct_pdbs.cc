@@ -7,15 +7,13 @@
 #include "../rng.h"
 #include "../legacy_causal_graph.h"
 
-
 #include <algorithm>
 
 using namespace std;
 
 
 UCTNode::UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams) :  pdb (nullptr),
-									 mgr(new SymManager(vars, nullptr, mgrParams)), 
-									 num_children_explored_fw (0), num_children_explored_bw (0),  
+									 mgr(new SymManager(vars, nullptr, mgrParams)),  
 									 reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0),
 									 redundant_fw(false), redundant_bw(false) {
     for (int i = 0; i < g_variable_domain.size(); ++i) pattern.insert(i);
@@ -23,7 +21,6 @@ UCTNode::UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams) :  pdb (nu
 
 UCTNode::UCTNode(const std::set<int> & pattern_) : pattern (pattern_), 
 						   pdb(nullptr), mgr(nullptr), 
-						   num_children_explored_fw (0), num_children_explored_bw (0),  
 						   reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0), 
 						   redundant_fw(false), redundant_bw(false) { 
 
@@ -205,40 +202,41 @@ std::ostream & operator<<(std::ostream &os, const UCTNode & node){
     return os;
 }
 
+UCTNode * UCTNode::getRandomChild (bool fw)  {    
+    const auto & children_list = (fw ? children_fw : children_bw);
+    if(children_list.empty()) return nullptr;
+
+    int num_selected = g_rng.next(children_list.size()); 
+    return children_list[num_selected];	
+}
 
 UCTNode * UCTNode::getChild (bool fw, double UCT_C)  {    
     const auto & children_list = (fw ? children_fw : children_bw);
     if(children_list.empty()) return nullptr;
-    auto & num_children_explored = (fw ? num_children_explored_fw : num_children_explored_bw);
-     
-    if(num_children_explored < children_list.size()) {
-	int num_selected = g_rng.next(children_list.size() - num_children_explored);
-	num_children_explored ++;
-	for (auto c : children_list) {
-	    if (c->isExplored(fw)) continue;
-	    if(num_selected-- == 0) return c; 
-	} 
-	assert(false);
-    }
-
-    //auto & total_visits = (fw ? visits_fw : visits_bw);
-
-    int total_visits = 0;
-    for(auto c : children_list) {
-	total_visits += (fw ? c->visits_fw : c->visits_bw);
-    } 
     
-    double best_value = numeric_limits<double>::min();
     vector<UCTNode *> best_children;
     for(auto c : children_list) {
-	double c_val = uct_value(fw, total_visits, UCT_C);
-	if(best_value <= c_val) {
-	    if(best_value < c_val){
-		best_value = c_val;
-		best_children.clear();
-	    }
+	if(!c->isExplored(fw)) best_children.push_back(c);
+    }
+    
+    if(best_children.empty()) {
+	int total_visits = 0;
+	for(auto c : children_list) {
+	    total_visits += (fw ? c->visits_fw : c->visits_bw);
+	} 
+    
+	double best_value = numeric_limits<double>::min();
+	for(auto c : children_list) {
+	    double c_val = uct_value(fw, total_visits, UCT_C);
+	
+	    if(best_value <= c_val) {
+		if(best_value < c_val){
+		    best_value = c_val;
+		    best_children.clear();
+		}
 
-	    best_children.push_back(c);
+		best_children.push_back(c);
+	    }
 	}
     }
     int num_selected = g_rng.next(best_children.size()); 
@@ -247,6 +245,8 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C)  {
 
 
 double UCTNode::uct_value(bool fw, int visits_parent, double UCT_C) const {
+    // if(fw) cout << reward_fw << " " << visits_fw << endl;
+    // else cout << reward_fw << " " << visits_bw << endl;
     if(fw) return reward_fw + UCT_C*sqrt(log(visits_parent)/visits_fw); 
     else   return reward_bw + UCT_C*sqrt(log(visits_parent)/visits_bw); 
 }

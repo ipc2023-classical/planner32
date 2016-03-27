@@ -81,7 +81,8 @@ std::ostream & operator<<(std::ostream &os, const UCTRewardType & a){
   case UCTRewardType::STATES_TIME: return os << "states_time";
   case UCTRewardType::NODES: return os << "nodes";
   case UCTRewardType::NODES_TIME: return os << "nodes_time";    
-  case UCTRewardType::NONE: return os << "none";    
+  case UCTRewardType::NONE: return os << "none";   
+  case UCTRewardType::RAND: return os << "random";  
   default:
     std::cerr << "Name of AbsMinimizationType not known";
     exit(-1);
@@ -119,7 +120,7 @@ const std::vector<std::string> AbsMinimizationTypeValues {
 
 
 const std::vector<std::string> UCTRewardTypeValues {
-    "STATES", "NODES", "STATES_TIME", "NODES_TIME", "NONE"
+    "STATES", "NODES", "STATES_TIME", "NODES_TIME", "NONE", "RANDOM"
 };
 
 
