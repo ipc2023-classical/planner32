@@ -43,6 +43,8 @@ class SymBAUnsat : public SearchEngine, public SymController{
   double UCT_C;
   UCTRewardType rewardType;
 
+  bool add_abstract_to_ongoing_searches;
+
   int numAbstractions;
   // List of hierarchy policies to derive new abstractions
   //std::vector <SymPH *> phs;

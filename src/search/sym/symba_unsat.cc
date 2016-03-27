@@ -27,6 +27,7 @@ SymBAUnsat::SymBAUnsat(const Options &opts) :
     maxNumAbstractions(opts.get<int> ("max_abstractions")), 
     UCT_C(opts.get<double> ("uct_c")),
     rewardType (UCTRewardType(opts.get_enum("reward_type"))), 
+    add_abstract_to_ongoing_searches (opts.get<bool>( "add_abstract_to_ongoing_searches")),
     numAbstractions(0), 
     time_step_abstract(0), time_step_original(0), 
     time_select_exploration(0),  time_notify_mutex(0), 
@@ -291,7 +292,9 @@ bool SymBAUnsat::askHeuristic() {
 		    return true;
 		}
 	    } else {
-		ongoing_searches.push_back(abstractExp); //Store ongoing searches
+		if(add_abstract_to_ongoing_searches) {
+		    ongoing_searches.push_back(abstractExp); //Store ongoing searches
+		}
 		//If we cannot continue the search, we relax it even more
 		abstractNode = relax(abstractNode, fw, uct_trace);
 		if(!abstractNode){
@@ -351,7 +354,7 @@ static SearchEngine *_parse(OptionParser &parser) {
     SymParamsSearch::add_options_to_parser(parser, 30e3, 1e7);
 
     parser.add_option<int>("max_abstractions",
-			   "maximum number of calls to askHeuristic", "1000");
+			   "maximum number of calls to askHeuristic", "100000");
 
     parser.add_option<double>("ph_time", 
 			      "allowed time to use the ph", "500");
@@ -385,6 +388,11 @@ static SearchEngine *_parse(OptionParser &parser) {
 
     parser.add_enum_option("reward_type", UCTRewardTypeValues,
 			   "type of reward function", "STATES");
+
+    parser.add_option<bool>("add_abstract_to_ongoing_searches", 
+			    "includes the abstract searches that were incomplete to the set of ongoing searches", 
+			    "true");
+
 
 
     Options opts = parser.parse();
