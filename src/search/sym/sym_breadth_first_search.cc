@@ -116,7 +116,6 @@ bool SymBreadthFirstSearch::stepImage(int maxTime, int maxNodes){
     Timer step_time;
 
     BDD S = pop();
-    close(S);
 
     if (p.debug) {
 	if(mgr->getAbstraction())
@@ -129,7 +128,6 @@ bool SymBreadthFirstSearch::stepImage(int maxTime, int maxNodes){
 	     << get_peak_memory_in_kb() << "k" << endl;
     }
 
-    
     int nodesStep = S.nodeCount();
     //double statesStep = mgr->getVars()->numStates(S);
     map <int, vector<BDD> > resImage;
@@ -137,6 +135,7 @@ bool SymBreadthFirstSearch::stepImage(int maxTime, int maxNodes){
     try{
 	mgr->cost_image(fw, S, resImage, maxNodes);
 	mgr->unsetTimeLimit();
+	close(S);
     }catch(BDDError e){
 	//Update estimation
 	mgr->unsetTimeLimit();
