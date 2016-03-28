@@ -13,7 +13,7 @@ enum class PruningDD {BDD_MAP, ADD, BDD, BDD_MAP_DISJ, SKYLINE_BDD_MAP, SKYLINE_
 std::ostream & operator<<(std::ostream &os, const PruningDD & m);
 extern const std::vector<std::string> PruningDDValues;
 
-enum class PruningType {Expansion, Generation, None};
+enum class PruningType {Expansion, Generation, None, DeadEnds};
 std::ostream & operator<<(std::ostream &os, const PruningType & m);
 extern const std::vector<std::string> PruningTypeValues;
 

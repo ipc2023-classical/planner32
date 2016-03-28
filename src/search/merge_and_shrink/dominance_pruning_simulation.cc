@@ -102,7 +102,8 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g) {
 
     if(ldSimulation->get_dominance_relation().pruned_state(state)){
         return true;
-    }
+    } else if (pruning_type == PruningType::DeadEnds) return false;
+
     //a) Check if state is in a BDD with g.closed <= g
     states_checked ++;
     if (check(state, g)){
@@ -119,7 +120,8 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g) {
 }
 
 bool DominancePruningSimulation::prune_expansion (const State &state, int g){
-    if(pruning_type == PruningType::None) return false;
+    if(pruning_type == PruningType::None || 
+       pruning_type == PruningType::DeadEnds) return false;
     if(!is_activated()) return false;
     
     //a) Check if state is in a BDD with g.closed <= g
@@ -261,6 +263,7 @@ std::ostream & operator<<(std::ostream &os, const PruningType & pt){
     case PruningType::Expansion: return os << "expansion";
     case PruningType::Generation: return os << "generation";
     case PruningType::None: return os << "none";
+    case PruningType::DeadEnds: return os << "deadends";
     default:
         std::cerr << "Name of PruningTypeStrategy not known";
         exit(-1);
@@ -273,7 +276,7 @@ const std::vector<std::string> PruningDDValues {
 };
 
 const std::vector<std::string> PruningTypeValues {
-    "expansion", "generation", "none"
+    "expansion", "generation", "none", "deadends"
 };
 
 
