@@ -181,6 +181,8 @@ if [[ "$1" == "ipc" ]]; then
         "$PLANNER" --search "astar(lmcut())" "$@" < $TEMPFILE
     elif [[ "$CONFIG" == "unsat-mas-cgcomgoallev-ownlabel" ]]; then
         "$PLANNER" --search "astar(merge_and_shrink(shrink_after_merge=true, merge_strategy=merge_linear_criteria(criteria=[scc(reverse=False, complete_cg=True),goal], var_order=level), shrink_strategy=shrink_composite(strategies=[shrink_own_labels(goal_shrinking=true), shrink_bisimulation(max_states=infinity, greedy=false, threshold=1, aggregate_goals=true)]), cost_type=3))" "$@" < $TEMPFILE
+    elif [[ "$CONFIG" == "unsat-sym" ]]; then
+        "$PLANNER" --search "symba_unsat(max_step_nodes_min=10000,max_step_nodes_per_planning_second=10000,max_step_nodes_time_start_increment=300, reward_type=nodes, cost_type=1)" "$@" < $TEMPFILE
     else
         echo "unknown IPC planner name: $CONFIG"
         exit 2
