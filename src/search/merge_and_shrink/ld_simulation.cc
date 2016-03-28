@@ -73,6 +73,7 @@ const std::vector<std::string> SimulationTypeValues {
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
     simulation_type(SimulationType(opts.get_enum("simulation_type"))),
     label_dominance_type(LabelDominanceType(opts.get_enum("label_dominance_type"))),
+    switch_off_label_dominance(opts.get<int>("switch_off_label_dominance")), 
     apply_simulation_shrinking(opts.get<bool>("apply_simulation_shrinking")),
     apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
     apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
@@ -138,7 +139,10 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation() {
 	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationIdentity>(labels.get())); 
 	case LabelDominanceType::NOOP: 
 	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationNoop>(labels.get())); 
-	case LabelDominanceType::NORMAL: 	    
+	case LabelDominanceType::NORMAL: 
+	    if (labels->get_size() > switch_off_label_dominance) {
+		return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationNoop>(labels.get()));
+	    }
 	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelation>(labels.get())); 
 	}
 
@@ -148,7 +152,11 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation() {
 	    return unique_ptr<DominanceRelation>(new DominanceRelationComplexNoLD<LabelRelationIdentity>(labels.get())); 
 	case LabelDominanceType::NOOP: 
 	    return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelationNoop>(labels.get())); 
-	case LabelDominanceType::NORMAL: 	    
+	case LabelDominanceType::NORMAL: 	   
+	    if (labels->get_size() > switch_off_label_dominance) {
+		return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelationNoop>(labels.get()));
+	    }
+ 
 	    return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelation>(labels.get())); 
 	}
     }
@@ -334,8 +342,9 @@ Abstraction * LDSimulation::complete_heuristic() const {
     }
 
     res_abstraction->compute_distances();
-    if (!res_abstraction->is_solvable())
-        return res_abstraction;
+    if (!res_abstraction->is_solvable()) 
+	exit_with(EXIT_UNSOLVABLE);
+
 
     res_abstraction->statistics(use_expensive_statistics);
     res_abstraction->release_memory();
@@ -413,7 +422,6 @@ void LDSimulation::build_abstraction() {
 
     while (!merge_strategy->done() && t() <= limit_seconds_mas && remaining_abstractions > 1) {
 
-	
         pair<int, int> next_systems = original_merge ? merge_strategy->get_next(all_abstractions) : 
 	    merge_strategy->get_next(all_abstractions, limit_absstates_merge, limit_transitions_merge);
         int system_one = next_systems.first;
@@ -481,7 +489,7 @@ void LDSimulation::build_abstraction() {
         new_abstraction->compute_distances();
 	if (!new_abstraction->is_solvable()){
 	    final_abstraction = unique_ptr<Abstraction>(new_abstraction);
-	    return;
+	    exit_with(EXIT_UNSOLVABLE);
 	}
 	 
 	 if(shrink_strategy){
@@ -727,7 +735,9 @@ void LDSimulation::initialize() {
     }
 
     //If we have already proven the problem unsolvable we can skip this
-    if(final_abstraction && !final_abstraction->is_solvable()) return;
+    if(final_abstraction && !final_abstraction->is_solvable()) {
+	exit_with(EXIT_UNSOLVABLE);
+    }
 
 
     cout << "Computing simulation..." << endl;
@@ -740,7 +750,8 @@ void LDSimulation::initialize() {
     //If we have already proven the problem unsolvable we can skip
     //this (check again because compute_ld_simulation may prune
     //transitions and prove unsolvability by unreachability analysis)
-    if(final_abstraction && !final_abstraction->is_solvable()) return;
+    if(final_abstraction && !final_abstraction->is_solvable()) 
+	exit_with(EXIT_UNSOLVABLE);
     
 
     cout << endl;
@@ -997,12 +1008,19 @@ void LDSimulation::add_options_to_parser(OptionParser &parser){
     parser.add_enum_option("label_dominance_type", LabelDominanceTypeValues ,
 			   "type of simulation implementation: NONE, NOOP or NORMAL.", "NORMAL" );  
 
+
+    parser.add_option<int>("switch_off_label_dominance",
+            "disables label dominance if there are too many labels"
+            "By default: 1000, to avoid memory errors",
+            "1000");
+
 }
 
 
 //Returns a optimized variable ordering that reorders the variables
 //according to the standard causal graph criterion
 void LDSimulation::getVariableOrdering(vector <int> & var_order){
+    if(abstractions.empty()) return;
     vector<vector<int> > partitions;
     vector<int> partition_var (g_variable_domain.size(), 0);
     cout << "Init partitions"<< endl;

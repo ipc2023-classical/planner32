@@ -36,6 +36,9 @@ class LDSimulation {
 protected:
     const SimulationType simulation_type;
     const LabelDominanceType label_dominance_type;
+    //Allows to switch off label dominance from normal to noop if the
+    //number of labels is greater than this parameter.
+    const int switch_off_label_dominance;  
 
     const bool apply_simulation_shrinking;
     const bool apply_subsumed_transitions_pruning;
@@ -56,7 +59,6 @@ protected:
     const bool intermediate_simulations;
     const bool incremental_simulations;
 
-
     /* Parameters for constructing a final abstraction after the simulation */
     const bool compute_final_abstraction; 
     ShrinkStrategy *const shrink_strategy;
@@ -65,7 +67,6 @@ protected:
 			       //original merge,
 
 
-    //TODO: Use unique_ptr here
     std::unique_ptr<Labels> labels;
     std::vector<Abstraction *> abstractions;
     std::unique_ptr<DominanceRelation> dominance_relation;
