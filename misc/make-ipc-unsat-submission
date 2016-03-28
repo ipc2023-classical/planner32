@@ -7,7 +7,6 @@
 SANITY_TEST_UNPACK=1
 SANITY_TEST_COMPILE=1
 SANITY_TEST_RUN_STRIPS=1
-SANITY_TEST_RUN_STRIPS_UNSAT=1
 SANITY_TEST_RUN_AXIOMS=0
 
 
@@ -42,12 +41,29 @@ echo "Preparing distribution directory..."
 echo '#! /bin/bash' > $DIST/build
 echo 'cd src; ./build_all; cd ..' > $DIST/build
 chmod 755 $DIST/build
-echo '#! /bin/bash' > $DIST/plan
-echo 'DOMAIN="$1"' >> $DIST/plan
-echo 'PROBLEM="$2"' >> $DIST/plan
-echo 'PLAN_FILE="$3"' >> $DIST/plan
-echo '"$(dirname "$0")"/src/plan' '"$DOMAIN"' '"$PROBLEM"' \
-     "ipc" "$PLANNER_NAME" '--plan-file "$PLAN_FILE"' >> $DIST/plan
+
+cat > $DIST/plan << EOF
+#! /bin/bash
+DOMAIN="\$1"
+PROBLEM="\$2"
+
+"$(dirname "$0")"/src/plan "\$DOMAIN" "\$PROBLEM" "ipc $PLANNER_NAME" > log 2> err
+
+last=\`awk '/./{line=$0} END{print line}' log\`
+
+if [[ "\$last" == "unsolvable" ]];
+then
+	echo \$last
+else if [[ "\$last" == "solvable" ]];
+then
+    echo \$last
+else
+	echo "unknown"
+fi
+fi
+
+EOF
+
 chmod 755 $DIST/plan
 
 echo "Removing LP code..."
@@ -100,7 +116,7 @@ if [[ "$SANITY_TEST_UNPACK" == 1 ]]; then
         ./build
 
         if [[ "$SANITY_TEST_RUN_STRIPS" == 1 ]]; then
-            planner-test-run nomystery-opt11-strips/domain.pddl nomystery-opt11-strips/prob01.pddl
+            planner-test-run grid/domain.pddl grid/prob01.pddl
         fi
         if [[ "$SANITY_TEST_RUN_AXIOMS" == 1 ]]; then
             planner-test-run psr-large/domain.pddl \
