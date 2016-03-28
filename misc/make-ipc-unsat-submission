@@ -50,16 +50,17 @@ PROBLEM="\$2"
 
 "$(dirname "$0")"/src/plan "\$DOMAIN" "\$PROBLEM" "ipc $PLANNER_NAME" > log 2> err
 
-last=\`awk '/./{line=$0} END{print line}' log\`
+last=\`tail -1 log\`
+last2=\`tail -2 log | grep solvable\`
 
-if [[ "\$last" == "unsolvable" ]];
+if [[ "\$last" == "unsolvable"  ]] || [[ "\$last2" == "unsolvable"  ]];
 then
-	echo \$last
-else if [[ "\$last" == "solvable" ]];
+    echo "unsolvable"
+else if [[ "\$last" == "solvable" ]] || [[ "\$last2" == "solvable"  ]];
 then
-    echo \$last
+    echo "solvable"
 else
-	echo "unknown"
+    echo "unknown"
 fi
 fi
 
