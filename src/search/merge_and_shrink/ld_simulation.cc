@@ -129,7 +129,7 @@ void LDSimulation::remove_dead_labels(vector<Abstraction *> & abstractions){
 
 int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractions) {
     remove_dead_labels(abstractions);
-    dominance_relation->remove_useless();
+    if(dominance_relation) dominance_relation->remove_useless();
     int removed_abstractions = 0;
     for(int i =0; i < abstractions.size(); ++i){
 	if(abstractions[i] && abstractions[i]->is_useless()){
@@ -324,8 +324,6 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	abstractions.clear();
     }
 
-
-
     // compute initial simulations, based on atomic abstractions
     if (intermediate_simulations) {
 	if(!forbid_lr){
@@ -376,6 +374,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	    }
         }
     }
+
 
     int remaining_abstractions = all_abstractions.size();
     remaining_abstractions -= remove_useless_abstractions(all_abstractions);
