@@ -41,8 +41,8 @@ bool ShrinkStrategy::must_shrink(
     assert(threshold >= 1);
     assert(abs.is_solvable());
     if (abs.size() > threshold) {
-        cout << abs.tag() << "shrink from size " << abs.size()
-             << " (threshold: " << threshold << ")" << endl;
+	DEBUG_MAS(cout << abs.tag() << "shrink from size " << abs.size()
+		  << " (threshold: " << threshold << ")" << endl;);
         return true;
     }
     if (force) {

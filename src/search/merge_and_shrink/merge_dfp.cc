@@ -6,6 +6,7 @@
 #include "../option_parser.h"
 #include "../plugin.h"
 #include "../utilities.h"
+#include "../debug.h"
 
 #include <algorithm>
 #include <cassert>
@@ -142,7 +143,7 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
     }
     //assert(first != -1);
     //assert(second != -1);
-    cout << "Next pair of indices: (" << first << ", " << second << ")" << endl;
+    DEBUG_MAS(cout << "Next pair of indices: (" << first << ", " << second << ")" << endl;);
 //    if (remaining_merges > 1 && minimum_weight != infinity) {
 //        // in the case we do not make a trivial choice of a next pair
 //        cout << "Computed weight: " << minimum_weight << endl;

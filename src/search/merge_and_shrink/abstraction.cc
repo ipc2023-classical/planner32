@@ -1382,25 +1382,26 @@ void Abstraction::statistics(bool include_expensive_statistics) const {
     peak_memory = max(peak_memory, memory);
     cout << tag() << size() << " states, ";
     if (include_expensive_statistics)
-        cout << unique_unlabeled_transitions();
-    else
-        cout << "???";
-    cout << "/" << total_transitions() << " arcs, " << memory << " bytes"
-            << endl;
+        cout << unique_unlabeled_transitions()  << "/";
+    //else
+    //    cout << "???";
+    cout << total_transitions() << " arcs, " << memory /* << " bytes << */ << " [t=" << g_timer << "]" << endl;
+
     if (store_original_operators && include_expensive_statistics) {
         cout << tag();
         cout << total_transition_operators() << " stored operators in transitions" << endl;
     }
-    cout << tag();
-    if (!are_distances_computed()) {
-        cout << "distances not computed";
-    } else if (is_solvable()) {
-        cout << "init h=" << goal_distances[init_state] << ", max f=" << max_f
-                << ", max g=" << max_g << ", max h=" << max_h;
-    } else {
-        cout << "abstraction is unsolvable";
-    }
-    cout << " [t=" << g_timer << "]" << endl;
+    DEBUG_MSG(cout << tag();
+	      if (!are_distances_computed()) {
+		  cout << "distances not computed";
+	      } else if (is_solvable()) {
+		  cout << "init h=" << goal_distances[init_state] << ", max f=" << max_f
+		       << ", max g=" << max_g << ", max h=" << max_h;
+	      } else {
+		  cout << "abstraction is unsolvable";
+	      } 
+	      cout << endl;
+	);
 }
 
 int Abstraction::get_peak_memory_estimate() const {

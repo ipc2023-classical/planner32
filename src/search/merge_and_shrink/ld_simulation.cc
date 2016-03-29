@@ -210,8 +210,8 @@ std::unique_ptr<Abstraction> LDSimulation::complete_heuristic(MergeStrategy * me
 	    // in control, and the shrink strategy doesn't know whether we want
 	    // expensive statistics. As a temporary aid, we just print the
 	    // statistics always now, whether or not we shrunk.)
-	    abstraction->statistics(use_expensive_statistics);
-	    other_abstraction->statistics(use_expensive_statistics);
+	    cout << "M1: "; abstraction->statistics(use_expensive_statistics);
+	    cout << "M2: ";  other_abstraction->statistics(use_expensive_statistics);
 
 	    if (!reduced_labels) {
 		labels->reduce(make_pair(system_one, system_two), all_abstractions);
@@ -222,11 +222,12 @@ std::unique_ptr<Abstraction> LDSimulation::complete_heuristic(MergeStrategy * me
 	    abstraction->compute_distances();
 	    other_abstraction->compute_distances();
 
-	    if (!reduced_labels) {
-		// only print statistics if we just possibly reduced labels
-		other_abstraction->statistics(use_expensive_statistics);
-		abstraction->statistics(use_expensive_statistics);
-	    }
+	    DEBUG_MAS(
+		if (!reduced_labels) {
+		    // only print statistics if we just possibly reduced labels
+		    other_abstraction->statistics(use_expensive_statistics);
+		    abstraction->statistics(use_expensive_statistics);
+		});
 	}else{
 	    abstraction->normalize();
 	    other_abstraction->normalize();
@@ -239,7 +240,8 @@ std::unique_ptr<Abstraction> LDSimulation::complete_heuristic(MergeStrategy * me
         abstraction->release_memory();
         other_abstraction->release_memory();
 
-        new_abstraction->statistics(use_expensive_statistics);
+        cout << "Merged: "; new_abstraction->statistics(use_expensive_statistics);
+	cout << endl;
 
         all_abstractions[system_one] = 0;
         all_abstractions[system_two] = 0;
@@ -281,7 +283,7 @@ std::unique_ptr<Abstraction> LDSimulation::complete_heuristic(MergeStrategy * me
     if (!res_abstraction->is_solvable()) 
 	exit_with(EXIT_UNSOLVABLE);
 
-    res_abstraction->statistics(use_expensive_statistics);
+    cout << "Final: "; res_abstraction->statistics(use_expensive_statistics);
     res_abstraction->release_memory();
 
     return res_abstraction;
@@ -333,7 +335,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	    for (auto abs : all_abstractions) {
 		if(abs){
 		    abs->normalize();
-		    abs->statistics(use_expensive_statistics);
+		    DEBUG_MAS(abs->statistics(use_expensive_statistics););
 		}
 	    }
 	}
@@ -342,7 +344,6 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
                 abstractions.push_back(all_abstractions[i]);
             }
         }
-	cout << "C" << endl;
 
         // initialize simulations
         compute_ld_simulation(simulation_type, label_dominance_type, switch_off_label_dominance, 
@@ -359,7 +360,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	    for (auto abs : all_abstractions) {
 		if(abs){
 		    abs->normalize();
-		    abs->statistics(use_expensive_statistics);
+		    DEBUG_MAS(abs->statistics(use_expensive_statistics););
 		}
 	    }
 	}
@@ -405,7 +406,10 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	}
         DEBUG_MAS(cout << "Merge: " << t() << endl;);
 
-        //TODO: UPDATE SIMULATION WHEN DOING INCREMENTAL COMPUTATION
+        cout << "M1: "; abstraction->statistics(use_expensive_statistics);
+        cout << "M2: "; other_abstraction->statistics(use_expensive_statistics);
+
+        //TODO: Could be improved by updating simulation when doing incremental simulation
         CompositeAbstraction *new_abstraction = new CompositeAbstraction(labels.get(),
 									 abstraction,
 									 other_abstraction);
@@ -414,7 +418,8 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
         other_abstraction->release_memory();
 
 	remaining_abstractions --;
-        new_abstraction->statistics(use_expensive_statistics);
+        cout << "Merged: "; new_abstraction->statistics(use_expensive_statistics);
+	cout << endl;
 
         all_abstractions[system_one] = 0;
         all_abstractions[system_two] = 0;
@@ -425,7 +430,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
         if (shrink_strategy && shrink_strategy->reduce_labels_before_shrinking()) {
 	    remove_dead_labels(all_abstractions);
 	    if(!forbid_lr){
-		cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
+		DEBUG_MAS(cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;);
 		//labels->reduce(make_pair(system_one, system_two), all_abstractions);
 		if(remaining_abstractions == 1){
 		    labels->reduce_to_cost();
@@ -441,7 +446,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	      abstraction->statistics(use_expensive_statistics);
 	      other_abstraction->statistics(use_expensive_statistics);*/
             new_abstraction->normalize();
-            new_abstraction->statistics(use_expensive_statistics);
+            DEBUG_MAS(new_abstraction->statistics(use_expensive_statistics););
         }
 
         DEBUG_MAS(cout << "Compute distances: " << t() << endl;);
@@ -460,7 +465,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
             shrink_strategy->shrink(*new_abstraction, new_abstraction->size(), true); /* force bisimulation shrinking */
             //abstraction->statistics(use_expensive_statistics);
             //other_abstraction->statistics(use_expensive_statistics);
-            new_abstraction->statistics(use_expensive_statistics);
+            DEBUG_MAS(new_abstraction->statistics(use_expensive_statistics););
         }
 
         if ((shrink_strategy || intermediate_simulations || apply_subsumed_transitions_pruning) && !reduced_labels) {
@@ -487,7 +492,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
             // only print statistics if we just possibly reduced labels
             //other_abstraction->statistics(use_expensive_statistics);
             //abstraction->statistics(use_expensive_statistics);
-            new_abstraction->statistics(use_expensive_statistics);
+            DEBUG_MAS(new_abstraction->statistics(use_expensive_statistics););
         }
 
         DEBUG_MAS(cout << "Next it: " << t() << endl;);
@@ -531,7 +536,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 //        }
         if (all_abstractions[i]) {
             all_abstractions[i]->compute_distances();
-            all_abstractions[i]->statistics(use_expensive_statistics);
+            DEBUG_MAS(all_abstractions[i]->statistics(use_expensive_statistics););
             abstractions.push_back(all_abstractions[i]);
             //all_abstractions[i]->release_memory();
         }
@@ -567,11 +572,11 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
     
     LabelMap labelMap (labels.get());
 
-    cout << "Building LTSs and Simulation Relations" << endl;
+
     vector<LabelledTransitionSystem *> ltss_simple;
     vector<LTSComplex *> ltss_complex;
     // Generate LTSs and initialize simulation relations
-    cout << "LTSs:";
+    cout << "Building LTSs and Simulation Relations:";
     for (auto a : abstractions){
         a->compute_distances();
 	if (!a->is_solvable()){
@@ -620,7 +625,7 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
 
 
         if(num_pruned_trs){
-	    std::cout << num_pruned_trs << " transitions pruned from LTS " <<  lts_id << std::endl;
+	    std::cout << num_pruned_trs << " transitions pruned from LTS " <<  lts_id << ". ";
 	}
 
         //_labels->prune_irrelevant_labels();
@@ -672,12 +677,13 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
 
     if(!abstractions.empty()) 
 	cout << abstractions.back()->get_num_nonreduced_labels() << " / " << 
-	    abstractions.back()->get_num_labels() << " labels still alive. " << "Final LTSs: ";
+	    abstractions.back()->get_num_labels() << " labels still alive. "; 
+    DEBUG_MAS(cout << "Final LTSs: ";);
     for (auto abs : abstractions) {
         abs->normalize();
-	cout << abs->size() << " (" << abs->total_transitions() << ") ";
+	DEBUG_MAS(cout << abs->size() << " (" << abs->total_transitions() << ") ";);
     }
-    cout << endl;
+    DEBUG_MAS(cout << endl<< endl;);
 }
 
 void LDSimulation::compute_final_simulation(SimulationType simulation_type, 
