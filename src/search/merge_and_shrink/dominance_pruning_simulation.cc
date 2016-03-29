@@ -7,6 +7,8 @@
 #include "simulation_relation.h"
 #include "labelled_transition_system.h"
 #include "ld_simulation.h"
+#include "abstraction_builder.h"
+
 #include "shrink_bisimulation.h"
 
 #include "../globals.h"
@@ -32,7 +34,7 @@ DominancePruningSimulation::DominancePruningSimulation(const Options &opts)
   pruning_type(PruningType(opts.get_enum("pruning_type"))),
   min_insertions_desactivation(opts.get<int>("min_insertions")),
   min_desactivation_ratio(opts.get<double>("min_desactivation_ratio")),
-  vars(new SymVariables()), ldSimulation(new LDSimulation(opts)),
+  vars(new SymVariables()), abstractionBuilder(opts.get<AbstractionBuilder *>("abs")),
   all_desactivated(false), activation_checked(false), 
   states_inserted(0), states_checked(0), states_pruned(0), deadends_pruned(0) {
 }
@@ -47,7 +49,8 @@ void DominancePruningSimulation::dump_options() const {
 void DominancePruningSimulation::initialize() {
     if(!initialized){
         initialized = true;
-        ldSimulation->initialize();
+	abstractionBuilder->build_abstraction(is_unit_cost_problem() || cost_type == OperatorCost::ZERO, cost_type, ldSimulation, abstractions);
+	cout << "LDSimulation finished" << endl;
 
         vector <int> var_order;
         ldSimulation->getVariableOrdering(var_order);
@@ -69,10 +72,16 @@ void DominancePruningSimulation::initialize() {
 }
 
 bool DominancePruningSimulation::is_dead_end(const State &state) {
-    if(is_activated() && ldSimulation->get_dominance_relation().pruned_state(state)){
+    if(/*is_activated() && */ldSimulation->get_dominance_relation().pruned_state(state)){
         deadends_pruned ++;
         return true;
     }
+    
+    for (auto & abs : abstractions) {
+	if(abs->is_dead_end(state)) {
+	    return true;
+	}
+    } 
     return false;
 }
 
@@ -102,7 +111,7 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g) {
 
     if(ldSimulation->get_dominance_relation().pruned_state(state)){
         return true;
-    } else if (pruning_type == PruningType::DeadEnds) return false;
+    } 
 
     //a) Check if state is in a BDD with g.closed <= g
     states_checked ++;
@@ -120,8 +129,7 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g) {
 }
 
 bool DominancePruningSimulation::prune_expansion (const State &state, int g){
-    if(pruning_type == PruningType::None || 
-       pruning_type == PruningType::DeadEnds) return false;
+    if(pruning_type == PruningType::None) return false;
     if(!is_activated()) return false;
     
     //a) Check if state is in a BDD with g.closed <= g
@@ -181,7 +189,12 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
     Heuristic::add_options_to_parser(parser);
     SymParamsMgr::add_options_to_parser_simulation(parser);
-    LDSimulation::add_options_to_parser(parser);
+
+    parser.add_option<AbstractionBuilder *>(
+            "abs",
+            "abstraction builder",
+            "");
+    //LDSimulation::add_options_to_parser(parser);
 
     parser.add_enum_option
     ("pruning_type", PruningTypeValues,
@@ -263,7 +276,6 @@ std::ostream & operator<<(std::ostream &os, const PruningType & pt){
     case PruningType::Expansion: return os << "expansion";
     case PruningType::Generation: return os << "generation";
     case PruningType::None: return os << "none";
-    case PruningType::DeadEnds: return os << "deadends";
     default:
         std::cerr << "Name of PruningTypeStrategy not known";
         exit(-1);
@@ -276,7 +288,7 @@ const std::vector<std::string> PruningDDValues {
 };
 
 const std::vector<std::string> PruningTypeValues {
-    "expansion", "generation", "none", "deadends"
+    "expansion", "generation", "none"
 };
 
 

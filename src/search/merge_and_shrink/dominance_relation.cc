@@ -157,18 +157,21 @@ double DominanceRelation::num_states_problem() const {
 }
 
 
-void DominanceRelation::dump_statistics() const {
+void DominanceRelation::dump_statistics(bool expensive) const {
     int num_equi = num_equivalences();
-    int num_sims = num_simulations();
-    double num_pairs = num_st_pairs();
-    double problem_size = num_states_problem();
+    int num_sims = num_simulations();  
     
     cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
     cout << "Similarity equivalences: " << num_equi  << endl;
     cout << "Only Simulations: " << num_sims << endl;
-    cout << "Total st pairs: " << num_pairs  << endl;
-    cout << "Percentage st pairs: " << num_pairs/(problem_size*problem_size)  << endl;
-
+    
+    if(expensive){
+	double num_pairs = num_st_pairs();
+	double problem_size = num_states_problem();
+    
+	cout << "Total st pairs: " << num_pairs  << endl;
+	cout << "Percentage st pairs: " << num_pairs/(problem_size*problem_size)  << endl;
+    }
     /*for(int i = 0; i < simulations.size(); i++){
       cout << "States after simulation: " << simulations[i]->num_states() << " " 
       << simulations[i]->num_different_states() << endl;

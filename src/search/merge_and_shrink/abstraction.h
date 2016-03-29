@@ -58,6 +58,7 @@ class Abstraction {
     friend class ShrinkStrategy; // for apply() -- TODO: refactor!
     friend class SimulationRelation; // for apply() -- TODO: refactor!
     friend class LDSimulation; // for setting store_original_operators -- TODO: refactor!
+    friend class AbsBuilderMasSimulation; // for setting store_original_operators -- TODO: refactor!
 
     static const int PRUNED_STATE;
     static const int DISTANCE_UNKNOWN;
@@ -285,6 +286,10 @@ public:
 					       int label_no);
 
     int estimate_transitions(const Abstraction * other) const;
+
+    bool is_dead_end (const State &state) const {
+	return get_abstract_state(state) == -1;
+    }
 
     void get_dead_labels(std::vector<bool> & dead_labels, 
 			 std::vector<int> & new_dead_labels);

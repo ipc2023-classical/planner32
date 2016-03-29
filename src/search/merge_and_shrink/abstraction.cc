@@ -11,6 +11,7 @@
 #include "simulation_relation.h"
 #include "../equivalence_relation.h"
 #include "../globals.h"
+#include "../debug.h"
 #include "../priority_queue.h"
 #include "../timer.h"
 #include "../utilities.h"
@@ -157,9 +158,9 @@ bool Abstraction::are_distances_computed() const {
 }
 
 void Abstraction::compute_distances() {
-    cout << tag() << flush;
+    DEBUG_MAS(cout << tag() << flush;);
     if (are_distances_computed()) {
-        cout << "distances already known" << endl;
+        DEBUG_MAS(cout << "distances already known" << endl;);
         return;
     }
 
@@ -176,11 +177,11 @@ void Abstraction::compute_distances() {
     init_distances.resize(num_states, infinity);
     goal_distances.resize(num_states, infinity);
     if (labels->is_unit_cost()) {
-        cout << "computing distances using unit-cost algorithm" << endl;
+        DEBUG_MAS(cout << "computing distances using unit-cost algorithm" << endl;);
         compute_init_distances_unit_cost();
         compute_goal_distances_unit_cost();
     } else {
-        cout << "computing distances using general-cost algorithm" << endl;
+        DEBUG_MAS(cout << "computing distances using general-cost algorithm" << endl;);
         compute_init_distances_general_cost();
         compute_goal_distances_general_cost();
     }
@@ -208,8 +209,8 @@ void Abstraction::compute_distances() {
     }
     if (unreachable_count || irrelevant_count) {
         cout << tag()
-                                     << "unreachable: " << unreachable_count << " states, "
-                                     << "irrelevant: " << irrelevant_count << " states" << endl;
+	     << "unreachable: " << unreachable_count << " states, "
+	     << "irrelevant: " << irrelevant_count << " states" << endl;
         /* Call shrink to discard unreachable and irrelevant states.
            The strategy must be one that prunes unreachable/irrelevant
            notes, but beyond that the details don't matter, as there
@@ -360,7 +361,7 @@ void Abstraction::compute_goal_distances_general_cost() {
 
 void AtomicAbstraction::apply_abstraction_to_lookup_table(
         const vector<AbstractStateRef> &abstraction_mapping) {
-    cout << tag() << "applying abstraction to lookup table" << endl;
+    DEBUG_MAS(cout << tag() << "applying abstraction to lookup table" << endl;);
     for (int i = 0; i < lookup_table.size(); i++) {
         AbstractStateRef old_state = lookup_table[i];
         if (old_state != PRUNED_STATE)
@@ -373,7 +374,7 @@ void AtomicAbstraction::apply_abstraction_to_lookup_table(
 
 void CompositeAbstraction::apply_abstraction_to_lookup_table(
         const vector<AbstractStateRef> &abstraction_mapping) {
-    cout << tag() << "applying abstraction to lookup table" << endl;
+    DEBUG_MAS(cout << tag() << "applying abstraction to lookup table" << endl;);
     for (int i = 0; i < components[0]->size(); i++) {
         for (int j = 0; j < components[1]->size(); j++) {
             AbstractStateRef old_state = lookup_table[i][j];
@@ -940,8 +941,8 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
         Abstraction *abs1,
         Abstraction *abs2)
 : Abstraction(labels) {
-    cout << "Merging " << abs1->description() << " and "
-            << abs2->description() << endl;
+    DEBUG_MAS(cout << "Merging " << abs1->description() << " and "
+	      << abs2->description() << endl;);
 
     assert(abs1->is_solvable() && abs2->is_solvable());
     assert(abs1->is_normalized() && abs2->is_normalized());
@@ -1166,8 +1167,8 @@ void Abstraction::apply_abstraction(
     if(size() == collapsed_groups.size()) return;
 
 
-    cout << tag() << "applying abstraction (" << size()
-                                 << " to " << collapsed_groups.size() << " states)" << endl;
+    DEBUG_MAS(cout << tag() << "applying abstraction (" << size()
+	      << " to " << collapsed_groups.size() << " states)" << endl;);
 
     typedef slist<AbstractStateRef> Group;
 
@@ -1281,13 +1282,15 @@ void Abstraction::apply_abstraction(
 
     goal_states.swap(new_goal_states);
     init_state = abstraction_mapping[init_state];
-    if (init_state == PRUNED_STATE)
+    if (init_state == PRUNED_STATE) {
         cout << tag() << "initial state pruned; task unsolvable" << endl;
+	exit_with(EXIT_UNSOLVABLE);
+    }
 
     apply_abstraction_to_lookup_table(abstraction_mapping);
 
     if (must_clear_distances) {
-        cout << tag() << "simplification was not f-preserving!" << endl;
+        DEBUG_MAS(cout << tag() << "simplification was not f-preserving!" << endl;);
         clear_distances();
     }
 
@@ -1442,10 +1445,8 @@ void Abstraction::dump() const {
 }
 
 bool Abstraction::is_own_label(int label_no){
-    const set<Abstraction *> & relevant_abstractions =
-            labels->get_relevant_for(label_no);
-    assert(relevant_abstractions.count(this));
-    return relevant_abstractions.size() == 1;
+    const set<Abstraction *> & relevant_abstractions = labels->get_relevant_for(label_no);
+    return relevant_abstractions.size() == 1 && *(relevant_abstractions.begin()) == this;
 }
 
 void Abstraction::count_transitions_by_label() {
@@ -1712,7 +1713,7 @@ int Abstraction::prune_transitions_dominated_label_noop(int lts_id,
 
 void PDBAbstraction::apply_abstraction_to_lookup_table(
         const vector<AbstractStateRef> &abstraction_mapping) {
-    cout << tag() << "applying abstraction to lookup table" << endl;
+    DEBUG_MAS(cout << tag() << "applying abstraction to lookup table" << endl;);
     for (int i = 0; i < lookup_table.size(); i++) {
         AbstractStateRef old_state = lookup_table[i];
         if (old_state != PRUNED_STATE)

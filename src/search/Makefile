@@ -118,6 +118,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/ld_simulation.h \
            merge_and_shrink/variable_partition_finder.h \
            merge_and_shrink/opt_order.h \
+	   merge_and_shrink/abstraction_builder.h \
            merge_and_shrink/simulation_complex_nold.h 
 
 

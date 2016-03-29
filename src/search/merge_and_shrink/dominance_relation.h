@@ -20,7 +20,6 @@ class DominanceRelation {
 protected:
     std::vector<std::unique_ptr<SimulationRelation> > simulations;
 
-
     virtual std::unique_ptr<SimulationRelation> init_simulation (Abstraction * _abs) = 0;
 
     virtual std::unique_ptr<SimulationRelation> 
@@ -69,7 +68,7 @@ public:
 
 
     //Statistics of the factored simulation 
-    void dump_statistics () const;
+    void dump_statistics (bool expensive_statistics) const;
     int num_equivalences() const;
     int num_simulations() const;   
     double num_st_pairs() const;
@@ -142,6 +141,7 @@ class DominanceRelationLR : public DominanceRelation {
 	void compute_ld_simulation_template(std::vector<LTS *> & _ltss,
 				   const LabelMap & labelMap, 
 				   bool incremental_step) {
+	assert(_ltss.size() == simulations.size());
 	Timer t;
 
 	/* if(!nold_simulation){ */
@@ -150,11 +150,11 @@ class DominanceRelationLR : public DominanceRelation {
 	/*   label_dominance.init_identity(_ltss.size(), labelMap); */
 	/* } */
 
+	
         label_dominance.init(_ltss, *this, labelMap);
 						
-	std::cout << "Label dominance initialized: " << _ltss.size() <<" " << t() << std::endl;
+	std::cout << "Compute LDSim on " << _ltss.size() << " LTSs " << t() << "s";
 	do{
-	    std::cout << "LDsimulation loop: ";
 	    //label_dominance.dump();
 	    if (incremental_step) {
 		// Should be enough to just update the last (i.e., the new) simulation here.
@@ -166,9 +166,10 @@ class DominanceRelationLR : public DominanceRelation {
 		    //_dominance_relation[i]->dump(_ltss[i]->get_names());
 		}
 	    }
-	    std::cout << " took " << t() << "s" << std::endl;
+	    std::cout << " " << t() << "s";
 	    //return; //PIET-edit: remove this for actual runs; just here for debugging the complex stuff
 	}while(label_dominance.update(_ltss, *this));
+	std::cout << std::endl;
 	//for(int i = 0; i < _ltss.size(); i++){
 	//_ltss[i]->dump();
 	//	_dominance_relation[i]->dump(_ltss[i]->get_names());

@@ -19,7 +19,8 @@ void SimulationRelation::init_goal_respecting() {
     int num_states = abs->size();
     const std::vector <bool> & goal_states = abs->get_goal_states();
     if (!abs->are_distances_computed()) {
-        cerr << "Error: Distances must have been computed before creating the simulation relation!" << endl;
+        cerr << "Error (init_goal_respecting): Distances must have been computed before creating the simulation relation!" << endl;
+	exit(-1);
     }
     const std::vector <int> & goal_distances = abs->get_goal_distances();
     relation.resize(num_states);

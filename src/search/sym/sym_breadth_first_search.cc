@@ -186,7 +186,7 @@ bool SymBreadthFirstSearch::stepImage(int maxTime, int maxNodes){
     estimation.nextStep(nodeCount(open));
     stats.add_image_time(step_time());
     
-    assert(isAbstracted() || perfectHeuristic->hasEvalOrig());
+    //assert(isAbstracted() || perfectHeuristic->hasEvalOrig());
     stats.step_time += step_time();
     return true;
 }

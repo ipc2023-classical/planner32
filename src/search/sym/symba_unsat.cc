@@ -195,7 +195,7 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	}
 
 	double reward = computeReward(newDeadEnds, time_spent);
-	cout << "Reward: " << reward << endl;
+	//cout << "Reward: " << reward << endl;
 
 	for (UCTNode * node : uct_trace) {
 	    node->notifyReward(currentSearch->isFW(), reward, uct_trace.back()->getPattern());
@@ -330,12 +330,12 @@ void SymBAUnsat::print_options() const{
 void SymBAUnsat::statistics() const{
     cout << endl << "Total BDD Nodes: " << vars->totalNodes() << endl;
     cout << "Initialization time: " << time_init << endl;
-    cout << "Total time spent in original search: " << time_step_original << endl;
-    cout << "Total time spent in abstract searches: " << time_step_abstract<<  endl;
-    cout << "Total time spent relaxing: " << time_select_exploration << endl;
-    cout << "Total time spent notifying mutexes: " << time_notify_mutex << endl;
+    cout << "Total time spent in original search: " << time_step_original << "s" << endl;
+    cout << "Total time spent in abstract searches: " << time_step_abstract<<"s" <<   endl;
+    cout << "Total time spent relaxing: " << time_select_exploration << "s" << endl;
+    cout << "Total time spent notifying mutexes: " << time_notify_mutex << "s" << endl;
 
-    cout << "Total time: " << g_timer() << endl;
+    cout << "Total time: " << g_timer() << "s" << endl;
 
 }
 

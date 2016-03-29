@@ -53,6 +53,7 @@ class SymPH;
 class SymHeuristicGenerator;
 class PruneHeuristic;
 class SymPruneHeuristic;
+class AbstractionBuilder;
 
 /*
 The TokenParser<T> wraps functions to parse supported types T.
@@ -122,6 +123,12 @@ template <>
 class TokenParser<Synergy *> {
 public:
     static inline Synergy *parse(OptionParser &p);
+};
+
+template <>
+class TokenParser<AbstractionBuilder *> {
+public:
+    static inline AbstractionBuilder *parse(OptionParser &p);
 };
 
 
@@ -451,6 +458,10 @@ return lookup_in_registry<SymHeuristicGenerator>(p);
 
 Synergy *TokenParser<Synergy *>::parse(OptionParser &p) {
     return lookup_in_registry<Synergy>(p);
+}
+
+AbstractionBuilder *TokenParser<AbstractionBuilder *>::parse(OptionParser &p) {
+    return lookup_in_registry<AbstractionBuilder>(p);
 }
 
 ParseTree TokenParser<ParseTree>::parse(OptionParser &p) {

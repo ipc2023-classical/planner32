@@ -245,7 +245,7 @@ void LabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
     }
     cout << "Update label dominance: " << num_labels
             << " labels " << lts.size() << " systems." << endl;
-
+    
     for (int i = 0; i < lts.size(); ++i){
         update(i, lts[i], sim[i]);
     }
