@@ -68,17 +68,22 @@ public:
 };
 
 
-class AbsBuilderSimulation : public AbstractionBuilder {
+class AbsBuilderMAS : public AbstractionBuilder {
+    std::unique_ptr<MergeStrategy> merge_strategy;
+    std::unique_ptr<ShrinkStrategy> shrink_strategy;
+    const bool shrink_after_merge;
+    const int limit_seconds_mas; //Limit of seconds for building the abstraction
 
-    AbsBuilderSimulation(const Options &opts); 
-    virtual ~AbsBuilderSimulation() = default;
+public: 
+    AbsBuilderMAS(const Options &opts); 
+    virtual ~AbsBuilderMAS() = default;
 
     virtual void build_abstraction (bool unit_cost, OperatorCost cost_type,
 				    std::unique_ptr<LDSimulation> & ldSim, 
 				    std::vector<std::unique_ptr<Abstraction> > & abstractions) const;
 
     virtual void dump_options() const {
-	std::cout << "AbsBuilderSimulation" << std::endl;
+	std::cout << "AbsBuilderMAS" << std::endl;
     }
 }; 
 
@@ -119,7 +124,7 @@ class AbsBuilderMasSimulation : public AbstractionBuilder{
     const int limit_seconds_mas; //Limit of seconds for building the abstraction
 
     void compute_ld_simulation(LDSimulation & ldSim,
-	bool incremental_step = false) const;
+			       bool incremental_step = false) const;
 
 public: 
     AbsBuilderMasSimulation(const Options &opts);

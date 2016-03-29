@@ -146,8 +146,11 @@ int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractio
 }
 
 // Just main loop copied from merge_and_shrink heuristic 
-std::unique_ptr<Abstraction> LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStrategy * shrink_strategy,
-							      bool shrink_after_merge, bool use_expensive_statistics) const {
+void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStrategy * shrink_strategy,
+				      bool shrink_after_merge, int limit_seconds_mas,
+				      bool use_expensive_statistics, 
+				      std::vector<std::unique_ptr<Abstraction> > & res) const {
+    Timer t_mas;
     cout << "Complete heuristic Initialized with " << abstractions.size() << " abstractions" << endl;
     //Insert atomic abstractions in the first g_variable_domain
     //variables, filling with nullptr. Then composite abstractions
@@ -165,7 +168,7 @@ std::unique_ptr<Abstraction> LDSimulation::complete_heuristic(MergeStrategy * me
 	labels->reduce(make_pair(0, 1), all_abstractions); 
 // With the reduction methods we use here, this should just apply label reduction on all abstractions
     }
-    while (!merge_strategy->done()) {
+    while (!merge_strategy->done() && t_mas() < limit_seconds_mas ) {
         pair<int, int> next_systems = merge_strategy->get_next(all_abstractions);
         int system_one = next_systems.first;
         int system_two = next_systems.second;
@@ -266,28 +269,20 @@ std::unique_ptr<Abstraction> LDSimulation::complete_heuristic(MergeStrategy * me
 	}
     }
 
-    assert(all_abstractions.size() == g_variable_domain.size() * 2 - 1);
-    unique_ptr<Abstraction> res_abstraction;
     for (size_t i = 0; i < all_abstractions.size(); ++i) {
         if (all_abstractions[i]) {
-            if (res_abstraction) {
-                cerr << "Found more than one remaining abstraction!" << endl;
-                exit_with(EXIT_CRITICAL_ERROR);
-            }
-            res_abstraction.reset(all_abstractions[i]);
-            assert(i == all_abstractions.size() - 1);
+	    all_abstractions[i]->compute_distances();
+
+	    cout << "Final: "; all_abstractions[i]->statistics(use_expensive_statistics);
+	    
+	    if (!all_abstractions[i]->is_solvable()) 
+		exit_with(EXIT_UNSOLVABLE);
+
+	    all_abstractions[i]->release_memory();
+
+            res.push_back(unique_ptr<Abstraction> (all_abstractions[i]));
         }
-    }
-
-    res_abstraction->compute_distances();
-    if (!res_abstraction->is_solvable()) 
-	exit_with(EXIT_UNSOLVABLE);
-
-    cout << "Final: "; res_abstraction->statistics(use_expensive_statistics);
-    res_abstraction->release_memory();
-
-    return res_abstraction;
-    
+    }    
 }
 
 void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_absstates_merge, 

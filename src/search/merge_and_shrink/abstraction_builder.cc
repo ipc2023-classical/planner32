@@ -81,6 +81,19 @@ void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost co
 					apply_subsumed_transitions_pruning, 
 					apply_label_dominance_reduction, apply_simulation_shrinking,
 					prune_dead_operators); 
+}
+
+
+void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
+						 std::unique_ptr<LDSimulation> & ldSim, 
+						 std::vector<std::unique_ptr<Abstraction> > & abstractions) const {
+    if(!ldSim) {
+	init_ldsim(unit_cost, cost_type, ldSim);
+    }
+
+    ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
+			      limit_seconds_mas, expensive_statistics,abstractions);
+
 } 
 
 
@@ -108,7 +121,6 @@ void AbsBuilderMasSimulation::dump_options() const {
                         << endl << dashes << endl;
     }
 }
-
 
 AbstractionBuilder::AbstractionBuilder(const Options &opts_)  : 
     opts (opts_), expensive_statistics (opts.get<bool>("expensive_statistics"))  {     
@@ -165,10 +177,13 @@ AbsBuilderMasSimulation::AbsBuilderMasSimulation(const Options &opts) :
 
 
 
-
-
-
-
+AbsBuilderMAS::AbsBuilderMAS(const Options &opts) : 
+    AbstractionBuilder(opts), 
+    merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
+    shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
+    shrink_after_merge(opts.get<bool>("shrink_after_merge")), 
+    limit_seconds_mas(opts.get<int>("limit_seconds")) {
+}
 
 
 static AbstractionBuilder *_parse_composite(OptionParser &parser) {
@@ -391,3 +406,40 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 
 
 static Plugin<AbstractionBuilder> _plugin_massim("builder_massim", _parse_massim);
+
+
+static AbstractionBuilder *_parse_mas(OptionParser &parser) {
+
+    AbstractionBuilder::add_options_to_parser(parser);
+
+    parser.add_option<int>("limit_seconds",
+            "limit the number of seconds for building the merge and shrink abstractions"
+            "By default: 600 ",
+            "600");
+
+    parser.add_option<MergeStrategy *>(
+            "merge_strategy",
+            "merge strategy; choose between merge_linear and merge_dfp",
+            "merge_linear");
+
+    parser.add_option<bool>("shrink_after_merge",
+                            "If true, performs the shrinking after merge instead of before",
+                            "false");
+
+    parser.add_option<ShrinkStrategy *>("shrink_strategy",
+					"shrink strategy; ", 
+					"none");
+
+    Options opts = parser.parse();
+
+    if (parser.help_mode())
+        return 0;
+
+    if (!parser.dry_run())
+        return new AbsBuilderMAS(opts);
+    else
+        return 0;
+}
+
+
+static Plugin<AbstractionBuilder> _plugin_mas("builder_mas", _parse_mas);

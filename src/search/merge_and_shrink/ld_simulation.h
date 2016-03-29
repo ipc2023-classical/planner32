@@ -102,16 +102,21 @@ public:
 				  bool apply_label_dominance_reduction, bool apply_simulation_shrinking,
 				  bool prune_dead_operators); 
 
-    std::unique_ptr<Abstraction> complete_heuristic(MergeStrategy * merge_strategy, 
-						    ShrinkStrategy * shrink_strategy,
-						    bool shrink_after_merge, 
-						    bool use_expensive_statistics) const;
+    void complete_heuristic(MergeStrategy * merge_strategy, 
+			    ShrinkStrategy * shrink_strategy,
+			    bool shrink_after_merge, int limit_second_mas, 
+			    bool use_expensive_statistics, 
+			    std::vector<std::unique_ptr<Abstraction>> & res ) const;
 
     bool pruned_state(const State &state) const;
     int get_cost(const State &state) const;
 
     inline DominanceRelation & get_dominance_relation() {
         return *dominance_relation;
+    }
+
+    inline bool has_dominance_relation() {
+        return dominance_relation.get() != nullptr;
     }
 
     void getVariableOrdering(std::vector <int> & var_order);

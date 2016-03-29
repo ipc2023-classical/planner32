@@ -52,27 +52,29 @@ void DominancePruningSimulation::initialize() {
 	abstractionBuilder->build_abstraction(is_unit_cost_problem() || cost_type == OperatorCost::ZERO, cost_type, ldSimulation, abstractions);
 	cout << "LDSimulation finished" << endl;
 
-        vector <int> var_order;
-        ldSimulation->getVariableOrdering(var_order);
+	if(pruning_type != PruningType::None) {
+	    vector <int> var_order;
+	    ldSimulation->getVariableOrdering(var_order);
 
-        vars->init(var_order, mgrParams);
-        if(remove_spurious_dominated_states){
-            mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams, cost_type));
-            mgr->init();
-        }
-        mgrParams.print_options();
+	    vars->init(var_order, mgrParams);
+	    if(remove_spurious_dominated_states){
+		mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams, cost_type));
+		mgr->init();
+	    }
+	    mgrParams.print_options();
 
-        if(insert_dominated){
-            ldSimulation->get_dominance_relation().precompute_dominated_bdds(vars.get());
-        }else{
-            ldSimulation->get_dominance_relation().precompute_dominating_bdds(vars.get());
-        }
+	    if(insert_dominated){
+		ldSimulation->get_dominance_relation().precompute_dominated_bdds(vars.get());
+	    }else{
+		ldSimulation->get_dominance_relation().precompute_dominating_bdds(vars.get());
+	    }
+	}
         cout << "Completed preprocessing: " << g_timer() << endl;
     }
 }
 
 bool DominancePruningSimulation::is_dead_end(const State &state) {
-    if(/*is_activated() && */ldSimulation->get_dominance_relation().pruned_state(state)){
+    if(ldSimulation && ldSimulation->has_dominance_relation() && /*is_activated() && */ldSimulation->get_dominance_relation().pruned_state(state)){
         deadends_pruned ++;
         return true;
     }
