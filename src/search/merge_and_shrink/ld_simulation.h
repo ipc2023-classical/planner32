@@ -39,7 +39,7 @@ protected:
     std::unique_ptr<Labels> labels;
     std::vector<Abstraction *> abstractions;
     std::unique_ptr<DominanceRelation> dominance_relation;
-    std::unique_ptr<Abstraction> final_abstraction;
+    //std::unique_ptr<Abstraction> final_abstraction;
 
     std::vector<int> useless_vars;
     std::vector<bool> dead_labels;
@@ -74,6 +74,9 @@ protected:
 
     int remove_useless_abstractions(std::vector<Abstraction *> & abstractions) ;
 
+    double estimated_memory_MB (std::vector<Abstraction * > all_abstractions) const;
+
+
 public:
     LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type);
     virtual ~LDSimulation();
@@ -99,15 +102,19 @@ public:
 				  LabelDominanceType label_dominance_type, 
 				  int switch_off_label_dominance, bool intermediate_simulations, bool complex_lts, 
 				  bool apply_subsumed_transitions_pruning, 
-				  bool apply_label_dominance_reduction, bool apply_simulation_shrinking,
-				  bool prune_dead_operators); 
+				  bool apply_label_dominance_reduction, bool apply_simulation_shrinking); 
 
     void complete_heuristic(MergeStrategy * merge_strategy, 
 			    ShrinkStrategy * shrink_strategy,
-			    bool shrink_after_merge, int limit_second_mas, 
-			    bool use_expensive_statistics, 
+			    bool shrink_after_merge, int limit_second_mas, int limit_memory_mas, 
+			    bool prune_dead_operators, bool use_expensive_statistics, 
 			    std::vector<std::unique_ptr<Abstraction>> & res ) const;
 
+    void prune_dead_ops () const {
+	prune_dead_ops(abstractions);
+    }
+
+    void prune_dead_ops (const std::vector<Abstraction*> & all_abstractions) const ;
     bool pruned_state(const State &state) const;
     int get_cost(const State &state) const;
 

@@ -81,15 +81,17 @@ void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost co
 					switch_off_label_dominance, 
 					intermediate_simulations, complex_lts, 
 					apply_subsumed_transitions_pruning, 
-					apply_label_dominance_reduction, apply_simulation_shrinking,
-					prune_dead_operators); 
+					apply_label_dominance_reduction, apply_simulation_shrinking); 
+
+    if(prune_dead_operators) ldSim->prune_dead_ops();
+
 }
 
 
 void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 				       std::unique_ptr<LDSimulation> & ldSim, 
 				       std::vector<std::unique_ptr<Abstraction> > & abstractions) const {
-    
+    Abstraction::store_original_operators = store_original_operators;
     
     if(restart) {
 	std::unique_ptr<LDSimulation> tmpldSim;
@@ -97,7 +99,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 	tmpldSim->init_atomic_abstractions();
 
 	tmpldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-				     limit_seconds_mas, expensive_statistics, abstractions);
+				     limit_seconds_mas, limit_memory_mas, prune_dead_operators, expensive_statistics, abstractions);
 
     } else {
 	if(!ldSim) {
@@ -106,7 +108,8 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 	}
 
 	ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-				  limit_seconds_mas, expensive_statistics,abstractions);
+				  limit_seconds_mas, limit_memory_mas, prune_dead_operators,  expensive_statistics,abstractions);
+	
     }
 } 
 
@@ -119,20 +122,20 @@ void AbsBuilderMasSimulation::dump_options() const {
     else cout << " no shrinking" << endl;
 
     cout << "Expensive statistics: "
-            << (expensive_statistics ? "enabled" : "disabled") << endl;
+	 << (expensive_statistics ? "enabled" : "disabled") << endl;
 
     if (expensive_statistics) {
         string dashes(79, '=');
         cerr << dashes << endl
-                << ("WARNING! You have enabled extra statistics for "
-                        "merge-and-shrink heuristics.\n"
-                        "These statistics require a lot of time and memory.\n"
-                        "When last tested (around revision 3011), enabling the "
-                        "extra statistics\nincreased heuristic generation time by "
-                        "76%. This figure may be significantly\nworse with more "
-                        "recent code or for particular domains and instances.\n"
-                        "You have been warned. Don't use this for benchmarking!")
-                        << endl << dashes << endl;
+	     << ("WARNING! You have enabled extra statistics for "
+		 "merge-and-shrink heuristics.\n"
+		 "These statistics require a lot of time and memory.\n"
+		 "When last tested (around revision 3011), enabling the "
+		 "extra statistics\nincreased heuristic generation time by "
+		 "76%. This figure may be significantly\nworse with more "
+		 "recent code or for particular domains and instances.\n"
+		 "You have been warned. Don't use this for benchmarking!")
+	     << endl << dashes << endl;
     }
 }
 
@@ -166,17 +169,17 @@ AbsBuilderMasSimulation::AbsBuilderMasSimulation(const Options &opts) :
     prune_dead_operators(opts.get<bool>("prune_dead_operators")),
     store_original_operators(opts.get<bool>("store_original_operators")),
     complex_lts(opts.get<bool>("complex_lts")),	
-    merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
-    original_merge(opts.get<bool>("original_merge")),				   
-    limit_absstates_merge(opts.get<int>("limit_merge")),
-    limit_transitions_merge(opts.get<int>("limit_transitions_merge")), 
-    intermediate_simulations(opts.get<bool>("intermediate_simulations")),
-    incremental_simulations(opts.get<bool>("incremental_simulations")),
-    compute_final_simulation(opts.get<bool>("compute_final_simulation")),
-    forbid_lr(opts.get<bool>("forbid_lr")),
-    shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
-    shrink_after_merge(opts.get<bool>("shrink_after_merge")), 
-    limit_seconds_mas(opts.get<int>("limit_seconds")) {
+			merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
+			original_merge(opts.get<bool>("original_merge")),				   
+			limit_absstates_merge(opts.get<int>("limit_merge")),
+			limit_transitions_merge(opts.get<int>("limit_transitions_merge")), 
+			intermediate_simulations(opts.get<bool>("intermediate_simulations")),
+			incremental_simulations(opts.get<bool>("incremental_simulations")),
+			compute_final_simulation(opts.get<bool>("compute_final_simulation")),
+			forbid_lr(opts.get<bool>("forbid_lr")),
+			shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
+			shrink_after_merge(opts.get<bool>("shrink_after_merge")), 
+			limit_seconds_mas(opts.get<int>("limit_seconds")) {
 
     if (opts.get<bool>("incremental_pruning")){
 	apply_subsumed_transitions_pruning=true;
@@ -205,6 +208,9 @@ AbsBuilderMAS::AbsBuilderMAS(const Options &opts) :
     shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
     shrink_after_merge(opts.get<bool>("shrink_after_merge")), 
     limit_seconds_mas(opts.get<int>("limit_seconds")), 
+    limit_memory_mas(opts.get<int>("limit_memory")),
+    prune_dead_operators(opts.get<bool>("prune_dead_operators")),
+    store_original_operators(opts.get<bool>("store_original_operators")),
     restart(opts.get<bool>("restart")) {
 }
 
@@ -281,38 +287,38 @@ void AbstractionBuilder::add_options_to_parser(OptionParser &parser) {
     label_reduction_method.push_back("ALL_ABSTRACTIONS");
     label_reduction_method.push_back("ALL_ABSTRACTIONS_WITH_FIXPOINT");
     parser.add_enum_option("label_reduction_method", label_reduction_method,
-            "label reduction method: "
-            "none: no label reduction will be performed "
-            "old: emulate the label reduction as desribed in the "
-            "IJCAI 2011 paper by Nissim, Hoffmann and Helmert."
-            "two_abstractions: compute the 'combinable relation' "
-            "for labels only for the two abstractions that will "
-            "be merged next and reduce labels."
-            "all_abstractions: compute the 'combinable relation' "
-            "for labels once for every abstraction and reduce "
-            "labels."
-            "all_abstractions_with_fixpoaint: keep computing the "
-            "'combinable relation' for labels iteratively for all "
-            "abstractions until no more labels can be reduced.",
-            "ALL_ABSTRACTIONS_WITH_FIXPOINT");
+			   "label reduction method: "
+			   "none: no label reduction will be performed "
+			   "old: emulate the label reduction as desribed in the "
+			   "IJCAI 2011 paper by Nissim, Hoffmann and Helmert."
+			   "two_abstractions: compute the 'combinable relation' "
+			   "for labels only for the two abstractions that will "
+			   "be merged next and reduce labels."
+			   "all_abstractions: compute the 'combinable relation' "
+			   "for labels once for every abstraction and reduce "
+			   "labels."
+			   "all_abstractions_with_fixpoaint: keep computing the "
+			   "'combinable relation' for labels iteratively for all "
+			   "abstractions until no more labels can be reduced.",
+			   "ALL_ABSTRACTIONS_WITH_FIXPOINT");
 
     vector<string> label_reduction_system_order;
     label_reduction_system_order.push_back("REGULAR");
     label_reduction_system_order.push_back("REVERSE");
     label_reduction_system_order.push_back("RANDOM");
     parser.add_enum_option("label_reduction_system_order", label_reduction_system_order,
-            "order of transition systems for the label reduction methods "
-            "that iterate over the set of all abstractions. only useful "
-            "for the choices all_abstractions and all_abstractions_with_fixpoint "
-            "for the option label_reduction_method.", "RANDOM");
+			   "order of transition systems for the label reduction methods "
+			   "that iterate over the set of all abstractions. only useful "
+			   "for the choices all_abstractions and all_abstractions_with_fixpoint "
+			   "for the option label_reduction_method.", "RANDOM");
 
     parser.add_option<bool>("expensive_statistics",
-            "show statistics on \"unique unlabeled edges\" (WARNING: "
-            "these are *very* slow, i.e. too expensive to show by default "
-            "(in terms of time and memory). When this is used, the planner "
-            "prints a big warning on stderr with information on the performance impact. "
-            "Don't use when benchmarking!)",
-            "false");
+			    "show statistics on \"unique unlabeled edges\" (WARNING: "
+			    "these are *very* slow, i.e. too expensive to show by default "
+			    "(in terms of time and memory). When this is used, the planner "
+			    "prints a big warning on stderr with information on the performance impact. "
+			    "Don't use when benchmarking!)",
+			    "false");
 }
 
 
@@ -322,70 +328,71 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
     AbstractionBuilder::add_options_to_parser(parser);
 
     parser.add_option<int>("limit_merge",
-            "limit on the number of abstract states after the merge"
-            "By default: 1, does not perform any merge",
-            "1");
+			   "limit on the number of abstract states after the merge"
+			   "By default: 1, does not perform any merge",
+			   "1");
 
     parser.add_option<int>("limit_transitions_merge",
-            "limit on the number of transitions after the merge"
-            "By default: 0: no limit at all",
-            "0");
+			   "limit on the number of transitions after the merge"
+			   "By default: 0: no limit at all",
+			   "0");
 
     parser.add_option<int>("limit_seconds",
-            "limit the number of seconds for building the merge and shrink abstractions"
-            "By default: 1700 ",
-            "1700");
+			   "limit the number of seconds for building the merge and shrink abstractions"
+			   "By default: 1700 ",
+			   "1700");
 
+    parser.add_option<int>("limit_memory",
+			   "limit the memory for building the merge and shrink abstractions"
+			   "By default:  ",
+			   "2000");
 
-    parser.add_option<bool>("use_bisimulation",
-            "If activated, use bisimulation to shrink abstractions before computing the simulation",
-            "true");
 
     parser.add_option<bool>("intermediate_simulations",
-            "Compute intermediate simulations and use them for shrinking",
-            "false");
+			    "Compute intermediate simulations and use them for shrinking",
+			    "false");
 
     parser.add_option<bool>("compute_final_simulation",
-            "Compute intermediate simulations and use them for shrinking",
-            "true");
+			    "Compute intermediate simulations and use them for shrinking",
+			    "true");
 
     parser.add_option<bool>("incremental_simulations",
-            "Compute incremental simulations and use them for shrinking",
-            "false");
+			    "Compute incremental simulations and use them for shrinking",
+			    "false");
 
     parser.add_option<MergeStrategy *>(
-            "merge_strategy",
-            "merge strategy; choose between merge_linear and merge_dfp",
-            "merge_linear");
+	"merge_strategy",
+	"merge strategy; choose between merge_linear and merge_dfp",
+	"merge_linear");
 
     parser.add_option<bool>("complex_lts",
-            "Use the complex method for LTS representation",
-            "false");
+			    "Use the complex method for LTS representation",
+			    "false");
 
     parser.add_option<bool>("apply_simulation_shrinking",
-            "Perform simulation shrinking",
-            "false");
+			    "Perform simulation shrinking",
+			    "false");
 
     parser.add_option<bool>("apply_subsumed_transitions_pruning",
-            "Perform pruning of subsumed transitions, based on simulation shrinking. Note: can only be used if simulation shrinking is applied!",
-            "false");
+			    "Perform pruning of subsumed transitions, based on simulation shrinking. Note: can only be used if simulation shrinking is applied!",
+			    "false");
 
     parser.add_option<bool>("apply_label_dominance_reduction",
-            "Perform label reduction based on found label dominances",
-            "false");
+			    "Perform label reduction based on found label dominances",
+			    "false");
 
     parser.add_option<bool>("prune_dead_operators",
-            "Prune all operators that are dead in some abstraction. Note: not yet implemented; so far, only the number of dead operators is returned!",
-            "false");
+			    "Prune all operators that are dead in some abstraction. Note: not yet implemented; so far, only the number of dead operators is returned!",
+			    "true");
 
 
     parser.add_option<bool>("forbid_lr",
-            "Disable lr from the first part",
-            "false");
+			    "Disable lr from the first part",
+			    "false");
 
     parser.add_option<bool>("store_original_operators",
-            "Store the original operators for each transition in an abstraction",
-            "false");
+			    "Store the original operators for each transition in an abstraction",
+			    "false");
 
     parser.add_option<bool>("shrink_after_merge",
                             "If true, performs the shrinking after merge instead of before",
@@ -413,9 +420,9 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 
 
     parser.add_option<int>("switch_off_label_dominance",
-            "disables label dominance if there are too many labels"
-            "By default: 1000, to avoid memory errors",
-            "200");
+			   "disables label dominance if there are too many labels"
+			   "By default: 1000, to avoid memory errors",
+			   "200");
 
     Options opts = parser.parse();
 
@@ -440,11 +447,17 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
 			   "limit the number of seconds for building the merge and shrink abstractions"
 			   "By default: 1700 ",
 			   "1700");
+    parser.add_option<int>("limit_memory",
+		       "limit the memory for building the merge and shrink abstractions"
+			   "By default:  ",
+			   "2000");
+
+
 
     parser.add_option<MergeStrategy *>(
-            "merge_strategy",
-            "merge strategy; choose between merge_linear and merge_dfp",
-            "merge_dfp");
+	"merge_strategy",
+	"merge strategy; choose between merge_linear and merge_dfp",
+	"merge_dfp");
 
     parser.add_option<bool>("shrink_after_merge",
                             "If true, performs the shrinking after merge instead of before",
@@ -457,6 +470,16 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
     parser.add_option<bool>("restart",
                             "If true, starts from atomic abstraction heuristics",
                             "false");
+
+
+    parser.add_option<bool>("store_original_operators",
+			    "Store the original operators for each transition in an abstraction",
+			    "false");
+
+    parser.add_option<bool>("prune_dead_operators",
+			    "Prune all operators that are dead in some abstraction. Note: not yet implemented; so far, only the number of dead operators is returned!",
+			    "true");
+
 
 
     Options opts = parser.parse();

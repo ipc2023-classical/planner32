@@ -52,9 +52,11 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 }
 
 LDSimulation::~LDSimulation(){
-    for(auto abs : abstractions){
-        delete abs;
-    }
+    //TODO: commented because we do not know whether this abstractions are important for someone else. 
+    //Abstractions should use shared_ptr to avoid a leak here
+    // for(auto abs : abstractions){
+    //     delete abs;
+    // }
 }
 
 unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(SimulationType simulation_type, 
@@ -145,10 +147,20 @@ int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractio
     return removed_abstractions;			    
 }
 
+
+double LDSimulation::estimated_memory_MB (vector<Abstraction * > all_abstractions) const {
+    double total_mem = 0;
+    for (auto abs : all_abstractions) {
+	if(abs) total_mem += abs->memory_estimate()/(1024.0*1024.0);
+    }
+    cout << "Total mem: " << total_mem << endl;
+    return total_mem;
+}
+
 // Just main loop copied from merge_and_shrink heuristic 
 void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStrategy * shrink_strategy,
-				      bool shrink_after_merge, int limit_seconds_mas,
-				      bool use_expensive_statistics, 
+				      bool shrink_after_merge, int limit_seconds_mas, int limit_memory_mas,
+				      bool prune_dead_operators, bool use_expensive_statistics, 
 				      std::vector<std::unique_ptr<Abstraction> > & res) const {
     Timer t_mas;
     cout << "Complete heuristic Initialized with " << abstractions.size() << " abstractions" << endl;
@@ -175,7 +187,7 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
 // With the reduction methods we use here, this should just apply label reduction on all abstractions
     }
 
-    while (!merge_strategy->done() && t_mas() < limit_seconds_mas ) {
+    while (!merge_strategy->done() && t_mas() < limit_seconds_mas && estimated_memory_MB(all_abstractions) < limit_memory_mas ) {
         pair<int, int> next_systems = merge_strategy->get_next(all_abstractions);
         int system_one = next_systems.first;
         int system_two = next_systems.second;
@@ -285,11 +297,18 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
 	    if (!all_abstractions[i]->is_solvable()) 
 		exit_with(EXIT_UNSOLVABLE);
 
-	    all_abstractions[i]->release_memory();
-
             res.push_back(unique_ptr<Abstraction> (all_abstractions[i]));
         }
     }    
+
+    if(prune_dead_operators) prune_dead_ops(all_abstractions);
+
+    for (size_t i = 0; i < all_abstractions.size(); ++i) {
+        if (all_abstractions[i]) {
+	    all_abstractions[i]->release_memory();
+	}
+    }
+
 }
 
 void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_absstates_merge, 
@@ -694,8 +713,7 @@ void LDSimulation::compute_final_simulation(SimulationType simulation_type,
 					    bool intermediate_simulations, bool complex_lts, 
 					    bool apply_subsumed_transitions_pruning, 
 					    bool apply_label_dominance_reduction, 
-					    bool apply_simulation_shrinking, 
-					    bool prune_dead_operators) {
+					    bool apply_simulation_shrinking) {
     cout << "Computing simulation..." << endl;
     if (!dominance_relation){
 	dominance_relation = std::move(create_dominance_relation(simulation_type, 
@@ -731,43 +749,42 @@ void LDSimulation::compute_final_simulation(SimulationType simulation_type,
     dominance_relation->dump_statistics(false);   
     if(!useless_vars.empty()) cout << "Useless vars: " << useless_vars.size() << endl;
 
-    if (prune_dead_operators) {
-	vector<bool> dead_labels_ops (labels->get_size(), false);
-	vector<bool> dead_operators (g_operators.size(), false);
-	for (auto abs : abstractions) abs->check_dead_operators(dead_labels_ops, dead_operators);
-        int num_dead = 0;
-        for (int i = 0; i < dead_operators.size(); i++) {
-            if (dead_operators[i])
-                num_dead++;
-        }
+}
 
-	printf("Dead operators due to dead labels: %d / %lu (%.2lf%%)\n",
-	       num_dead, g_operators.size(),
-	       ((double) num_dead / g_operators.size()) * 100);
-
-	if(!Abstraction::store_original_operators){
-	    /*cout << "Dead Operators due to dead labels: " << num_dead << " / "
-	      << g_operators.size() << " i.e., "
-	      << ((double) num_dead / g_operators.size() * 100) << "%"
-	      << endl;*/
-	    for (int i = 0; i < g_operators.size(); i++){
-		if (dead_operators[i]){
-		    //	cout << g_operators[i].get_name() << " is dead." << endl;
-		    g_operators[i].set_dead();
-		}
-	    }	
-	}
+void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions) const {
+    vector<bool> dead_labels_ops (labels->get_size(), false);
+    vector<bool> dead_operators (g_operators.size(), false);
+    for (auto abs : all_abstractions) if(abs) abs->check_dead_operators(dead_labels_ops, dead_operators);
+    int num_dead = 0;
+    for (int i = 0; i < dead_operators.size(); i++) {
+	if (dead_operators[i])
+	    num_dead++;
     }
 
-    if (Abstraction::store_original_operators) {
+    printf("Dead operators due to dead labels: %d / %lu (%.2lf%%)\n",
+	   num_dead, g_operators.size(),
+	   ((double) num_dead / g_operators.size()) * 100);
+
+    if(!Abstraction::store_original_operators){
+	/*cout << "Dead Operators due to dead labels: " << num_dead << " / "
+	  << g_operators.size() << " i.e., "
+	  << ((double) num_dead / g_operators.size() * 100) << "%"
+	  << endl;*/
+	for (int i = 0; i < g_operators.size(); i++){
+	    if (dead_operators[i]){
+		//	cout << g_operators[i].get_name() << " is dead." << endl;
+		g_operators[i].set_dead();
+	    }
+	} 
+    } else {
         boost::dynamic_bitset<> required_operators(g_operators.size());
         for (int i = 0; i < labels->get_size(); i++) {
             if (dead_labels[i] || labels->is_label_reduced(i)) {
                 continue;
             }
             boost::dynamic_bitset<> required_operators_for_label;
-            for (auto abs : abstractions) {
-                if (!abs->get_relevant_labels()[i])
+            for (auto abs : all_abstractions) {
+                if (!abs || !abs->get_relevant_labels()[i])
                     continue;
                 const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
                 const auto & t_ops = abs->get_transition_ops_for_label(i);
@@ -804,7 +821,6 @@ void LDSimulation::compute_final_simulation(SimulationType simulation_type,
 	    }
 	}
     }
-
 }
 
 
