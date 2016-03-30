@@ -89,6 +89,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 						 std::vector<std::unique_ptr<Abstraction> > & abstractions) const {
     if(!ldSim) {
 	init_ldsim(unit_cost, cost_type, ldSim);
+	ldSim->init_atomic_abstractions();
     }
 
     ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 

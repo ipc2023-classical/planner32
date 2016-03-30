@@ -793,6 +793,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
     // Note that when building atomic abstractions, no other labels than the
     // original operators have been added yet.
     for (int label_no = 0; label_no < labels->get_size(); label_no++) {
+	if(g_operators[label_no].is_dead()) continue;
         const Label *label = labels->get_label_by_index(label_no);
         const vector<Prevail> &prev = label->get_prevail();
         for (int i = 0; i < prev.size(); i++) {

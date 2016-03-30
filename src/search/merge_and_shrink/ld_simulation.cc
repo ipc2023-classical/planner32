@@ -163,11 +163,18 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
 	    all_abstractions.push_back(a);
 	}
     }
-    merge_strategy->set_remaining_merges(abstractions.size() - 1);
+
+    vector<int> used_vars; 
+    for(int i = 0; i < g_variable_domain.size(); i++) {
+	if(!all_abstractions[i]) used_vars.push_back(i);
+    }
+    merge_strategy->remove_useless_vars (used_vars);
+    merge_strategy->restart_with_remaining_merges(abstractions.size() - 1);
     if(abstractions.size() > 1){
 	labels->reduce(make_pair(0, 1), all_abstractions); 
 // With the reduction methods we use here, this should just apply label reduction on all abstractions
     }
+
     while (!merge_strategy->done() && t_mas() < limit_seconds_mas ) {
         pair<int, int> next_systems = merge_strategy->get_next(all_abstractions);
         int system_one = next_systems.first;
@@ -376,6 +383,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 
     DEBUG_MAS(cout << "Merging abstractions..." << endl;);
 
+    merge_strategy->remove_useless_vars (useless_vars);
     while (!merge_strategy->done() && t() <= limit_seconds_mas && remaining_abstractions > 1) {
 
         pair<int, int> next_systems = original_merge ? merge_strategy->get_next(all_abstractions) : 

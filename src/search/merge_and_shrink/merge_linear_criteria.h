@@ -32,6 +32,8 @@ protected:
   explicit MergeLinearCriteria(const Options &opts);
   virtual ~MergeLinearCriteria();
 
+  virtual void remove_useless_vars (const std::vector<int> & useless_vars);
+
   virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions, 
 				       int limit_abstract_states_merge, 
 				       int limit_transitions_merge = 0);

@@ -48,11 +48,14 @@ pair<int, int> MergeLinearCriteria::get_next(const std::vector<Abstraction *> &a
     assert(!done());
 
     int first;
-    if (remaining_vars.size() == g_variable_domain.size()) {
+    if (remaining_vars.size() == g_variable_domain.size() || force_first_var) {
+	force_first_var = false;
         first = next(all_abstractions);
+	
         cout << "First variable: #" << first;
 		for(int i = 0; i < g_fact_names[first].size(); ++i) 
 	    	cout << " " << g_fact_names[first][i]; 
+	assert(all_abstractions[first]);
 	cout << endl;
     } else {
         // The most recent composite abstraction is appended at the end of
@@ -167,6 +170,15 @@ int MergeLinearCriteria::next(const std::vector<Abstraction *> &all_abstractions
   return var;
 }
 
+void MergeLinearCriteria::remove_useless_vars (const std::vector<int> & useless_vars) {
+    for (int v : useless_vars) cout << "Remove useless var: " << v << endl;
+    remaining_vars.erase(std::remove_if(begin(remaining_vars), end(remaining_vars), 
+					[&](int i) {
+					    return std::find (begin(useless_vars), 
+							      end(useless_vars), 
+							      i) != std::end(useless_vars);
+					}), end(remaining_vars));
+} 
 // bool MergeLinearCriteria::reduce_labels_before_merge () const{
 //     for (int i = 0; i < criteria.size(); ++i){
 // 	if(criteria[i0.]->reduce_labels_before_merge()){
