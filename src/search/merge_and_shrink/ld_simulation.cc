@@ -770,10 +770,12 @@ void LDSimulation::compute_final_simulation(SimulationType simulation_type,
                 if (!abs->get_relevant_labels()[i])
                     continue;
                 const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
+                const auto & t_ops = abs->get_transition_ops_for_label(i);
+
                 //cout << transitions.size() << " " << abs->get_relevant_labels()[i] << endl;
                 boost::dynamic_bitset<> required_operators_for_abstraction(g_operators.size());
                 for (int j = 0; j < transitions.size(); j++) {
-                    required_operators_for_abstraction |= transitions[j].based_on_operators;
+                    required_operators_for_abstraction |= t_ops[j];
                 }
                 if (required_operators_for_label.size() == 0) {
                     required_operators_for_label = required_operators_for_abstraction;

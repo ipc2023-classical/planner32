@@ -4,8 +4,6 @@
 #include "shrink_strategy.h"
 #include "../utilities.h"
 #include "../sym/sym_variables.h"
-//#include <boost/any.hpp>
-//#include <boost/dynamic_bitset.hpp>
 #include <boost/dynamic_bitset.hpp>
 
 #include <ext/slist>
@@ -27,7 +25,7 @@ typedef int AbstractStateRef;
 struct AbstractTransition {
     AbstractStateRef src;
     AbstractStateRef target;
-    boost::dynamic_bitset<> based_on_operators;
+    //boost::dynamic_bitset<> based_on_operators;
 
     AbstractTransition(AbstractStateRef src_, AbstractStateRef target_)
         : src(src_), target(target_) {
@@ -82,6 +80,8 @@ class Abstraction {
        at most n - 1 fresh labels can be generated in addition to the n
        original labels. */
     std::vector<std::vector<AbstractTransition> > transitions_by_label;
+    std::vector<std::vector<boost::dynamic_bitset<>> > transitions_by_label_based_on_operators;
+    
     std::vector<bool> relevant_labels;
 
     //TODO: Unify with transitions by label??
@@ -213,6 +213,7 @@ public:
     // These methods should be private but is public for shrink_bisimulation
     int get_label_cost_by_index(int label_no) const;
     const std::vector<AbstractTransition> &get_transitions_for_label(int label_no) const;
+    const std::vector<boost::dynamic_bitset<>> &get_transition_ops_for_label(int label_no) const;
     // This method is shrink_bisimulation-exclusive
     int get_num_labels() const;
     int get_num_nonreduced_labels() const;
