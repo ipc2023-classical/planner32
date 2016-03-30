@@ -56,6 +56,8 @@ void AbsBuilderAtomic::build_abstraction (bool unit_cost, OperatorCost cost_type
 void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost cost_type,
 						 std::unique_ptr<LDSimulation> & ldSim, 
 						 std::vector<std::unique_ptr<Abstraction> > & /*abstractions*/) const {
+    Abstraction::store_original_operators = store_original_operators;
+
     if(!ldSim) {
 	init_ldsim(unit_cost, cost_type, ldSim);
     }
@@ -162,6 +164,7 @@ AbsBuilderMasSimulation::AbsBuilderMasSimulation(const Options &opts) :
     apply_subsumed_transitions_pruning(opts.get<bool>("apply_subsumed_transitions_pruning")),
     apply_label_dominance_reduction(opts.get<bool>("apply_label_dominance_reduction")),
     prune_dead_operators(opts.get<bool>("prune_dead_operators")),
+    store_original_operators(opts.get<bool>("store_original_operators")),
     complex_lts(opts.get<bool>("complex_lts")),	
     merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
     original_merge(opts.get<bool>("original_merge")),				   
@@ -175,12 +178,10 @@ AbsBuilderMasSimulation::AbsBuilderMasSimulation(const Options &opts) :
     shrink_after_merge(opts.get<bool>("shrink_after_merge")), 
     limit_seconds_mas(opts.get<int>("limit_seconds")) {
 
-    Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
-
     if (opts.get<bool>("incremental_pruning")){
 	apply_subsumed_transitions_pruning=true;
 	prune_dead_operators=true; 
-	Abstraction::store_original_operators = true;
+	store_original_operators = true;
 	intermediate_simulations=true;  
 	incremental_simulations=true;
     }

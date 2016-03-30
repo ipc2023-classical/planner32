@@ -102,7 +102,8 @@ class AbsBuilderMasSimulation : public AbstractionBuilder{
     bool apply_subsumed_transitions_pruning;
     const bool apply_label_dominance_reduction;
     bool prune_dead_operators;
-    
+    bool store_original_operators;
+
     const bool complex_lts;
     /* const bool use_mas; */
     /* /\* Parameters for constructing a final abstraction after the simulation *\/ */
@@ -116,7 +117,6 @@ class AbsBuilderMasSimulation : public AbstractionBuilder{
     bool intermediate_simulations;
     bool incremental_simulations;
     const bool compute_final_simulation;
-
 
     const bool forbid_lr;
 
