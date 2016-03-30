@@ -74,6 +74,8 @@ class AbsBuilderMAS : public AbstractionBuilder {
     const bool shrink_after_merge;
     const int limit_seconds_mas; //Limit of seconds for building the abstraction
 
+    const bool restart;
+
 public: 
     AbsBuilderMAS(const Options &opts); 
     virtual ~AbsBuilderMAS() = default;
@@ -97,9 +99,9 @@ class AbsBuilderMasSimulation : public AbstractionBuilder{
     const int switch_off_label_dominance;
 
     const bool apply_simulation_shrinking;
-    const bool apply_subsumed_transitions_pruning;
+    bool apply_subsumed_transitions_pruning;
     const bool apply_label_dominance_reduction;
-    const bool prune_dead_operators;
+    bool prune_dead_operators;
     
     const bool complex_lts;
     /* const bool use_mas; */
@@ -111,8 +113,8 @@ class AbsBuilderMasSimulation : public AbstractionBuilder{
     const int limit_absstates_merge;
     const int limit_transitions_merge;
 
-    const bool intermediate_simulations;
-    const bool incremental_simulations;
+    bool intermediate_simulations;
+    bool incremental_simulations;
     const bool compute_final_simulation;
 
 

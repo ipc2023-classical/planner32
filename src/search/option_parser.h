@@ -433,10 +433,18 @@ SearchEngine *TokenParser<SearchEngine *>::parse(OptionParser &p) {
 }
 
 MergeStrategy *TokenParser<MergeStrategy *>::parse(OptionParser &p) {
+    bool predefined;
+    MergeStrategy *result = lookup_in_predefinitions<MergeStrategy>(p, predefined);
+    if (predefined)
+        return result;
     return lookup_in_registry<MergeStrategy>(p);
 }
 
 ShrinkStrategy *TokenParser<ShrinkStrategy *>::parse(OptionParser &p) {
+    bool predefined;
+    ShrinkStrategy *result = lookup_in_predefinitions<ShrinkStrategy>(p, predefined);
+    if (predefined)
+        return result;
     return lookup_in_registry<ShrinkStrategy>(p);
 }
 
@@ -461,6 +469,10 @@ Synergy *TokenParser<Synergy *>::parse(OptionParser &p) {
 }
 
 AbstractionBuilder *TokenParser<AbstractionBuilder *>::parse(OptionParser &p) {
+    bool predefined;
+    AbstractionBuilder *result = lookup_in_predefinitions<AbstractionBuilder>(p, predefined);
+    if (predefined)
+        return result;
     return lookup_in_registry<AbstractionBuilder>(p);
 }
 

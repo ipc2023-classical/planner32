@@ -5,6 +5,9 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include "globals.h"
+#include "timer.h"
+
 using namespace std;
 
 
@@ -58,7 +61,7 @@ void exit_with(ExitCode exitcode) {
     switch (exitcode) {
     case EXIT_PLAN_FOUND:
         cout << "Solution found." << endl;
-	    cout << "solvable" << endl;
+        cout << "solvable" << endl;
         break;
     case EXIT_CRITICAL_ERROR:
         cerr << "Unexplained error occured." << endl;
@@ -70,6 +73,7 @@ void exit_with(ExitCode exitcode) {
         cerr << "Tried to use unsupported feature." << endl;
         break;
     case EXIT_UNSOLVABLE:
+	cout << "Total time: " << g_timer() << endl;
         cout << "Task is provably unsolvable." << endl;
 	    cout << "unsolvable" << endl;
         break;

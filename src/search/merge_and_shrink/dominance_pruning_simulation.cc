@@ -88,9 +88,18 @@ bool DominancePruningSimulation::is_dead_end(const State &state) {
 }
 
 int DominancePruningSimulation::compute_heuristic(const State &state) {
-    int cost = ldSimulation->get_dominance_relation().get_cost(state);
+    int cost = (ldSimulation && ldSimulation->has_dominance_relation()) ? 
+	ldSimulation->get_dominance_relation().get_cost(state) : 0;
     if (cost == -1)
         return DEAD_END;
+
+    for (auto & abs : abstractions) {
+	if(abs->is_dead_end(state)) {
+	    return DEAD_END;
+	}
+	cost = max (cost, abs->get_cost(state));
+    }
+
     return cost;
 }
 
@@ -603,6 +612,8 @@ bool DominancePruningSimulationSkylineBDD::check (const State & state, int /*g*/
 
 void DominancePruningSimulation::print_statistics()
  {
-     cout << "Dominance BDD nodes: " << mgr->totalNodes() << endl;
-     cout << "Dominance BDD memory: " << mgr->totalMemory() << endl;
+     if(mgr){
+	 cout << "Dominance BDD nodes: " << mgr->totalNodes() << endl;
+	 cout << "Dominance BDD memory: " << mgr->totalMemory() << endl;
+     }
  }

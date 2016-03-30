@@ -85,16 +85,27 @@ void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost co
 
 
 void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
-						 std::unique_ptr<LDSimulation> & ldSim, 
-						 std::vector<std::unique_ptr<Abstraction> > & abstractions) const {
-    if(!ldSim) {
-	init_ldsim(unit_cost, cost_type, ldSim);
-	ldSim->init_atomic_abstractions();
+				       std::unique_ptr<LDSimulation> & ldSim, 
+				       std::vector<std::unique_ptr<Abstraction> > & abstractions) const {
+    
+    
+    if(restart) {
+	std::unique_ptr<LDSimulation> tmpldSim;
+	init_ldsim(unit_cost, cost_type, tmpldSim);
+	tmpldSim->init_atomic_abstractions();
+
+	tmpldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
+				     limit_seconds_mas, expensive_statistics, abstractions);
+
+    } else {
+	if(!ldSim) {
+	    init_ldsim(unit_cost, cost_type, ldSim);
+	    ldSim->init_atomic_abstractions();
+	}
+
+	ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
+				  limit_seconds_mas, expensive_statistics,abstractions);
     }
-
-    ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-			      limit_seconds_mas, expensive_statistics,abstractions);
-
 } 
 
 
@@ -163,16 +174,25 @@ AbsBuilderMasSimulation::AbsBuilderMasSimulation(const Options &opts) :
     shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
     shrink_after_merge(opts.get<bool>("shrink_after_merge")), 
     limit_seconds_mas(opts.get<int>("limit_seconds")) {
+
+    Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
+
+    if (opts.get<bool>("incremental_pruning")){
+	apply_subsumed_transitions_pruning=true;
+	prune_dead_operators=true; 
+	Abstraction::store_original_operators = true;
+	intermediate_simulations=true;  
+	incremental_simulations=true;
+    }
+
     if (incremental_simulations && !intermediate_simulations) {
         cerr << "Error: To use incremental calculation of simulations, intermediate simulations must be used!" << endl;
         exit_with(EXIT_INPUT_ERROR);
     }
 
-    Abstraction::store_original_operators = opts.get<bool>("store_original_operators");
-
     if (!prune_dead_operators && Abstraction::store_original_operators) {
         cerr << "Error: Why do you want to store operators if you don't prune them?" << endl;
-        exit(1);
+        exit_with(EXIT_INPUT_ERROR);
     }
 }
 
@@ -183,7 +203,8 @@ AbsBuilderMAS::AbsBuilderMAS(const Options &opts) :
     merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
     shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
     shrink_after_merge(opts.get<bool>("shrink_after_merge")), 
-    limit_seconds_mas(opts.get<int>("limit_seconds")) {
+    limit_seconds_mas(opts.get<int>("limit_seconds")), 
+    restart(opts.get<bool>("restart")) {
 }
 
 
@@ -311,8 +332,8 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 
     parser.add_option<int>("limit_seconds",
             "limit the number of seconds for building the merge and shrink abstractions"
-            "By default: 600 ",
-            "600");
+            "By default: 1700 ",
+            "1700");
 
 
     parser.add_option<bool>("use_bisimulation",
@@ -330,10 +351,6 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
     parser.add_option<bool>("incremental_simulations",
             "Compute incremental simulations and use them for shrinking",
             "false");
-
-    parser.add_option<bool>("use_mas",
-            "Use MaS to derive the factoring (or the factored strategy)",
-            "true");
 
     parser.add_option<MergeStrategy *>(
             "merge_strategy",
@@ -377,6 +394,11 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
                             "Whether it continues merging variables after the next recommended merge has exceeded size",
                             "false");
 
+    parser.add_option<bool>("incremental_pruning",
+                            "Sets to true apply_subsumed_transitions_pruning, prune_dead_operators, store_original_operators, intermediate_simulations, and incremental_simulations",
+                            "false");
+
+
     parser.add_option<ShrinkStrategy *>("shrink_strategy",
 					"shrink strategy; ", 
 					"none");
@@ -392,7 +414,7 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
     parser.add_option<int>("switch_off_label_dominance",
             "disables label dominance if there are too many labels"
             "By default: 1000, to avoid memory errors",
-            "1000");
+            "200");
 
     Options opts = parser.parse();
 
@@ -414,14 +436,14 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
     AbstractionBuilder::add_options_to_parser(parser);
 
     parser.add_option<int>("limit_seconds",
-            "limit the number of seconds for building the merge and shrink abstractions"
-            "By default: 600 ",
-            "600");
+			   "limit the number of seconds for building the merge and shrink abstractions"
+			   "By default: 1700 ",
+			   "1700");
 
     parser.add_option<MergeStrategy *>(
             "merge_strategy",
             "merge strategy; choose between merge_linear and merge_dfp",
-            "merge_linear");
+            "merge_dfp");
 
     parser.add_option<bool>("shrink_after_merge",
                             "If true, performs the shrinking after merge instead of before",
@@ -430,6 +452,11 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
     parser.add_option<ShrinkStrategy *>("shrink_strategy",
 					"shrink strategy; ", 
 					"none");
+
+    parser.add_option<bool>("restart",
+                            "If true, starts from atomic abstraction heuristics",
+                            "false");
+
 
     Options opts = parser.parse();
 

@@ -179,7 +179,7 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
         pair<int, int> next_systems = merge_strategy->get_next(all_abstractions);
         int system_one = next_systems.first;
         int system_two = next_systems.second;
-	cout << " NEXT SYSTEMS: " << system_one <<  " " << system_two << endl;
+	DEBUG_MAS(cout << " NEXT SYSTEMS: " << system_one <<  " " << system_two << endl;);
         assert(system_one != system_two);
 
 
