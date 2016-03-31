@@ -94,6 +94,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
     Abstraction::store_original_operators = store_original_operators;
     
     if(restart) {
+	ldSim->release_memory();
 	std::unique_ptr<LDSimulation> tmpldSim;
 	init_ldsim(unit_cost, cost_type, tmpldSim);
 	tmpldSim->init_atomic_abstractions();

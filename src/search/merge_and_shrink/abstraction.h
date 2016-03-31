@@ -144,6 +144,9 @@ protected:
     virtual int memory_estimate() const;
 public:
     Abstraction(Labels *labels);
+
+    Abstraction(const Abstraction & o);
+
     virtual ~Abstraction();
 
     int total_transitions() const;
@@ -305,6 +308,8 @@ public:
     const SimulationRelation & get_simulation_relation() const {
         return *simulation_relation;
     }
+
+    virtual Abstraction * clone() const = 0;
 };
 
 class AtomicAbstraction : public Abstraction {
@@ -317,6 +322,7 @@ protected:
         const std::vector<AbstractStateRef> &abstraction_mapping);
     virtual int memory_estimate() const;
 public:
+    AtomicAbstraction(const AtomicAbstraction &) = default;
     AtomicAbstraction(Labels *labels, int variable);
     virtual ~AtomicAbstraction();
 
@@ -324,6 +330,7 @@ public:
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
 
+    virtual Abstraction * clone() const;
 };
 
 class CompositeAbstraction : public Abstraction {
@@ -336,6 +343,7 @@ protected:
         const std::vector<AbstractStateRef> &abstraction_mapping);
     virtual int memory_estimate() const;
 public:
+    CompositeAbstraction(const CompositeAbstraction &);
     CompositeAbstraction(Labels *labels, Abstraction *abs1, Abstraction *abs2);
     virtual ~CompositeAbstraction();
 
@@ -349,6 +357,7 @@ public:
     int get_abstract_state(int i, int j) const {
         return lookup_table[i][j];
     }
+    virtual Abstraction * clone() const;
 };
 
 class PDBAbstraction : public Abstraction {
@@ -356,7 +365,7 @@ class PDBAbstraction : public Abstraction {
     std::vector<int> pattern; 
     std::vector<AbstractStateRef> lookup_table;
  private: 
-
+    PDBAbstraction(const PDBAbstraction & ) = default;
     template <typename T>
 	int rank(const T &state) const {
 	int res = 0;
@@ -389,6 +398,9 @@ public:
     virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
+
+    virtual Abstraction * clone() const;
+
 };
 
 #endif

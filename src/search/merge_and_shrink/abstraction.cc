@@ -2111,3 +2111,54 @@ bool Abstraction::check_dead_operators(vector<bool> & dead_labels, vector<bool> 
 void Abstraction::reset_lts() {
     lts.reset();
 }
+
+
+Abstraction::Abstraction(const Abstraction & o) : 
+    labels (o.labels), num_labels (o.num_labels), 
+    transitions_by_label(o.transitions_by_label), 
+    transitions_by_label_based_on_operators(o.transitions_by_label_based_on_operators), 
+    relevant_labels (o.relevant_labels),
+    num_transitions_by_label(o.num_transitions_by_label),
+    num_goal_transitions_by_label(o.num_goal_transitions_by_label), 
+    num_states(o.num_states), 
+    init_distances (o.init_distances),
+    goal_distances (o.goal_distances),
+    goal_states (o.goal_states),
+    init_state (o.init_state), 
+    max_f (o.max_f),
+    max_g (o.max_g),
+    max_h (o.max_h),
+    transitions_sorted_unique (o.transitions_sorted_unique),
+    goal_relevant_vars (o.goal_relevant_vars), 
+    all_goals_relevant (o.all_goals_relevant), 
+    simulation_relation(nullptr), varset(o.varset) {
+}
+
+
+Abstraction * AtomicAbstraction::clone() const{
+    return new AtomicAbstraction(*this);
+}
+
+Abstraction * CompositeAbstraction::clone() const{
+    return new CompositeAbstraction(*this);
+}
+
+Abstraction * PDBAbstraction::clone() const{
+    return new PDBAbstraction(*this);
+}
+
+
+CompositeAbstraction::CompositeAbstraction(const CompositeAbstraction & o)  : 
+    Abstraction(o), lookup_table(o.lookup_table) {
+
+    components[0] = o.components[0];
+    components[1] = o.components[1];
+}
+
+
+
+
+
+
+
+

@@ -129,6 +129,8 @@ public:
     void getVariableOrdering(std::vector <int> & var_order);
 
     static void add_options_to_parser(OptionParser &parser);
+
+    void release_memory(); 
 };
 
 

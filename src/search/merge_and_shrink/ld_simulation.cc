@@ -170,9 +170,9 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     int index_atomic = 0;
     for (auto a : abstractions) {
 	if (a->get_varset().size() == 1) {
-	    all_abstractions[index_atomic++] = a;
+	    all_abstractions[index_atomic++] = a->clone();
 	}else{
-	    all_abstractions.push_back(a);
+	    all_abstractions.push_back(a->clone());
 	}
     }
 
@@ -302,12 +302,6 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     }    
 
     if(prune_dead_operators) prune_dead_ops(all_abstractions);
-
-    for (size_t i = 0; i < all_abstractions.size(); ++i) {
-        if (all_abstractions[i]) {
-	    all_abstractions[i]->release_memory();
-	}
-    }
 
 }
 
@@ -756,14 +750,19 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
     vector<bool> dead_operators (g_operators.size(), false);
     for (auto abs : all_abstractions) if(abs) abs->check_dead_operators(dead_labels_ops, dead_operators);
     int num_dead = 0;
+    int were_dead = 0;
     for (int i = 0; i < dead_operators.size(); i++) {
-	if (dead_operators[i])
-	    num_dead++;
+	if(!g_operators[i].is_dead()) {
+	    if (dead_operators[i])
+		num_dead++;
+	} else {
+	    were_dead ++;
+	}
     }
 
-    printf("Dead operators due to dead labels: %d / %lu (%.2lf%%)\n",
-	   num_dead, g_operators.size(),
-	   ((double) num_dead / g_operators.size()) * 100);
+    printf("Dead operators due to dead labels: %d (new %d) / %lu (%.2lf%%)\n",
+	   were_dead + num_dead, num_dead,  g_operators.size(),
+	   ((double) (num_dead + were_dead) / g_operators.size()) * 100);
 
     if(!Abstraction::store_original_operators){
 	/*cout << "Dead Operators due to dead labels: " << num_dead << " / "
@@ -890,3 +889,14 @@ void LDSimulation::getVariableOrdering(vector <int> & var_order){
     // for(int v : var_order) cout << v << " ";
     // cout  << endl;
 }
+
+
+
+void LDSimulation::release_memory() {
+    for (size_t i = 0; i < abstractions.size(); ++i) {
+        if (abstractions[i]) {
+	    abstractions[i]->release_memory();
+	}
+    }
+}
+

@@ -52,6 +52,8 @@ void DominancePruningSimulation::initialize() {
 	abstractionBuilder->build_abstraction(is_unit_cost_problem() || cost_type == OperatorCost::ZERO, cost_type, ldSimulation, abstractions);
 	cout << "LDSimulation finished" << endl;
 
+	ldSimulation->release_memory();
+
 	if(pruning_type != PruningType::None) {
 	    vector <int> var_order;
 	    ldSimulation->getVariableOrdering(var_order);
