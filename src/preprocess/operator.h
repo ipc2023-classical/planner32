@@ -21,9 +21,7 @@ public:
   Prevail(Variable *v, int p) : var(v), prev(p) {}
     
     inline void remove_unreachable_facts(){
-      //cout << "Prevail: " << var->get_fact_name(prev) << endl;
       prev = var->get_new_id(prev);
-      //cout << "NOT PROBLEM" << endl;
     }
   };
   class EffCond {
@@ -87,6 +85,8 @@ private:
     std::vector<std::pair<int, int> > augmented_preconditions;
     std::vector<std::pair<int, int> > potential_preconditions;
 
+    std::vector<std::pair<Variable *, int>> augmented_preconditions_var;
+    std::vector<std::pair<Variable *, int>> potential_preconditions_var;
 public:
     Operator(istream &in, const vector<Variable *> &variables);
 
@@ -117,10 +117,17 @@ public:
       return potential_preconditions;
     }
     
+    int count_potential_preconditions() const;
+    inline int count_augmented_preconditions() const {
+        return augmented_preconditions.size();
+    }
+
+    int count_potential_noeff_preconditions() const;
+    void include_augmented_preconditions();
 
     void remove_ambiguity(const H2Mutexes & h2);
 
-    void remove_unreachable_facts();
+    void remove_unreachable_facts(const vector<Variable *> &variables);
 };
 
 extern void strip_operators(vector<Operator> &operators);

@@ -23,6 +23,9 @@ int main(int argc, const char ** argv) {
   int h2_mutex_time = 300; // 5 minutes to compute mutexes by default
   bool optimize_ordering = false;  
   bool write_to_file_for_gamer = false;
+  bool include_augmented_preconditions = false;
+  bool expensive_statistics = false;
+  bool disable_bw_h2 = false;
 
   
   bool metric;
@@ -37,19 +40,33 @@ int main(int argc, const char ** argv) {
 
   for (int i = 1; i < argc; ++i) {
     string arg = string(argv[i]);
-    if(arg.compare("--opt_ordering") == 0){
+if (arg.compare("--no_rel") == 0) {
+            cout << "*** do not perform relevance analysis ***" << endl;
+            g_do_not_prune_variables = true;
+        } else if (arg.compare("--h2_time_limit") == 0) {
+            i++;
+            if (i < argc) {
+		h2_mutex_time = atoi(argv[i]);
+            } else {
+                cerr << "please specify the number of seconds after --h2_time_limit" << endl;
+                exit(2);
+            }
+        } else if (arg.compare("--augmented_pre") == 0) {
+            include_augmented_preconditions = true;
+        } else if (arg.compare("--no_bw_h2") == 0) {
+            disable_bw_h2 = true;
+        } else if (arg.compare("--stat") == 0) {
+            expensive_statistics = true;
+        } else if(arg.compare("--opt_ordering") == 0){
       optimize_ordering = true;
     }else if (arg.compare("--cgamer") == 0){
       write_to_file_for_gamer = true;
-    }else if (arg.compare("--not_prune") == 0){
-      cout << "*** do not perform relevance analysis ***" << endl;
-      g_do_not_prune_variables = true;
     }else if (arg.compare("--no_h2") == 0){
       cout << "*** do not perform h2 analysis ***" << endl;
       h2_mutex_time = 0;
     }else{
       cerr << "unknown option " << arg << endl << endl;
-      cout << "Usage: ./preprocess [--cgamer] [--opt_ordering]  [--no_h2] < output"<< endl;
+      cout << "Usage: ./preprocess [--no_rel] [--no_h2]  [--no_bw_h2] [--augmented_pre] [--stat] [--cgamer] [--opt_ordering]  < output"<< endl;
       exit(2);
     }
   }
@@ -72,7 +89,9 @@ int main(int argc, const char ** argv) {
   strip_axioms(axioms);
 
   // compute h2 mutexes
-  if(h2_mutex_time){
+	if (axioms.size() > 0) {
+        cout << "Disabling h2 analysis because it does not currently support axioms" << endl;
+    } else if(h2_mutex_time){
       bool conditional_effects = false;
       for(int i = 0; i < operators.size(); i++){
 	  if(operators[i].has_conditional_effects()){
@@ -80,11 +99,19 @@ int main(int argc, const char ** argv) {
 	      break;
 	  }
       }
-    compute_h2_mutexes(ordering, operators, axioms,
-		       mutexes, initial_state, goals, 
-		       h2_mutex_time, conditional_effects);
+
+      if (conditional_effects)
+            disable_bw_h2 = true;
+
+      if(!compute_h2_mutexes(ordering, operators, axioms,
+			     mutexes, initial_state, goals,
+			       h2_mutex_time, disable_bw_h2)){
+	  cout << "Unsolvable task in preprocessor" << endl;
+	  generate_unsolvable_cpp_input();
+	  return 0;
+      }
+
     //Update the causal graph and remove unneccessary variables
-    //TODO: remove variables
     strip_mutexes(mutexes);
     strip_operators(operators);
     strip_axioms(axioms);      
@@ -92,12 +119,13 @@ int main(int argc, const char ** argv) {
     cout << "Change id of operators: " << operators.size() << endl;
     // 1) Change id of values in operators and axioms to remove unreachable facts from variables
     for(int i = 0; i < operators.size(); ++i){
-      operators[i].remove_unreachable_facts();
+      operators[i].remove_unreachable_facts(ordering);
     }
-    cout << "Change id of axioms: " << axioms.size() << endl;
-    for(int i = 0; i < axioms.size(); ++i){
-      axioms[i].remove_unreachable_facts();
-    }
+        // TODO: Activate this if axioms get supported by the h2 heuristic
+        // cout << "Change id of axioms: " << axioms.size() << endl;
+        // for(int i = 0; i < axioms.size(); ++i){
+        //     axioms[i].remove_unreachable_facts();
+        // }
     cout << "Change id of mutexes" << endl;
     for(int i = 0; i < mutexes.size(); ++i){
       mutexes[i].remove_unreachable_facts();
@@ -135,7 +163,7 @@ int main(int argc, const char ** argv) {
   }
 
   //Merge mutexes and make exactly one invariant groups
-  generate_invariants(mutexes, operators, initial_state); 
+  //generate_invariants(mutexes, operators, initial_state); 
     
   if(optimize_ordering){
     causal_graph.optimize_ordering_gamer();
@@ -175,7 +203,59 @@ int main(int argc, const char ** argv) {
   }
   cout << "Preprocessor facts: " << facts << endl;
   cout << "Preprocessor derived variables: " << derived_vars << endl;
+    cout << "Preprocessor operators: " << operators.size() << endl;
 
+    if (expensive_statistics) {
+        //Count potential preconditions
+        int num_total_augmented = 0;
+        int num_op_augmented = 0;
+        int num_total_potential = 0;
+        int num_op_potential = 0;
+        int num_total_potential_noeff = 0;
+        int num_op_potential_noeff = 0;
+
+        for (const Operator &op : operators) {
+            int count = op.count_augmented_preconditions();
+            if (count) {
+                num_op_augmented++;
+                num_total_augmented += count;
+            }
+            count = op.count_potential_preconditions();
+            if (count) {
+                num_op_potential++;
+                num_total_potential += count;
+            }
+            count = op.count_potential_noeff_preconditions();
+            if (count) {
+                num_op_potential_noeff++;
+                num_total_potential_noeff += count;
+            }
+        }
+
+        cout << "Augmented preconditions: " << num_total_augmented << endl;
+        cout << "Ops with augmented preconditions: " << num_op_augmented << endl;
+        cout << "Potential preconditions: " << num_total_potential << endl;
+        cout << "Ops with potential preconditions: " << num_op_potential << endl;
+        cout << "Potential preconditions contradict effects: " << num_total_potential_noeff << endl;
+        cout << "Ops with potential preconditions contradict effects: " << num_op_potential_noeff << endl;
+        set<vector<int>> mutexes_fw, mutexes_bw;
+        for (MutexGroup &mutex : mutexes) {
+            if (!mutex.is_redundant()) {
+                if (mutex.is_fw())
+                    mutex.add_tuples(mutexes_fw);
+                else
+                    mutex.add_tuples(mutexes_bw);
+            }
+        }
+        cout << "Preprocessor mutex groups fw: " << mutexes_fw.size()
+             << " bw: " << mutexes_bw.size() << endl;
+    }
+
+    if (include_augmented_preconditions) {
+        for (Operator &op : operators) {
+            op.include_augmented_preconditions();
+        }
+    }
   // Calculate the problem size
   int task_size = ordering.size() + facts + goals.size();
 

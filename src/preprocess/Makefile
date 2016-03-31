@@ -81,10 +81,10 @@ DEPEND = g++ -MM
 ## that are used for all three targets (release, debug, and profile).
 ## (POSTLINKOPT are options that appear *after* all object files.)
 
-CCOPT  =
+CCOPT  = 
 CCOPT += -m32
-CCOPT += -g
-CCOPT += -Wall -W -Wno-sign-compare -Wno-deprecated -ansi -pedantic -Werror
+CCOPT += -g 
+CCOPT += -Wall -W -Wno-sign-compare -Wno-deprecated -std=c++11 -pedantic -Werror
 
 ## The following lines contain workarounds for bugs when
 ## cross-compiling to 64 bit on 32-bit systems using gcc 4.4 or gcc
@@ -117,7 +117,7 @@ POSTLINKOPT =
 ## NOTE: This precludes some uses of exceptions.
 ##        For details, see man gcc on -static-libgcc.
 
-CCOPT_RELEASE  = -O3 -DNDEBUG -fomit-frame-pointer
+CCOPT_RELEASE  = -O3 -DNDEBUG -fomit-frame-pointer 
 CCOPT_DEBUG    = -O3
 CCOPT_PROFILE  = -O3 -pg
 

@@ -273,7 +273,7 @@ void Operator::remove_ambiguity(const H2Mutexes & h2) {
 }
 
 
-void Operator::remove_unreachable_facts(){
+void Operator::remove_unreachable_facts(const vector<Variable *> &variables) {
   vector<Prevail> newprev;
   for(int i = 0; i < prevail.size(); ++i){
     if(prevail[i].var->is_necessary()) {
@@ -285,4 +285,113 @@ void Operator::remove_unreachable_facts(){
   for(int i = 0; i < pre_post.size(); ++i){
     pre_post[i].remove_unreachable_facts();
   }
+    for (const pair<int, int> &augmented_precondition : augmented_preconditions) {
+        int var = augmented_precondition.first;
+        int val = augmented_precondition.second;
+        if (variables[var]->is_necessary()) {
+            augmented_preconditions_var.push_back(pair<Variable *, int> (variables[var], variables[var]->get_new_id(val)));
+        }
+    }
+    for (const pair<int, int> &potential_precondition : potential_preconditions) {
+        int var = potential_precondition.first;
+        int val = potential_precondition.second;
+
+        if (variables[var]->is_necessary()) {
+            potential_preconditions_var.push_back(pair<Variable *, int> (variables[var], variables[var]->get_new_id(val)));
+        }
+    }
+}
+
+
+
+void Operator::include_augmented_preconditions() {
+    //cout << "Including augmented precondition in" << name << endl;
+
+    for (size_t i = 0; i < augmented_preconditions_var.size(); i++) {
+        Variable *var = augmented_preconditions_var[i].first;
+        int val = augmented_preconditions_var[i].second;
+        //cout << name << " AFTER: " << var->get_fact_name(val) << endl;
+
+
+        bool included_in_eff = false;
+        for (size_t j = 0; j < pre_post.size(); j++) {
+            if (pre_post[j].var->get_level() == var->get_level()) {
+                if (pre_post[j].pre != -1) {
+                    cerr <<
+                        "Assertion error: augmented precondition was already encoded in the operator"
+                         << endl;
+                    cerr << name << endl;
+                    exit(-1);
+                } else {
+                    if (pre_post[j].post != val) {
+                        pre_post[j].pre = val;
+                        included_in_eff = true;
+                    } else {
+                        //Remove prepost
+                        pre_post.erase(pre_post.begin() + j);
+                    }
+                    break;
+                }
+            }
+        }
+        if (!included_in_eff) {
+            prevail.push_back(Prevail(var, val));
+        }
+    }
+    vector<pair<int, int>> ().swap(augmented_preconditions);
+}
+
+
+int Operator::count_potential_noeff_preconditions() const {
+    std::set<Variable *> found, found_eff;
+    for (size_t i = 0; i < potential_preconditions_var.size(); i++) {
+        Variable *var = potential_preconditions_var[i].first;
+        int val = potential_preconditions_var[i].second;
+        bool isaug = false;
+        for (size_t j = 0; j < augmented_preconditions_var.size(); j++) {
+            if (augmented_preconditions_var[j].first->get_level() == var->get_level()) {
+                isaug = true;
+                break;
+            }
+        }
+        if (isaug)
+            continue;
+        for (size_t j = 0; j < pre_post.size(); j++) {
+            if (pre_post[j].var->get_level() == var->get_level()) {
+                if (pre_post[j].post == val) {
+                    found_eff.insert(var);
+                } else {
+                    found.insert(var);
+                }
+                break;
+            }
+        }
+    }
+    for (std::set<Variable *>::iterator it = found_eff.begin();
+         it != found_eff.end(); ++it)
+        found.erase(*it);
+
+
+    return found.size();
+}
+
+
+int Operator::count_potential_preconditions() const {
+    std::set<Variable *> found;
+    for (size_t i = 0; i < potential_preconditions_var.size(); i++) {
+        Variable *var = potential_preconditions_var[i].first;
+        bool isaug = false;
+        for (size_t j = 0; j < augmented_preconditions_var.size(); j++) {
+            if (augmented_preconditions_var[j].first->get_level() == var->get_level()) {
+                isaug = true;
+                break;
+            }
+        }
+        if (isaug)
+            continue;
+
+        found.insert(var);
+    }
+
+    return found.size();
 }
