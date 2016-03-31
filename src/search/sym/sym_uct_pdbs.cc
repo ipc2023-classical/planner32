@@ -12,17 +12,20 @@
 using namespace std;
 
 
-UCTNode::UCTNode(SymVariables * vars, const SymParamsMgr & mgrParams, OperatorCost cost_type) :  pdb (nullptr),
-									 mgr(new SymManager(vars, nullptr, mgrParams, cost_type)),  
-									 reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0),
-									 redundant_fw(false), redundant_bw(false) {
+UCTNode::UCTNode(SymVariables * vars, 
+		 const SymParamsMgr & mgrParams,
+		 OperatorCost cost_type) : 
+    pdb (nullptr), mgr(new SymManager(vars, nullptr, mgrParams, cost_type)),  
+    reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0),
+    redundant_fw(false), redundant_bw(false) {
+
     for (int i = 0; i < g_variable_domain.size(); ++i) pattern.insert(i);
 }
 
-UCTNode::UCTNode(const std::set<int> & pattern_) : pattern (pattern_), 
-						   pdb(nullptr), mgr(nullptr), 
-						   reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0), 
-						   redundant_fw(false), redundant_bw(false) { 
+UCTNode::UCTNode(const std::set<int> & pattern_) : 
+    pattern (pattern_), pdb(nullptr), mgr(nullptr), 
+    reward_fw(0), reward_bw(0), visits_fw(0), visits_bw(0), 
+    redundant_fw(false), redundant_bw(false) { 
 
 }
 
@@ -49,7 +52,7 @@ SymBreadthFirstSearch * UCTNode::initSearch(bool fw, const SymParamsSearch & sea
 }
 
 
-void UCTNode::refine_pattern (const set<int> & pattern, vector<set<int>> & patterns) const {    
+void UCTNode::refine_pattern (const set<int> & pattern, vector<pair<int, set<int>>> & patterns, int v) const {    
     vector<set<int>> patterns_goal(pattern.size());
     vector<bool> pattern_goal_redundant (pattern.size(), false);
     vector<int> pattern_var (g_variable_domain.size(), -1);
@@ -90,11 +93,12 @@ void UCTNode::refine_pattern (const set<int> & pattern, vector<set<int>> & patte
 	    }
 	}
 	if (patterns_goal[g].size() == pattern.size()) {
-	    if (find_if(begin(patterns), end(patterns), [&](const set<int> & p1){return isSubset(patterns_goal[g], p1);}) == end(patterns)){
+	    if (find_if(begin(patterns), end(patterns), [&](const pair<int, set<int>> & p1){
+			return isSubset(patterns_goal[g], p1.second);}) == end(patterns)){
 		patterns.erase(remove_if(begin(patterns), end(patterns), 
-					 [&](const set<int>  & p1){return isSubset(p1, patterns_goal[g]);
+					 [&](const pair<int, set<int>>  & p1){return isSubset(p1.second, patterns_goal[g]);
 					 }), end(patterns));
-		patterns.push_back(std::move(patterns_goal[g]));
+		patterns.push_back(pair<int, set<int>>(v, std::move(patterns_goal[g])));
 	    }
 
 	    return;
@@ -104,13 +108,13 @@ void UCTNode::refine_pattern (const set<int> & pattern, vector<set<int>> & patte
     for (int g = 0; g < pattern.size(); ++g) {
 	if (!pattern_goal_redundant[g] && find_if(begin(patterns),
 						  end(patterns),
-						  [&](const set<int>  & p1){
-						      return isSubset(patterns_goal[g], p1);}) == end(patterns)){
+						  [&](const pair<int, set<int>>  & p1){
+						      return isSubset(patterns_goal[g], p1.second);}) == end(patterns)){
 	    patterns.erase(remove_if(begin(patterns), end(patterns), 
-				     [&](const set<int> & p1){return isSubset(p1, patterns_goal[g]);
+				     [&](const pair<int, set<int>> & p1){return isSubset(p1.second, patterns_goal[g]);
 				     }), end(patterns));
 
-	    patterns.push_back(std::move(patterns_goal[g]));
+	    patterns.push_back(pair<int, set<int>>(v, std::move(patterns_goal[g])));
 	}
     }
     
@@ -163,20 +167,21 @@ void UCTNode::removeSubsets(const set<int> & pat, bool fw, set<UCTNode *> & cach
 
 void UCTNode::initChildren (SymBAUnsat * manager)  {
     if (!children.empty()) return;
-
-    vector<set<int> > patterns;
+    
+    vector<pair<int, set<int> > > patterns;
     for (int v : pattern) {
 	set<int> new_pattern (pattern);
 	new_pattern.erase(std::find(begin(new_pattern), end(new_pattern), v));
 
-	refine_pattern (new_pattern, patterns);
+	refine_pattern (new_pattern, patterns, v);
     }
 
-    //cout << "Children of " << *this << endl;	
-
-    for (const auto & p : patterns) {
+    for (const auto & pp : patterns) {
+	int v = pp.first;
+	const auto & p = pp.second;
 	pair<bool, bool> redundant (false, false);
 	if(manager->getRoot()->existsFinishedSuperset(p, redundant)) continue;
+	    
 	auto newChild = manager->getUCTNode(p);
 
 	if(redundant.first) newChild->redundant_fw = true;
@@ -188,10 +193,10 @@ void UCTNode::initChildren (SymBAUnsat * manager)  {
 		//cout << "   " << *newChild << endl;
 		children_fw.push_back(newChild);
 		children_bw.push_back(newChild);
-	    }	    
+		children_var[newChild] = v;
+	    }	       
 	}
     }
-    
 }
 
 std::ostream & operator<<(std::ostream &os, const UCTNode & node){
@@ -210,7 +215,7 @@ UCTNode * UCTNode::getRandomChild (bool fw)  {
     return children_list[num_selected];	
 }
 
-UCTNode * UCTNode::getChild (bool fw, double UCT_C)  {    
+UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K)  {    
     const auto & children_list = (fw ? children_fw : children_bw);
     if(children_list.empty()) return nullptr;
     
@@ -219,6 +224,7 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C)  {
 	if(!c->isExplored(fw)) best_children.push_back(c);
     }
     
+    
     if(best_children.empty()) {
 	int total_visits = 0;
 	for(auto c : children_list) {
@@ -226,9 +232,18 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C)  {
 	} 
     
 	double best_value = numeric_limits<double>::min();
+	cout << "Child values: ";
 	for(auto c : children_list) {
-	    double c_val = uct_value(fw, total_visits, UCT_C);
-	
+	    double c_val = 0;
+	    if(RAVE_K){
+		//vector<double> & rave_reward = (fw? rave_reward_fw : rave_reward_bw);
+		double RAVE_B = sqrt(RAVE_K/(3*total_visits + RAVE_K));
+		double RAVE_Q = rave_reward[children_var[c]];
+		c_val = c->uct_value(fw, total_visits, UCT_C, RAVE_K) + RAVE_B*RAVE_Q;
+	    }else{
+		c_val = c->uct_value(fw, total_visits, UCT_C, 0);
+	    }
+	    cout << c_val << " "; 
 	    if(best_value <= c_val) {
 		if(best_value < c_val){
 		    best_value = c_val;
@@ -238,17 +253,18 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C)  {
 		best_children.push_back(c);
 	    }
 	}
+	cout << endl;
     }
     int num_selected = g_rng.next(best_children.size()); 
     return best_children[num_selected];	
 } 
 
 
-double UCTNode::uct_value(bool fw, int visits_parent, double UCT_C) const {
-    // if(fw) cout << reward_fw << " " << visits_fw << endl;
-    // else cout << reward_fw << " " << visits_bw << endl;
-    if(fw) return reward_fw + UCT_C*sqrt(log(visits_parent)/visits_fw); 
-    else   return reward_bw + UCT_C*sqrt(log(visits_parent)/visits_bw); 
+    double UCTNode::uct_value(bool fw, int visits_parent, double UCT_C, double RAVE_B) const {
+	// if(fw) cout << reward_fw << " " << visits_fw << endl;
+	// else cout << reward_bw << " " << visits_bw << endl;
+    if(fw) return (1-RAVE_B)*reward_fw + UCT_C*sqrt(log(visits_parent)/visits_fw); 
+    else   return (1-RAVE_B)*reward_bw + UCT_C*sqrt(log(visits_parent)/visits_bw); 
 }
 
 
@@ -311,15 +327,37 @@ bool UCTNode::chooseDirection(double UCT_C) const {
     
     double rfw = reward_fw + UCT_C*sqrt(log((double)visits_fw + (double)visits_bw)/(double)visits_fw); 
     double rbw = reward_bw + UCT_C*sqrt(log((double)visits_fw + (double)visits_bw)/(double)visits_bw);
+
 //    cout << "Choosing " << visits_fw << " " << visits_bw << " " << rfw << " " <<  rbw << endl;
     if (rfw == rbw) return g_rng.next31()% 2;
     return rfw > rbw;
 }
 
 
-void UCTNode::notifyReward (bool fw, double new_reward, const std::set<int> & /*pattern*/) {
+void UCTNode::notifyReward (bool fw, double new_reward) {
+    double & reward = (fw? reward_fw : reward_bw);
+    int & n = (fw? visits_fw : visits_bw);
+    //cout << "Reward " << reward  << " n: " << n << " new_reward: " << new_reward;
+    reward = (reward *n + new_reward) / (n+1);
+    //cout << " Result:  " << reward << endl;;
+    n++;
+}
+
+
+void UCTNode::notifyRewardRAVE (bool fw, double new_reward, const std::set<int> & final_pattern) {
     double & reward = (fw? reward_fw : reward_bw);
     int & n = (fw? visits_fw : visits_bw);
     reward = (reward *n + new_reward) / (n+1);
     n++;
+
+    //Apply RAVE
+    for (int v : pattern) {
+	if(std::find (begin(final_pattern), end(final_pattern), v) != std::end(final_pattern))
+	    continue;
+	//vector<double> & rave_reward = (fw? rave_reward_fw : rave_reward_bw);
+	//vector<int> & rave_visits = (fw? rave_visits_fw : rave_visits_bw);
+    
+	rave_reward[v] =  (rave_reward[v]*rave_visits[v] + new_reward) / (rave_visits[v]+1);
+	rave_visits[v] ++;
+    }    
 }

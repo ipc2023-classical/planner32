@@ -27,6 +27,7 @@ SymBAUnsat::SymBAUnsat(const Options &opts) :
     maxNumAbstractions(opts.get<int> ("max_abstractions")), 
     UCT_C(opts.get<double> ("uct_c")),
     rewardType (UCTRewardType(opts.get_enum("reward_type"))), 
+    RAVE_K (opts.get<double> ("rave_k")),
     add_abstract_to_ongoing_searches (opts.get<bool>( "add_abstract_to_ongoing_searches")),
     numAbstractions(0), 
     time_step_abstract(0), time_step_original(0), 
@@ -90,7 +91,7 @@ UCTNode * SymBAUnsat::relax(UCTNode * node,
 	if (rewardType == UCTRewardType::RAND) {
 	    node = node->getRandomChild(fw);
 	} else {
-	    node = node->getChild(fw, UCT_C);
+	    node = node->getChild(fw, UCT_C, RAVE_K);
 	}
 	
 	if(!node) break; 
@@ -166,7 +167,7 @@ int SymBAUnsat::step(){
 void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, double time_spent, 
 					      const vector<UCTNode *> & uct_trace){
     Timer t_notify;
-    cout << "Finished abstract search: " << ((currentSearch->isFW()? "fw" : "bw"))  << " in " << *(currentSearch->getAbstraction())<< ": " << flush;
+    cout << "Finished " << ((currentSearch->isFW()? "fw" : "bw"))  << " in " << *(currentSearch->getAbstraction())<< ": " << flush;
     if (!currentSearch->foundSolution()){
 	cout << "proved task unsolvable!" << endl;
 	statistics(); 
@@ -177,13 +178,14 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	try {
 	    
 	    newDeadEnds = getRoot()->getMgr()->filter_mutex(newDeadEnds, !currentSearch->isFW(), 1000000, true);
-	    newDeadEnds = newDeadEnds*vars->validStates();
 	    // cout << "  removed:  " << newDeadEnds.nodeCount() << endl;
 	    
 	} catch(BDDError e) {
-	    cout << "  could not remove other dead ends " << endl;
+	    cout << "  could not remove other dead ends. " << flush;
 	}
 
+	newDeadEnds = newDeadEnds*vars->validStates();
+	    
        	getRoot()->removeSubsets(currentSearch->getAbstraction()->getFullVars(), currentSearch->isFW());
 	
 	if (!newDeadEnds.IsZero()) {
@@ -195,10 +197,14 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	}
 
 	double reward = computeReward(newDeadEnds, time_spent);
-	//cout << "Reward: " << reward << endl;
+	cout << "Reward: " << reward << endl;
 
 	for (UCTNode * node : uct_trace) {
-	    node->notifyReward(currentSearch->isFW(), reward, uct_trace.back()->getPattern());
+	    if(RAVE_K) {
+		node->notifyRewardRAVE(currentSearch->isFW(), reward, uct_trace.back()->getPattern());
+	    }else{
+		node->notifyReward(currentSearch->isFW(), reward);
+	    }	    
 	}
     }
     
@@ -208,9 +214,16 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 
 double SymBAUnsat::computeReward (const BDD & bdd, double time_spent) const {
     switch(rewardType) {
+    case STATES_NODES:
+	if (bdd.nodeCount() < 100000) {
+	    return  10*vars->percentageNumStates(bdd);
+	} else {
+	    return std::max (0.0, (10000000 - bdd.nodeCount())/10000000.0);
+	}
+	
     case STATES: 
 	return vars->percentageNumStates(bdd);
-    case NODES: 
+    case NODES:
 	return bdd.nodeCount()/100000.0;
     case STATES_TIME:
 	return vars->percentageNumStates(bdd) * 1800.0/(1 + time_spent); 
@@ -271,7 +284,8 @@ bool SymBAUnsat::askHeuristic() {
 	//1) Generate a new abstract exploration
 	UCTNode * abstractNode = relax(getRoot(), fw, uct_trace);
 	if(!abstractNode) {
-	    for (auto node : uct_trace) node->notifyReward(fw, 0, uct_trace.back()->getPattern());
+	    if(RAVE_K) for (auto node : uct_trace) node->notifyRewardRAVE(fw, 0, uct_trace.back()->getPattern());
+	    else for (auto node : uct_trace) node->notifyReward(fw, 0);
 	    continue;
 	}
 
@@ -298,7 +312,8 @@ bool SymBAUnsat::askHeuristic() {
 		//If we cannot continue the search, we relax it even more
 		abstractNode = relax(abstractNode, fw, uct_trace);
 		if(!abstractNode){
-		    for (auto node : uct_trace) node->notifyReward(fw, 0, uct_trace.back()->getPattern());
+		    if (RAVE_K) for (auto node : uct_trace) node->notifyRewardRAVE(fw, 0, uct_trace.back()->getPattern());
+		    else for (auto node : uct_trace) node->notifyReward(fw, 0);
 		    return true;
 		}
 		abstractExp = abstractNode->getSearch(fw);
@@ -384,7 +399,10 @@ static SearchEngine *_parse(OptionParser &parser) {
 			      "maxStepTime is multiplied by ratio to the number of abstractions", "2");
 
     parser.add_option<double>("uct_c", 
-			      "constant for uct formula", "0.2");
+			      "constant for uct formula", "1.0");
+
+    parser.add_option<double>("rave_k", 
+			      "constant for RAVE formula. Disabled by default", "0.0");
 
     parser.add_enum_option("reward_type", UCTRewardTypeValues,
 			   "type of reward function", "STATES");

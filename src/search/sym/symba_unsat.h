@@ -40,8 +40,9 @@ class SymBAUnsat : public SearchEngine, public SymController{
   const int maxNumAbstractions;
 
   //Constant for UCT formula
-  double UCT_C;
+  const double UCT_C;
   UCTRewardType rewardType;
+  const double RAVE_K; 
 
   bool add_abstract_to_ongoing_searches;
 

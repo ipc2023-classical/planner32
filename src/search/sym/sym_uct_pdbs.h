@@ -22,15 +22,18 @@ private:
     std::unique_ptr<SymPDB> pdb;
     std::unique_ptr<SymManager> mgr;
 
-    std::vector <UCTNode *> children, children_fw, children_bw; //Nodes more abstracted
-
-    //std::vector <UCTNode *> parents; //Nodes less abstracted
-
+    // Nodes more abstracted
+    std::vector <UCTNode *> children, children_fw, children_bw;
+    std::map <UCTNode *, int> children_var; 
     std::unique_ptr<SymBreadthFirstSearch> fw_search, bw_search;
-  
+
     double reward_fw, reward_bw;
     int visits_fw, visits_bw;
     bool redundant_fw, redundant_bw;
+
+    std::vector<double> rave_reward;//_fw, rave_reward_bw;
+    std::vector<int> rave_visits;//_fw, rave_visits_bw;
+
 
     bool isExplored (bool fw) const {
 	return (fw && visits_fw > 0) || (!fw && visits_bw > 0);
@@ -54,7 +57,9 @@ public:
 
     void initChildren(SymBAUnsat * manager);
 
-    void refine_pattern (const std::set<int> & pattern, std::vector<std::set<int>> & patterns) const;
+    void refine_pattern (const std::set<int> & pattern, 
+			 std::vector<std::pair<int, std::set<int>>> & patterns, 
+			 int v) const;
 
 
     SymBreadthFirstSearch * relax(SymBreadthFirstSearch * search, 
@@ -70,10 +75,10 @@ public:
     }
 
 
-    UCTNode * getChild (bool fw, double UCT_C);
+    UCTNode * getChild (bool fw, double UCT_C, double RAVE_K);
     UCTNode * getRandomChild (bool fw);
 
-    double uct_value(bool fw, int visits_parent, double UCT_C) const;
+    double uct_value(bool fw, int visits_parent, double UCT_C, double RAVE_B = 0) const;
 
     SymManager * getMgr() const {
 	return mgr.get(); 
@@ -91,7 +96,8 @@ public:
 
     void propagateNewDeadEnds(BDD bdd, bool isFW);
 
-    void notifyReward (bool fw, double numDeadEndsFound, const std::set<int> & pattern);
+    void notifyReward (bool fw, double numDeadEndsFound);
+    void notifyRewardRAVE (bool fw, double numDeadEndsFound, const std::set<int> & pattern);
 
     bool existsFinishedSuperset(const std::set<int> & pat, 
 				std::pair<bool, bool> & redundant, 
