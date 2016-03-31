@@ -61,9 +61,9 @@ public:
       post = var->get_new_id(post);
       if(is_conditional_effect){
 	vector<EffCond> new_conds;
-	for(int i = 0; i < effect_conds.size(); ++i){
-	  if(effect_conds[i].remove_unreachable_facts()){
-	    new_conds.push_back(effect_conds[i]);
+                for (EffCond &effect_condition : effect_conds) {
+                    if (effect_condition.remove_unreachable_facts()) {
+                        new_conds.push_back(effect_condition);
 	  }
 	}
 	effect_conds.swap(new_conds);

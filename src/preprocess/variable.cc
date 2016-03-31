@@ -3,7 +3,8 @@
 #include "helper_functions.h"
 
 #include <cassert>
-#include <stdlib.h>
+#include <fstream>
+#include <iostream>
 using namespace std;
 
 Variable::Variable(istream &in) {
@@ -11,7 +12,7 @@ Variable::Variable(istream &in) {
     check_magic(in, "begin_variable");
     in >> ws >> name >> layer >> range >> ws;
     values.resize(range);
-    for (size_t i = 0; i < range; ++i)
+    for (int i = 0; i < range; ++i)
         getline(in, values[i]);
 
     check_magic(in, "end_variable");
@@ -22,7 +23,8 @@ Variable::Variable(istream &in) {
 }
 
 void Variable::set_level(int theLevel) {
-    assert(level == -1);
+    // TODO: Can we change the code and uncomment the assertion?
+    // assert(level == -1);
     level = theLevel;
 }
 
@@ -52,9 +54,11 @@ void Variable::dump() const {
     //       or get rid of this if it's no longer needed.
     cout << name << " [range " << get_range();
     if (level != -1)
-        cout << "; level " << level;
+        cout << "; level " << level << " values: ";
     if (is_derived())
-        cout << "; derived; layer: " << layer;
+        cout << "; derived; layer: " << layer << " values: ";
+    for (size_t i = 0; i < values.size(); ++i)
+        cout << " " << values[i];
     cout << "]" << endl;
 }
 
@@ -71,7 +75,7 @@ void Variable::generate_cpp_input(ofstream &outfile) const {
 
 void Variable::remove_unreachable_facts(){
   vector<string> new_values;
-  for (int i = 0; i < values.size(); i++){
+    for (size_t i = 0; i < values.size(); i++) {
     if(reachable[i]){
       new_values.push_back(values[i]);
     }

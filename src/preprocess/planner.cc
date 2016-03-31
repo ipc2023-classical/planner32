@@ -51,6 +51,8 @@ if (arg.compare("--no_rel") == 0) {
                 cerr << "please specify the number of seconds after --h2_time_limit" << endl;
                 exit(2);
             }
+        } else if (arg.compare("--no_h2") == 0) {
+            h2_mutex_time = 0;
         } else if (arg.compare("--augmented_pre") == 0) {
             include_augmented_preconditions = true;
         } else if (arg.compare("--no_bw_h2") == 0) {
@@ -61,9 +63,6 @@ if (arg.compare("--no_rel") == 0) {
       optimize_ordering = true;
     }else if (arg.compare("--cgamer") == 0){
       write_to_file_for_gamer = true;
-    }else if (arg.compare("--no_h2") == 0){
-      cout << "*** do not perform h2 analysis ***" << endl;
-      h2_mutex_time = 0;
     }else{
       cerr << "unknown option " << arg << endl << endl;
       cout << "Usage: ./preprocess [--no_rel] [--no_h2]  [--no_bw_h2] [--augmented_pre] [--stat] [--cgamer] [--opt_ordering]  < output"<< endl;
@@ -93,8 +92,8 @@ if (arg.compare("--no_rel") == 0) {
         cout << "Disabling h2 analysis because it does not currently support axioms" << endl;
     } else if(h2_mutex_time){
       bool conditional_effects = false;
-      for(int i = 0; i < operators.size(); i++){
-	  if(operators[i].has_conditional_effects()){
+        for (const Operator &op : operators) {
+            if (op.has_conditional_effects()) {
 	      conditional_effects = true;
 	      break;
 	  }
@@ -118,8 +117,8 @@ if (arg.compare("--no_rel") == 0) {
 
     cout << "Change id of operators: " << operators.size() << endl;
     // 1) Change id of values in operators and axioms to remove unreachable facts from variables
-    for(int i = 0; i < operators.size(); ++i){
-      operators[i].remove_unreachable_facts(ordering);
+        for (Operator &op: operators) {
+            op.remove_unreachable_facts(ordering);
     }
         // TODO: Activate this if axioms get supported by the h2 heuristic
         // cout << "Change id of axioms: " << axioms.size() << endl;
@@ -127,15 +126,15 @@ if (arg.compare("--no_rel") == 0) {
         //     axioms[i].remove_unreachable_facts();
         // }
     cout << "Change id of mutexes" << endl;
-    for(int i = 0; i < mutexes.size(); ++i){
-      mutexes[i].remove_unreachable_facts();
+        for (MutexGroup &mutex : mutexes) {
+            mutex.remove_unreachable_facts();
     }
     cout << "Change id of goals" << endl;
     vector<pair<Variable *, int> > new_goals;
-    for(int i = 0; i < goals.size(); ++i){
-      if(goals[i].first->is_necessary()){
-	goals[i].second = goals[i].first->get_new_id(goals[i].second);
-	new_goals.push_back(goals[i]);
+        for (pair<Variable *, int> &goal : goals) {
+            if (goal.first->is_necessary()) {
+                goal.second = goal.first->get_new_id(goal.second);
+                new_goals.push_back(goal);
       }
     }
     new_goals.swap(goals);
@@ -145,9 +144,9 @@ if (arg.compare("--no_rel") == 0) {
 
     cout << "Remove unreachable facts from variables: " << ordering.size() << endl;
     // 2)Remove unreachable facts from variables
-    for (int i = 0; i < ordering.size(); ++i){
-      if (ordering[i]->is_necessary()){
-	ordering[i]->remove_unreachable_facts();
+        for (Variable *var : ordering) {
+            if (var->is_necessary()) {
+                var->remove_unreachable_facts();
       }
     }
       
@@ -196,9 +195,9 @@ if (arg.compare("--no_rel") == 0) {
   // Output some task statistics
   int facts = 0;
   int derived_vars = 0;
-  for (int i = 0; i < ordering.size(); i++) {
-    facts += ordering[i]->get_range();
-    if (ordering[i]->is_derived())
+    for (Variable *var : ordering) {
+        facts += var->get_range();
+        if (var->is_derived())
       derived_vars++;
   }
   cout << "Preprocessor facts: " << facts << endl;
@@ -259,14 +258,14 @@ if (arg.compare("--no_rel") == 0) {
   // Calculate the problem size
   int task_size = ordering.size() + facts + goals.size();
 
-  for (int i = 0; i < mutexes.size(); i++)
-    task_size += mutexes[i].get_encoding_size();
+    for (const MutexGroup &mutex : mutexes)
+        task_size += mutex.get_encoding_size();
 
-  for (int i = 0; i < operators.size(); i++)
-    task_size += operators[i].get_encoding_size();
+    for (const Operator &op : operators)
+        task_size += op.get_encoding_size();
 
-  for (int i = 0; i < axioms.size(); i++)
-    task_size += axioms[i].get_encoding_size();
+    for (const Axiom &axiom : axioms)
+        task_size += axiom.get_encoding_size();
 
   cout << "Preprocessor task size: " << task_size << endl;
 
