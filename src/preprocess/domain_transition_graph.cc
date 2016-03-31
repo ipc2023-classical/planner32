@@ -198,18 +198,19 @@ void build_DTGs(const vector<Variable *> &var_order,
 bool are_DTGs_strongly_connected(const vector<DomainTransitionGraph> &transition_graphs) {
     bool connected = true;
     // no need to test last variable's dtg (highest level variable)
-    for (int i = 0; i < transition_graphs.size() - 1; i++)
+    int num_dtgs = transition_graphs.size();
+    for (int i = 0; i < num_dtgs - 1; i++)
         if (!transition_graphs[i].is_strongly_connected())
             connected = false;
     return connected;
 }
 bool DomainTransitionGraph::is_strongly_connected() const {
     vector<vector<int> > easy_graph;
-    for (int i = 0; i < vertices.size(); i++) {
+    int num_vertices = vertices.size();
+    for (int i = 0; i < num_vertices; i++) {
         vector<int> empty_vector;
         easy_graph.push_back(empty_vector);
-        for (int j = 0; j < vertices[i].size(); j++) {
-            const Transition &trans = vertices[i][j];
+        for (const Transition &trans : vertices[i]) {
             easy_graph[i].push_back(trans.target);
         }
     }

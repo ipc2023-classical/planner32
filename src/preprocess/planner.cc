@@ -1,3 +1,4 @@
+
 /* Main file, keeps all important variables.
  * Calls functions from "helper_functions" to read in input (variables, operators,
  * goals, initial state),
@@ -107,6 +108,7 @@ if (arg.compare("--no_rel") == 0) {
 			       h2_mutex_time, disable_bw_h2)){
 	  cout << "Unsolvable task in preprocessor" << endl;
 	  generate_unsolvable_cpp_input();
+            cout << "done" << endl;
 	  return 0;
       }
 
@@ -139,7 +141,13 @@ if (arg.compare("--no_rel") == 0) {
     }
     new_goals.swap(goals);
     cout << "Change id of initial state" << endl;
-    initial_state.remove_unreachable_facts();
+        if (initial_state.remove_unreachable_facts()) {
+            // TODO: don't duplicate the code to return an unsolvable task, log and exit here
+            cout << "Unsolvable task in preprocessor" << endl;
+            generate_unsolvable_cpp_input();
+            cout << "done" << endl;
+            return 0;
+        }
 
 
     cout << "Remove unreachable facts from variables: " << ordering.size() << endl;

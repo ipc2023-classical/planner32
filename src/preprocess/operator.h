@@ -99,8 +99,10 @@ public:
     int get_cost() const {return cost; }
     string get_name() const {return name; }
     bool has_conditional_effects() const {
-	for(int i = 0; i < pre_post.size(); i++)
-	    if(pre_post[i].is_conditional()) return true;
+        for (const PrePost &effect : pre_post) {
+            if (effect.is_conditional())
+                return true;
+        }
 	
 	return false;
     }

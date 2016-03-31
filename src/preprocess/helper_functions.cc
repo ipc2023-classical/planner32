@@ -245,15 +245,15 @@ void generate_unsolvable_cpp_input() {
     outfile << PRE_FILE_VERSION << endl;
     outfile << "end_version" << endl;
 
-    outfile << "begin_metric" << endl << "0" << "end_metric" << endl;
+    outfile << "begin_metric" << endl << "1" << endl << "end_metric" << endl;
 
     //variables
     outfile << "1" << endl << "begin_variable" << endl
-            << "var1" << endl
-            << "0" << endl
+            << "var0" << endl
+            << "-1" << endl
             << "2" << endl
-	    << "val0" << endl
-	    << "val1" << endl
+            << "Atom dummy(val1)" << endl
+            << "Atom dummy(val2)" << endl
 	    << "end_variable" << endl;
 
     //Mutexes 

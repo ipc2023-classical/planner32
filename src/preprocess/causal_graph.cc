@@ -117,10 +117,11 @@ void CausalGraph::update(){
   // change ordering to leave out unimportant vars
   vector<Variable *> new_ordering;
   int old_size = ordering.size();
-  for (int i = 0; i < old_size; i++)
+    for (int i = 0; i < old_size; i++) {
     if (ordering[i]->is_necessary() || g_do_not_prune_variables){
       new_ordering.push_back(ordering[i]);
       ordering[i]->remove_unreachable_facts();
+    }
     }
   ordering = new_ordering;
     for (size_t i = 0; i < ordering.size(); i++) {
@@ -160,12 +161,12 @@ void CausalGraph::update(){
   */
 
   // For each partition p, complete scc_var
-  scc_var.clear();
-  for(int p = 0; p < sccs.size(); p++){
-    for(int v = 0; v < sccs[p].size(); v++){
-      scc_var[sccs[p][v]] = p;  
-    }
-  }
+  // scc_var.clear();
+  // for(int p = 0; p < sccs.size(); p++){
+  //   for(int v = 0; v < sccs[p].size(); v++){
+  //     scc_var[sccs[p][v]] = p;  
+  //   }
+  // }
 
   vector<Variable *>().swap(ordering);
   calculate_topological_pseudo_sort(sccs);
@@ -212,11 +213,11 @@ CausalGraph::CausalGraph(const vector<Variable *> &the_variables,
     */
 
     // For each partition p, complete scc_var
-    for(int p = 0; p < sccs.size(); p++){
-      for(int v = 0; v < sccs[p].size(); v++){
-	scc_var[sccs[p][v]] = p;  
-      }
-    }
+    // for(int p = 0; p < sccs.size(); p++){
+    //   for(int v = 0; v < sccs[p].size(); v++){
+    // 	scc_var[sccs[p][v]] = p;  
+    //   }
+    // }
 
     calculate_topological_pseudo_sort(sccs);
     calculate_important_vars(); 
@@ -414,49 +415,49 @@ const {
 
 
 
-void CausalGraph::swap_scc(vector <Variable * > & result){
+// void CausalGraph::swap_scc(vector <Variable * > & result){
 
-  vector <int> ini_pos_scc(sccs.size());
-  vector <int> scc_order;
-  int prev_scc = -1;
-  for(int i = 0; i < ordering.size(); i++){
-    int scc_i = scc_var[ordering[i]];
-    if(scc_i != prev_scc){
-      ini_pos_scc[scc_i] = i;
-      scc_order.push_back(scc_i);
-    }
-    prev_scc = scc_i;
-  }
+//   vector <int> ini_pos_scc(sccs.size());
+//   vector <int> scc_order;
+//   int prev_scc = -1;
+//   for(int i = 0; i < ordering.size(); i++){
+//     int scc_i = scc_var[ordering[i]];
+//     if(scc_i != prev_scc){
+//       ini_pos_scc[scc_i] = i;
+//       scc_order.push_back(scc_i);
+//     }
+//     prev_scc = scc_i;
+//   }
   
-  int rnd_scc = rng.next(scc_order.size());
-  int scc1 = scc_order[rnd_scc];
+//   int rnd_scc = rng.next(scc_order.size());
+//   int scc1 = scc_order[rnd_scc];
 
-  int min_pos = rnd_scc;
-  int max_pos = rnd_scc;
-  while(min_pos > 0             && !conflict_scc[scc1][scc_order[min_pos-1]]) min_pos --; 
+//   int min_pos = rnd_scc;
+//   int max_pos = rnd_scc;
+//   while(min_pos > 0             && !conflict_scc[scc1][scc_order[min_pos-1]]) min_pos --; 
 
-  while(max_pos < scc_order.size()-1 && !conflict_scc[scc1][scc_order[max_pos+1]]) max_pos ++; 
+//   while(max_pos < scc_order.size()-1 && !conflict_scc[scc1][scc_order[max_pos+1]]) max_pos ++; 
 
   
   
-  int rnd_scc2 = min_pos;
-  if(min_pos != max_pos) rnd_scc2 += rng.next(max_pos - min_pos);
-  int scc2 = scc_order[rnd_scc2];
+//   int rnd_scc2 = min_pos;
+//   if(min_pos != max_pos) rnd_scc2 += rng.next(max_pos - min_pos);
+//   int scc2 = scc_order[rnd_scc2];
 
-  //Now, copy ordering in result
-  for(int i = 0; i < scc_order.size(); i++){
-    int copy_scc = scc_order[i];
-    if(copy_scc == scc1){
-      copy_scc = scc2;
-    }else if(copy_scc == scc2){
-      copy_scc = scc1;
-    }
+//   //Now, copy ordering in result
+//   for(int i = 0; i < scc_order.size(); i++){
+//     int copy_scc = scc_order[i];
+//     if(copy_scc == scc1){
+//       copy_scc = scc2;
+//     }else if(copy_scc == scc2){
+//       copy_scc = scc1;
+//     }
     
-    for(int j =0; j < sccs[copy_scc].size(); j++){
-      result.push_back(ordering[ini_pos_scc[copy_scc] + j]);
-    }
-  }  
-}
+//     for(int j =0; j < sccs[copy_scc].size(); j++){
+//       result.push_back(ordering[ini_pos_scc[copy_scc] + j]);
+//     }
+//   }  
+// }
 
 /*
 void CausalGraph::optimize_ordering(){

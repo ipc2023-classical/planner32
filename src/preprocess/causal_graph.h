@@ -35,7 +35,7 @@ class CausalGraph {
 
     //atorralba: new attributes for ease the variable order optimizatuion
     Partition sccs; //atorralba: Store sccs as an attribute in the causal graph    
-    map <Variable *, int> scc_var; //atorralba: Access the index of the scc of the variable 
+    //map <Variable *, int> scc_var; //atorralba: Access the index of the scc of the variable 
     //atorralba: If there is an edge between each pair of sccs, their order cannot be exchanged 
     vector <vector <bool> > conflict_scc; 
     //atorralba: influence of each variable in another.
@@ -75,7 +75,7 @@ public:
     void optimize_ordering_gamer(); //Applies the variable optimization algorithm
 
     //Changes the order of variables in ordering by swaping two sccs.
-    void swap_scc(vector <Variable * > & result);
+    //void swap_scc(vector <Variable * > & result);
     //Applies the variable ordering optimization, swaping variables in the same scc.
     //long optimize_variable_ordering(vector <Variable *> & order, int iterations);
     long optimize_variable_ordering_gamer(vector <Variable *> & order, int iterations);

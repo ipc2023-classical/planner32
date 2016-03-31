@@ -22,12 +22,19 @@ void State::dump() const {
         cout << "  " << value.first->get_name() << ": " << value.second << endl;
 }
 
-void State::remove_unreachable_facts(){
+bool State::remove_unreachable_facts() {
     map<Variable *, int> newvalues;
-    for (auto it = values.begin();
-       it != values.end(); ++it){
-    if(it->first->is_necessary())
-      newvalues[it->first] = it->first->get_new_id(it->second);
+    for (auto it = values.begin(); it != values.end(); ++it) {
+        Variable *var = it->first;
+        int value = it->second;
+        if (var->is_necessary()) {
+            if (var->is_reachable(value)) {
+                newvalues[var] = var->get_new_id(value);
+            } else {
+                return true;
+            }
+        }
   }
   newvalues.swap(values);
+    return false;
 }

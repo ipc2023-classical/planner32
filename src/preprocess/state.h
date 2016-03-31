@@ -16,7 +16,8 @@ public:
 
     int operator[](Variable *var) const;
     void dump() const;
-    void remove_unreachable_facts();
+    // Returns true, if the state contains an unreachable fact
+    bool remove_unreachable_facts();
 };
 
 #endif

@@ -141,18 +141,19 @@ int H2Mutexes::detect_unreachable_fluents(const vector <Variable *> &variables,
         }
     } while (new_unreachable);
 
-    int num_unreach = unreachable.size();
-    for (int var = 0; var < num_unreach; ++var) {
-        int num_unreach_var = unreachable[var].size();
-        for (int val = 0; val < num_unreach_var; ++val) {
-            if (variables[var]->is_reachable(val) && unreachable[var][val]) {
-		cout << "WARNING: Setting an unreachable var out of set_unreachable. This never should happen." << endl;
+    //This is not neeed anymore because we handle this in set_unreachable
+    // int num_unreach = unreachable.size();
+    // for (int var = 0; var < num_unreach; ++var) {
+    //     int num_unreach_var = unreachable[var].size();
+    //     for (int val = 0; val < num_unreach_var; ++val) {
+    //         if (variables[var]->is_reachable(val) && unreachable[var][val]) {
+    // 		cout << "WARNING: Setting an unreachable var out of set_unreachable. This never should happen." << endl;
 
-		cout << "Unreachable proposition: " << variables[var]->get_fact_name(val) << endl;
-                variables[var]->set_unreachable(val);
-            }
-        }
-    }
+    // 		cout << "Unreachable proposition: " << variables[var]->get_fact_name(val) << endl;
+    //             variables[var]->set_unreachable(val);
+    //         }
+    //     }
+    // }
 
     return num_discovered;
 }
@@ -589,16 +590,17 @@ int H2Mutexes::compute(const vector <Variable *> &variables,
     }
   }
 
-    for (int var = 0; var < static_cast<int>(unreachable.size()); var++) {
-        for (int val = 0; val < static_cast<int>(unreachable[var].size()); val++) {
-      if(variables[var]->is_reachable(val) && unreachable[var][val]){
-	  cout << "WARNING: Setting an unreachable var out of set_unreachable. This never should happen." << endl;
-	  // cout << "Unreachable proposition: " << variables[var]->get_fact_name(val) << endl;
-	  countUnreachable++;
-	variables[var]->set_unreachable(val);
-      }
-    }
-  }
+  //   This is not neeed anymore because we handle this in set_unreachable
+    // for (int var = 0; var < static_cast<int>(unreachable.size()); var++) {
+    //     for (int val = 0; val < static_cast<int>(unreachable[var].size()); val++) {
+    //   if(variables[var]->is_reachable(val) && unreachable[var][val]){
+    // 	  cout << "WARNING: Setting an unreachable var out of set_unreachable. This never should happen." << endl;
+    // 	  // cout << "Unreachable proposition: " << variables[var]->get_fact_name(val) << endl;
+    // 	  countUnreachable++;
+    // 	variables[var]->set_unreachable(val);
+    //   }
+    // }
+    //}
 
   cout << "H^2 mutexes added " << (regression? "bw" :  "fw") << ": " << count << ", unreachable: " << countUnreachable << endl;
  
