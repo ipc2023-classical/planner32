@@ -553,6 +553,8 @@ int H2Mutexes::compute(const vector <Variable *> &variables,
 
   //Add mutexes
   unsigned count = 0;
+  int countUnreachable = 0;
+
   for (unsigned i = 0; i < m_values.size(); i++){
     if (m_values[i] == NOT_REACHED){
       m_values[i] = SPURIOUS;
@@ -560,6 +562,7 @@ int H2Mutexes::compute(const vector <Variable *> &variables,
       pair<unsigned, unsigned> b = p_index_reverse[i % number_props];
       if (a == b) {
 	  if(!is_unreachable(a.first, a.second)) {
+	      countUnreachable ++;
 	      if(!set_unreachable(a.first, a.second, variables, initial_state, goal)){ 
 		  return UNSOLVABLE;
 	      }
@@ -586,7 +589,6 @@ int H2Mutexes::compute(const vector <Variable *> &variables,
     }
   }
 
-  int countUnreachable = 0;
     for (int var = 0; var < static_cast<int>(unreachable.size()); var++) {
         for (int val = 0; val < static_cast<int>(unreachable[var].size()); val++) {
       if(variables[var]->is_reachable(val) && unreachable[var][val]){

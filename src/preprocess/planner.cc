@@ -200,10 +200,12 @@ if (arg.compare("--no_rel") == 0) {
         if (var->is_derived())
       derived_vars++;
   }
-  cout << "Preprocessor facts: " << facts << endl;
-  cout << "Preprocessor derived variables: " << derived_vars << endl;
+    cout << "Preprocessor variables: " << ordering.size() << endl;
+    cout << "Preprocessor facts: " << facts << endl;
+    cout << "Preprocessor derived variables: " << derived_vars << endl;
     cout << "Preprocessor operators: " << operators.size() << endl;
-
+    cout << "Preprocessor mutex groups: " << mutexes.size() << endl;
+    
     if (expensive_statistics) {
         //Count potential preconditions
         int num_total_augmented = 0;
