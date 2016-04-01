@@ -1033,6 +1033,7 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
 			    transitions_by_label_based_on_operators[label_no].push_back(
 				abs1->transitions_by_label_based_on_operators[label_no][i] & 
 				abs2->transitions_by_label_based_on_operators[label_no][j]);
+			    assert(transitions_by_label_based_on_operators[label_no].back().count());
                         } 
                     }
                 }
@@ -1302,9 +1303,9 @@ void Abstraction::apply_abstraction(
     vector<vector<AbstractTransition> > ().swap(transitions_by_label);
 
     if (store_original_operators) {
-	transitions_by_label_based_on_operators = new_transitions_by_label_based_on_operators;
+	transitions_by_label_based_on_operators.swap(new_transitions_by_label_based_on_operators);
     }
-
+    
     num_states = new_num_states;
     transitions_by_label.swap(new_transitions_by_label);
     init_distances.swap(new_init_distances);

@@ -331,9 +331,9 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	int index_atomic = 0;
 	for (auto a : abstractions) {
 	    if (a->get_varset().size() == 1) {
-		all_abstractions[index_atomic++] = a;
+		all_abstractions[index_atomic++] = a->clone();
 	    }else{
-		all_abstractions.push_back(a);
+		all_abstractions.push_back(a->clone());
 	    }
 	}
 	abstractions.clear();
@@ -473,16 +473,6 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	    exit_with(EXIT_UNSOLVABLE);
 	}
 	 
-	if(shrink_strategy){
-            /* PIET-edit: Well, we actually want to have bisim shrinking AFTER merge */
-	    DEBUG_MAS(cout << "Shrink: " << t() << endl;);
-            //shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
-            shrink_strategy->shrink(*new_abstraction, new_abstraction->size(), true); /* force bisimulation shrinking */
-            //abstraction->statistics(use_expensive_statistics);
-            //other_abstraction->statistics(use_expensive_statistics);
-            DEBUG_MAS(new_abstraction->statistics(use_expensive_statistics););
-        }
-
         if ((shrink_strategy || intermediate_simulations || apply_subsumed_transitions_pruning) && !reduced_labels) {
 	    remove_dead_labels(all_abstractions);
 	    if(!forbid_lr){	
@@ -501,6 +491,20 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	    //other_abstraction->normalize();
 	    new_abstraction->normalize();
 	}
+
+	if(shrink_strategy){
+            /* PIET-edit: Well, we actually want to have bisim shrinking AFTER merge */
+	    DEBUG_MAS(cout << "Shrink: " << t() << endl;);
+            //shrink_strategy->shrink_before_merge(*abstraction, *other_abstraction);
+            shrink_strategy->shrink(*new_abstraction, new_abstraction->size(), true); /* force bisimulation shrinking */
+
+	    new_abstraction->normalize();
+            //abstraction->statistics(use_expensive_statistics);
+            //other_abstraction->statistics(use_expensive_statistics);
+            DEBUG_MAS(new_abstraction->statistics(use_expensive_statistics););
+        }
+
+
 	new_abstraction->compute_distances();
 
         if (!reduced_labels) {
