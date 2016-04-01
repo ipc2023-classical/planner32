@@ -30,7 +30,8 @@ bool SymBreadthFirstSearch::init(SymManager * manager, bool forward){
 }
 
 
-bool SymBreadthFirstSearch::init(SymBreadthFirstSearch * other, SymManager * manager, 
+bool SymBreadthFirstSearch::init(const std::shared_ptr<SymBreadthFirstSearch> & other, 
+				 SymManager * manager, 
 				 int maxRelaxTime, int maxRelaxNodes){
     Timer t;
     bool success = true;
@@ -78,7 +79,7 @@ BDD SymBreadthFirstSearch::getUnreachableStates () const {
     BDD res = closedTotal;
     const SymBreadthFirstSearch * aux = this;
     while (aux->parent){
-	aux = aux->parent;
+	aux = aux->parent.get();
 	res += aux->closedTotal; // TODO: Should we shrink here? 
     }
     return !res;

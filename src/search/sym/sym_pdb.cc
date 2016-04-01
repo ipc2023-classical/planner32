@@ -94,7 +94,7 @@ std::string SymPDB::tag() const{
 }
 
 void SymPDB::print(std::ostream &os, bool fullInfo) const {
-    os << "PDB " << fullVars.size() << "," << nonRelVars.size() << " ";
+    os << "PDB (" << fullVars.size() << "/" << (nonRelVars.size()+fullVars.size()) << "): ";
     for (int v : fullVars){
 	os << v << " ";
     }

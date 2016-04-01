@@ -14,7 +14,7 @@ class SymBreadthFirstSearch : public SymExploration  {
     
     SymStepCostEstimation estimation;
 
-    SymBreadthFirstSearch * parent;
+    std::shared_ptr<SymBreadthFirstSearch> parent;
 
     void filterDuplicates(BDD & bdd) {
 	/* for(const BDD & c : closed) */
@@ -41,7 +41,7 @@ class SymBreadthFirstSearch : public SymExploration  {
 
   bool init(SymManager * manager, bool forward);
 
-  bool init(SymBreadthFirstSearch * other, SymManager * manager, 
+  bool init(const std::shared_ptr<SymBreadthFirstSearch> & other, SymManager * manager, 
 	    int maxRelaxTime, int maxRelaxNodes);
 
 

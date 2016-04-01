@@ -20,7 +20,7 @@ class SymBAUnsat : public SearchEngine, public SymController{
 
 //Common parameters to every hierarchy policy
   const SymParamsMgr mgrParams; 
-  const SymParamsSearch searchParams; //Parameters to perform the abstract searches
+  SymParamsSearch searchParams; //Parameters to perform the abstract searches
   const double phTime, phMemory;
 
 //Maximum time and nodes to perform the whole? step? relaxation process 
@@ -33,9 +33,10 @@ class SymBAUnsat : public SearchEngine, public SymController{
   const bool perimeterPDBs;  //Initializes explorations with the one being relaxed.
   const double ratioRelaxTime, ratioRelaxNodes; 
 
-//Whether the ph should use mutexes
-  const bool use_mutex_in_abstraction;
-
+  const double multiply_time_by;
+  const int num_fails_to_multiply_time;
+  
+ 
   const double shouldAbstractRatio;
   const int maxNumAbstractions;
 
@@ -44,13 +45,16 @@ class SymBAUnsat : public SearchEngine, public SymController{
   UCTRewardType rewardType;
   const double RAVE_K; 
 
-  bool add_abstract_to_ongoing_searches;
+  //Only adds abstract searches to the ongoing search list after this
+  // number of seconds to avoid the inclusion of too many searches 
+  const int add_abstract_to_ongoing_searches_time;
 
   int numAbstractions;
   // List of hierarchy policies to derive new abstractions
   //std::vector <SymPH *> phs;
   //std::unique_ptr<UCTTree> ph;
 
+  int num_iterations_without_reward;
   std::vector<std::unique_ptr<UCTNode> > nodes;
   std::map<std::set<int>, UCTNode *> nodesByPattern;
 
@@ -70,7 +74,7 @@ class SymBAUnsat : public SearchEngine, public SymController{
   void insertDeadEnds(BDD bdd, bool isFW);
 
   //std::pair<UCTNode *, bool> relax(std::vector<UCTNode *> & uct_trace);
-  UCTNode * relax(UCTNode * node,  bool fw, std::vector<UCTNode *> & uct_trace); 
+  UCTNode * relax(UCTNode * node,  bool fw, std::vector<UCTNode *> & uct_trace, bool override_search); 
 
   void notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, double time_spent,
 				    const std::vector<UCTNode *> & uct_trace); 

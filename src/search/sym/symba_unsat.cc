@@ -21,15 +21,16 @@ SymBAUnsat::SymBAUnsat(const Options &opts) :
     absTRsStrategy (AbsTRsStrategy(opts.get_enum("tr_st"))),
     perimeterPDBs (opts.get<bool>("perimeter_pdbs")), 
     ratioRelaxTime(opts.get<double> ("relax_ratio_time")), 
-    ratioRelaxNodes(opts.get<double> ("relax_ratio_nodes")),
-    use_mutex_in_abstraction(opts.get<bool> ("use_mutex_in_abstraction")), 
+    ratioRelaxNodes(opts.get<double> ("relax_ratio_nodes")), 
+    multiply_time_by (opts.get<double> ("multiply_time_by")), 
+    num_fails_to_multiply_time(opts.get<int> ("num_fails_to_multiply_time")), 
     shouldAbstractRatio(opts.get<double> ("should_abstract_ratio")), 
     maxNumAbstractions(opts.get<int> ("max_abstractions")), 
     UCT_C(opts.get<double> ("uct_c")),
     rewardType (UCTRewardType(opts.get_enum("reward_type"))), 
     RAVE_K (opts.get<double> ("rave_k")),
-    add_abstract_to_ongoing_searches (opts.get<bool>( "add_abstract_to_ongoing_searches")),
-    numAbstractions(0), 
+    add_abstract_to_ongoing_searches_time (opts.get<int>( "add_abstract_to_ongoing_searches_time")),
+    numAbstractions(0), num_iterations_without_reward (0),
     time_step_abstract(0), time_step_original(0), 
     time_select_exploration(0),  time_notify_mutex(0), 
     time_init(0) {  
@@ -80,9 +81,10 @@ void SymBAUnsat::insertDeadEnds(BDD bdd, bool isFW) {
 
 UCTNode * SymBAUnsat::relax(UCTNode * node,
 			    bool fw,  
-			    std::vector<UCTNode *> & uct_trace) {
+			    std::vector<UCTNode *> & uct_trace, 
+			    bool override_search) {
     Timer t_relax;
-    SymBreadthFirstSearch * searchToRelax = node->getSearch(fw);
+    shared_ptr<SymBreadthFirstSearch> searchToRelax = node->retrieveSearch(fw, override_search);
     SymManager * parentMgr = node->getMgr(); 
     
     while(node && node->isAbstractable()) {
@@ -99,7 +101,7 @@ UCTNode * SymBAUnsat::relax(UCTNode * node,
 	uct_trace.push_back(node);
 
 	if (node->getSearch(fw)) {
-	    searchToRelax = node->getSearch(fw);
+	    searchToRelax = node->retrieveSearch(fw, override_search);
 	    continue;
 	}
 
@@ -173,6 +175,7 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	statistics(); 
 	exit_with(EXIT_UNSOLVABLE); 
     } else {
+	double multiplier = 1.0;
 	BDD newDeadEnds = currentSearch->getUnreachableStates();
 	//cout << " deadends " <<  vars->percentageNumStates(newDeadEnds) << flush; 
 	try {
@@ -182,6 +185,7 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	    
 	} catch(BDDError e) {
 	    cout << "  could not remove other dead ends. " << flush;
+	    multiplier = 0.1; //Reduce reward by a factor of 10
 	}
 
 	newDeadEnds = newDeadEnds*vars->validStates();
@@ -196,7 +200,15 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	    cout <<  "  with no results "  << endl; 
 	}
 
-	double reward = computeReward(newDeadEnds, time_spent);
+	double reward = computeReward(newDeadEnds, time_spent)*multiplier;
+	if(reward < 0.01){
+	    num_iterations_without_reward ++;
+	    if(num_iterations_without_reward > num_fails_to_multiply_time) {
+		searchParams.maxStepNodesMin *= multiply_time_by;
+	    }
+	} else {
+	    num_iterations_without_reward = 0;
+	}
 	cout << "Reward: " << reward << endl;
 
 	for (UCTNode * node : uct_trace) {
@@ -282,7 +294,7 @@ bool SymBAUnsat::askHeuristic() {
 	bool fw = chooseDirection();
 	    
 	//1) Generate a new abstract exploration
-	UCTNode * abstractNode = relax(getRoot(), fw, uct_trace);
+	UCTNode * abstractNode = relax(getRoot(), fw, uct_trace, false);
 	if(!abstractNode) {
 	    if(RAVE_K) for (auto node : uct_trace) node->notifyRewardRAVE(fw, 0, uct_trace.back()->getPattern());
 	    else for (auto node : uct_trace) node->notifyReward(fw, 0);
@@ -306,11 +318,13 @@ bool SymBAUnsat::askHeuristic() {
 		    return true;
 		}
 	    } else {
-		if(add_abstract_to_ongoing_searches) {
+		bool override_search =  g_timer() < add_abstract_to_ongoing_searches_time;
+		
+		if(!override_search) {
 		    ongoing_searches.push_back(abstractExp); //Store ongoing searches
-		}
+		} 
 		//If we cannot continue the search, we relax it even more
-		abstractNode = relax(abstractNode, fw, uct_trace);
+		abstractNode = relax(abstractNode, fw, uct_trace, override_search);
 		if(!abstractNode){
 		    if (RAVE_K) for (auto node : uct_trace) node->notifyRewardRAVE(fw, 0, uct_trace.back()->getPattern());
 		    else for (auto node : uct_trace) node->notifyReward(fw, 0);
@@ -385,16 +399,26 @@ static SearchEngine *_parse(OptionParser &parser) {
 			      "0.5");
     parser.add_option<double>("relax_ratio_nodes",
 			      "allowed nodes to accept the abstraction after relaxing the search.", "0.5");
+
+
+    parser.add_option<double>("multiply_time_by",
+			      "", 
+			      "2");
+
+    parser.add_option<int>("num_fails_to_multiply_time",
+			   "", "5");
+    
+    
+
   
     parser.add_enum_option("tr_st", AbsTRsStrategyValues,
 			   "abstraction TRs strategy", "IND_TR_SHRINK");
   
     parser.add_option<bool>("perimeter_pdbs",  "initializes explorations with the one being relaxed", "true");
 
-    parser.add_option<bool>("use_mutex_in_abstraction", 
-			    "uses mutex to prune abstract states in the abstraction procedure", "true");
+    parser.add_option<double>("should_abstract_ratio",
+			      "relax the search when has more than this estimated time/nodes· If it is zero, it abstract the current perimeter (when askHeuristic is called)", "0");
 
-    parser.add_option<double>("should_abstract_ratio", "relax the search when has more than this estimated time/nodes· If it is zero, it abstract the current perimeter (when askHeuristic is called)", "0");
     parser.add_option<double>("ratio_increase", 
 			      "maxStepTime is multiplied by ratio to the number of abstractions", "2");
 
@@ -407,16 +431,12 @@ static SearchEngine *_parse(OptionParser &parser) {
     parser.add_enum_option("reward_type", UCTRewardTypeValues,
 			   "type of reward function", "STATES");
 
-    parser.add_option<bool>("add_abstract_to_ongoing_searches", 
+    parser.add_option<int>("add_abstract_to_ongoing_searches_time", 
 			    "includes the abstract searches that were incomplete to the set of ongoing searches", 
-			    "true");
-
-
+			    "300");
 
     Options opts = parser.parse();
 
-
-  
     SearchEngine *policy = 0;
     if (!parser.dry_run()) {
 	policy = new SymBAUnsat(opts);

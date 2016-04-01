@@ -200,7 +200,7 @@ void UCTNode::initChildren (SymBAUnsat * manager)  {
 }
 
 std::ostream & operator<<(std::ostream &os, const UCTNode & node){
-    os << "PDB " << node.pattern.size() << ": ";
+    os << "PDB (" << node.pattern.size() << "): ";
     for (int v : node.pattern){
 	os << v << " ";
     }
@@ -218,43 +218,73 @@ UCTNode * UCTNode::getRandomChild (bool fw)  {
 UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K)  {    
     const auto & children_list = (fw ? children_fw : children_bw);
     if(children_list.empty()) return nullptr;
-    
-    vector<UCTNode *> best_children;
-    for(auto c : children_list) {
-	if(!c->isExplored(fw)) best_children.push_back(c);
-    }
-    
-    
-    if(best_children.empty()) {
-	int total_visits = 0;
-	for(auto c : children_list) {
-	    total_visits += (fw ? c->visits_fw : c->visits_bw);
-	} 
-    
-	double best_value = numeric_limits<double>::min();
-	cout << "Child values: ";
-	for(auto c : children_list) {
-	    double c_val = 0;
-	    if(RAVE_K){
-		//vector<double> & rave_reward = (fw? rave_reward_fw : rave_reward_bw);
-		double RAVE_B = sqrt(RAVE_K/(3*total_visits + RAVE_K));
-		double RAVE_Q = rave_reward[children_var[c]];
-		c_val = c->uct_value(fw, total_visits, UCT_C, RAVE_K) + RAVE_B*RAVE_Q;
-	    }else{
-		c_val = c->uct_value(fw, total_visits, UCT_C, 0);
-	    }
-	    cout << c_val << " "; 
-	    if(best_value <= c_val) {
-		if(best_value < c_val){
-		    best_value = c_val;
-		    best_children.clear();
-		}
 
-		best_children.push_back(c);
-	    }
+    vector<UCTNode *> best_children;
+    vector<double> best_rave;
+
+    //double total_rave = 0;
+    for(auto c : children_list) {
+	if(!c->isExplored(fw)) {
+	    best_children.push_back(c);
+	    // if (RAVE_K){ 
+	    // 	double rave =(rave_reward.empty() ? 0.0 : rave_reward[children_var[c]]);
+	    // 	best_rave.push_back(rave);
+	    // 	total_rave +=  rave;
+	    // }
 	}
-	cout << endl;
     }
+    
+    if(!best_children.empty()) {
+	// if (total_rave >= 1){
+	//     double val = g_rng.next(total_rave);
+	//    int num_selected = 0;
+	//    while (num_selected < best_children.size() - 1) {
+	//        val-= rave_reward[children_var[best_children[num_selected]]];
+	//        if(val < 0) break;
+	//        num_selected ++;
+	//    }
+	//    cout << "Num selected: " << num_selected << endl;
+	//    return best_children[num_selected];
+	// }else{
+	    int num_selected = g_rng.next(best_children.size()); 
+	    return best_children[num_selected];	
+
+	    //}
+    }
+
+    int total_visits = 0;
+    for(auto c : children_list) {
+	total_visits += (fw ? c->visits_fw : c->visits_bw);
+    } 
+
+
+    double best_value = numeric_limits<double>::min();
+    cout << "Child values: ";
+    for(auto c : children_list) {
+	double c_val = 0;
+	if(RAVE_K){
+	    //vector<double> & rave_reward = (fw? rave_reward_fw : rave_reward_bw);
+	    double RAVE_Q = (rave_reward.empty() ? 0.0 : rave_reward[children_var[c]]);
+		
+	    double RAVE_B = sqrt(RAVE_K/(3*total_visits + RAVE_K));
+    
+    
+	    c_val = c->uct_value(fw, total_visits, UCT_C, RAVE_B) + RAVE_B*RAVE_Q;
+	}else{
+	    c_val = c->uct_value(fw, total_visits, UCT_C, 0);
+	}
+	cout << c_val << " "; 
+	if(best_value <= c_val) {
+	    if(best_value < c_val){
+		best_value = c_val;
+		best_children.clear();
+	    }
+
+	    best_children.push_back(c);
+	}
+    }
+    cout << endl;
+
     int num_selected = g_rng.next(best_children.size()); 
     return best_children[num_selected];	
 } 
@@ -263,12 +293,12 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K)  {
     double UCTNode::uct_value(bool fw, int visits_parent, double UCT_C, double RAVE_B) const {
 	// if(fw) cout << reward_fw << " " << visits_fw << endl;
 	// else cout << reward_bw << " " << visits_bw << endl;
-    if(fw) return (1-RAVE_B)*reward_fw + UCT_C*sqrt(log(visits_parent)/visits_fw); 
-    else   return (1-RAVE_B)*reward_bw + UCT_C*sqrt(log(visits_parent)/visits_bw); 
+    if(fw) return (1.0-RAVE_B)*reward_fw + UCT_C*sqrt(log(visits_parent)/visits_fw); 
+    else   return (1.0-RAVE_B)*reward_bw + UCT_C*sqrt(log(visits_parent)/visits_bw); 
 }
 
 
-SymBreadthFirstSearch * UCTNode::relax(SymBreadthFirstSearch * search, 
+SymBreadthFirstSearch * UCTNode::relax(std::shared_ptr<SymBreadthFirstSearch> search, 
 				       const SymParamsSearch & searchParams,
 				       int maxRelaxTime, int maxRelaxNodes, 
 				       double ratioRelaxTime, double ratioRelaxNodes, 
@@ -276,7 +306,7 @@ SymBreadthFirstSearch * UCTNode::relax(SymBreadthFirstSearch * search,
     bool fw = search->isFW();
     assert(!getSearch(fw));
     
-    unique_ptr<SymBreadthFirstSearch> newSearch (new SymBreadthFirstSearch(searchParams));
+    shared_ptr<SymBreadthFirstSearch> newSearch = make_shared<SymBreadthFirstSearch>(searchParams);
     newSearch->init(search, mgr.get(), maxRelaxTime, maxRelaxNodes);
     
     if (newSearch->nextStepNodes() < ratioRelaxNodes*search->nextStepNodes() && 
@@ -345,11 +375,12 @@ void UCTNode::notifyReward (bool fw, double new_reward) {
 
 
 void UCTNode::notifyRewardRAVE (bool fw, double new_reward, const std::set<int> & final_pattern) {
-    double & reward = (fw? reward_fw : reward_bw);
-    int & n = (fw? visits_fw : visits_bw);
-    reward = (reward *n + new_reward) / (n+1);
-    n++;
+    notifyReward(fw, new_reward);
 
+    if(rave_reward.empty()) {
+	rave_reward.resize(g_variable_domain.size(), 0.0);
+	rave_visits.resize(g_variable_domain.size(), 0);
+    }
     //Apply RAVE
     for (int v : pattern) {
 	if(std::find (begin(final_pattern), end(final_pattern), v) != std::end(final_pattern))

@@ -11,6 +11,7 @@
 
 #include "sym_breadth_first_search.h"
 
+
 class SymVariables;
 class SymManager;
 class SymBAUnsat;
@@ -25,7 +26,7 @@ private:
     // Nodes more abstracted
     std::vector <UCTNode *> children, children_fw, children_bw;
     std::map <UCTNode *, int> children_var; 
-    std::unique_ptr<SymBreadthFirstSearch> fw_search, bw_search;
+    std::shared_ptr<SymBreadthFirstSearch> fw_search, bw_search;
 
     double reward_fw, reward_bw;
     int visits_fw, visits_bw;
@@ -33,7 +34,6 @@ private:
 
     std::vector<double> rave_reward;//_fw, rave_reward_bw;
     std::vector<int> rave_visits;//_fw, rave_visits_bw;
-
 
     bool isExplored (bool fw) const {
 	return (fw && visits_fw > 0) || (!fw && visits_bw > 0);
@@ -62,12 +62,23 @@ public:
 			 int v) const;
 
 
-    SymBreadthFirstSearch * relax(SymBreadthFirstSearch * search, 
+    SymBreadthFirstSearch * relax(std::shared_ptr<SymBreadthFirstSearch> search, 
 				  const SymParamsSearch & searchParams,
 				  int maxRelaxTime, int maxRelaxNodes, 
 				  double ratioRelaxTime, double ratioRelaxNodes, 
 				  bool perimeterPDBs);
 
+    std::shared_ptr<SymBreadthFirstSearch> retrieveSearch(bool fw, bool delete_search) {
+	std::shared_ptr<SymBreadthFirstSearch> res;
+	if (fw){
+	    res = fw_search;
+	    if (delete_search) fw_search.reset();
+	}else {
+	    res = bw_search;	   
+	    if (delete_search) bw_search.reset(); 
+	}
+	return res;
+    }
 
     SymBreadthFirstSearch * getSearch(bool fw){
 	if (fw) return fw_search.get();
