@@ -21,7 +21,7 @@ public:
     std::vector<BDD> bucket; // States to be evaluated
     int f, h; // h and f values needed to prune states
 
-    Evaluation (const Evaluation & o) = default;
+    Evaluation (const Evaluation & ) = default;
 Evaluation(SymAstar * exploration, int fval, int hval) :
     exp(exploration), f(fval), h(hval){}
 
