@@ -1264,7 +1264,7 @@ void Abstraction::apply_abstraction(
     vector<vector<AbstractTransition> > new_transitions_by_label(
 	transitions_by_label.size());
 
-    vector<vector<boost::dynamic_bitset<>>> new_transitions_by_label_based_on_operators(transitions_by_label.size());
+    vector<vector<boost::dynamic_bitset<>>> new_transitions_by_label_based_on_operators(transitions_by_label_based_on_operators.size());
     for (int label_no = 0; label_no < num_labels; label_no++) {
         if (labels->is_label_reduced(label_no)) {
             // do not consider non-leaf labels
@@ -1606,7 +1606,7 @@ int Abstraction::prune_transitions_dominated_label_all(int label_no/*, const Lab
     int num = transitions_by_label[label_no].size();
     if (num > 0){    
 	vector<AbstractTransition> ().swap(transitions_by_label[label_no]);
-	vector<boost::dynamic_bitset<>> ().swap(transitions_by_label_based_on_operators[label_no]);
+	if(store_original_operators) vector<boost::dynamic_bitset<>> ().swap(transitions_by_label_based_on_operators[label_no]);
         clear_distances();
 	//->kill_label(label_map.get_id(label_no));
     }

@@ -7,7 +7,8 @@
 using namespace std;
 
 MergeStrategy::MergeStrategy()
-    : force_first_var(true), remaining_merges(g_variable_domain.size() - 1) {
+    : total_merges(g_variable_domain.size() - 1), 
+      remaining_merges(g_variable_domain.size() - 1) {
     // There are number of variables many atomic abstractions and we have
     // to perform one less merges than this number until we have merged
     // all abstractions into one composite abstraction.

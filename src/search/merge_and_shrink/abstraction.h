@@ -234,6 +234,10 @@ public:
         return varset;
     }
 
+    bool is_atomic () const {
+	return varset.size() == 1;
+    }
+
     const std::vector <bool> & get_relevant_labels() const {
       return relevant_labels;
     }

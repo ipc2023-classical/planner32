@@ -180,8 +180,9 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     for(int i = 0; i < g_variable_domain.size(); i++) {
 	if(!all_abstractions[i]) used_vars.push_back(i);
     }
+    merge_strategy->init(all_abstractions);
     merge_strategy->remove_useless_vars (used_vars);
-    merge_strategy->restart_with_remaining_merges(abstractions.size() - 1);
+
     if(abstractions.size() > 1){
 	labels->reduce(make_pair(0, 1), all_abstractions); 
 // With the reduction methods we use here, this should just apply label reduction on all abstractions

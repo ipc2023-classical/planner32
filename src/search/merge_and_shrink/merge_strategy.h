@@ -8,8 +8,10 @@ class Abstraction;
 
 class MergeStrategy {
 protected:
-    bool force_first_var; 
+    int total_merges; 
     int remaining_merges;
+
+
     virtual void dump_strategy_specific_options() const = 0;
 public:
     MergeStrategy();
@@ -21,12 +23,17 @@ public:
         return remaining_merges == 0;
     }
 
-    void restart_with_remaining_merges(int rm) {
-	force_first_var = true;
-	remaining_merges = rm;
+    void init (const std::vector <Abstraction * > & abstractions) {
+	total_merges = abstractions.size() - 1;
+	remaining_merges = abstractions.size() - 1 ;
+	init_strategy(abstractions);
     }
 
-    virtual void remove_useless_vars (const std::vector<int> & /*useless_vars*/) {}  
+    virtual void init_strategy (const std::vector <Abstraction * > & ) {}
+
+    virtual void remove_useless_vars (const std::vector<int> & ) {}
+
+
 
     // implementations of get_next should decrease remaining_merges by one
     // every time they return a pair of abstractions which are merged next.

@@ -38,6 +38,27 @@ MergeLinearCriteria::MergeLinearCriteria(const Options &opts) :
   }
 }
 
+void MergeLinearCriteria::init_strategy (const std::vector <Abstraction * > & abstractions){
+    remaining_vars.clear();
+    for (auto abs : abstractions) {
+	if (abs && abs->get_varset().size() == 1) remaining_vars.push_back(*(abs->get_varset().begin()));
+    }
+
+    if (order == REVERSE_LEVEL) {
+	std::sort(begin(remaining_vars), end(remaining_vars));
+    } else if (order == RANDOM){
+	random_shuffle(remaining_vars.begin(),
+		       remaining_vars.end());
+    } else {
+	std::sort(begin(remaining_vars), end(remaining_vars), std::greater<int>());
+    }
+  
+    for(int i = 0; i < criteria.size(); ++i){
+	criteria[i]->init();
+    }
+}
+
+
 MergeLinearCriteria::~MergeLinearCriteria() {
 }
 
@@ -48,8 +69,7 @@ pair<int, int> MergeLinearCriteria::get_next(const std::vector<Abstraction *> &a
     assert(!done());
 
     int first;
-    if (remaining_vars.size() == g_variable_domain.size() || force_first_var) {
-	force_first_var = false;
+    if (all_abstractions.back()->is_atomic()) {
         first = next(all_abstractions);
 	
         cout << "First variable: #" << first;
@@ -195,6 +215,7 @@ static MergeStrategy *_parse(OptionParser &parser) {
     variable_orders.push_back("reverse_level");
     variable_orders.push_back("random");
     parser.add_enum_option("var_order", variable_orders,
+
 			   "merge variable order for tie breaking", 
 			    "RANDOM");
 
