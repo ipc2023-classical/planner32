@@ -813,17 +813,16 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
             int value = prev[i].prev;
             Abstraction *abs = result[var];
             AbstractTransition trans(value, value);
-            abs->transitions_by_label[label_no].push_back(trans);
             if (store_original_operators) {
                 /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                  * only to the operators as relevant for this label.
                  */
 		boost::dynamic_bitset<> empty_bitset(g_operators.size());
 		empty_bitset[label_no] = true;
-		// trans.based_on_operators = empty_bitset;
 		abs->transitions_by_label_based_on_operators[label_no].push_back(empty_bitset);
             }
 
+            abs->transitions_by_label[label_no].push_back(trans);
             abs->relevant_labels[label_no] = true;
             labels->set_relevant_for(label_no, abs);
         }
@@ -868,16 +867,15 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
                    a condition on var and this condition is not satisfied. */
                 if (cond_effect_pre_value == -1 || cond_effect_pre_value == value) {
                     AbstractTransition trans(value, post_value);
-                    abs->transitions_by_label[label_no].push_back(trans);
                     if (store_original_operators) {
                         /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                          * only to the operators as relevant for this label.
                          */
                         boost::dynamic_bitset<> empty_bitset(g_operators.size());
 			empty_bitset[label_no] = true;
-                        // trans.based_on_operators = empty_bitset;
 			abs->transitions_by_label_based_on_operators[label_no].push_back(empty_bitset);
                     }
+                    abs->transitions_by_label[label_no].push_back(trans);
                 }
             }
 
@@ -891,7 +889,6 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
                        fails to trigger if this condition is false. */
                     if (has_other_effect_cond || value != cond_effect_pre_value) {
                         AbstractTransition loop(value, value);
-                        abs->transitions_by_label[label_no].push_back(loop);
                         if (store_original_operators) {
                             /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                              * only to the operators as relevant for this label.
@@ -900,10 +897,8 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
 			    empty_bitset[label_no] = true;
 			    abs->transitions_by_label_based_on_operators[label_no].push_back(empty_bitset);
 			
-                            // boost::dynamic_bitset<> empty_bitset(g_operators.size());
-                            // loop.based_on_operators = empty_bitset;
-                            // loop.based_on_operators[label_no] = true;
                         }
+                        abs->transitions_by_label[label_no].push_back(loop);
                     }
                 }
             }
@@ -1030,7 +1025,6 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                             /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                              * only to the operators as relevant for this label.
                              */
-                            //new_trans.based_on_operators = bucket1[i].based_on_operators & bucket2[j].based_on_operators;
 			    
 			    transitions_by_label_based_on_operators[label_no].push_back(
 				abs1->transitions_by_label_based_on_operators[label_no][i] & 
@@ -1048,15 +1042,14 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                     for (int s2 = 0; s2 < abs2->size(); s2++) {
                         int src = src1 * multiplier + s2;
                         int target = target1 * multiplier + s2;
-			transitions.push_back(AbstractTransition(src, target));
                         if (store_original_operators) {
                             /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                              * only to the operators as relevant for this label.
                              */
-                            //new_trans.based_on_operators = bucket1[i].based_on_operators;
-                            //transitions.push_back(new_trans);
+
 			    transitions_by_label_based_on_operators[label_no].push_back(abs1->transitions_by_label_based_on_operators[label_no][i]);
                         } 
+				transitions.push_back(AbstractTransition(src, target));
                             
                     }
                 }
@@ -1070,18 +1063,16 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                         int src = s1 * multiplier + src2;
                         int target = s1 * multiplier + target2;
 
-			transitions.push_back(AbstractTransition(src, target));
+
                         if (store_original_operators) {
                             /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                              * only to the operators as relevant for this label.
                              */
-                            //AbstractTransition new_trans(src, target);
-                            //new_trans.based_on_operators = bucket2[i].based_on_operators;
-                            //transitions.push_back(new_trans);
 			    transitions_by_label_based_on_operators[label_no].push_back(abs2->transitions_by_label_based_on_operators[label_no][i]);
-                        } else {
+                        } 
                             
-                        }
+			transitions.push_back(AbstractTransition(src, target));
+                        
 			
                     }
                 }
@@ -1295,9 +1286,6 @@ void Abstraction::apply_abstraction(
                      * only to the operators as relevant for this label.
                      */
 		    new_transitions_by_label_based_on_operators[label_no].push_back(transitions_by_label_based_on_operators[label_no][i]);
-                    //AbstractTransition new_trans(src, target);
-                    //new_trans.based_on_operators = trans.based_on_operators;
-                    //new_transitions.push_back(new_trans);
                 }
             }
         }
