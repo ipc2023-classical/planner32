@@ -93,24 +93,26 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 				       std::vector<std::unique_ptr<Abstraction> > & abstractions) const {
     Abstraction::store_original_operators = store_original_operators;
     
-    if(restart) {
-	ldSim->release_memory();
-	std::unique_ptr<LDSimulation> tmpldSim;
-	init_ldsim(unit_cost, cost_type, tmpldSim);
-	tmpldSim->init_atomic_abstractions();
+    for(int i = 0; i < num_abstractions; ++i) {
+	if(restart) {
+	    ldSim->release_memory();
+	    std::unique_ptr<LDSimulation> tmpldSim;
+	    init_ldsim(unit_cost, cost_type, tmpldSim);
+	    tmpldSim->init_atomic_abstractions();
 
-	tmpldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-				     limit_seconds_mas, limit_memory_mas, prune_dead_operators, expensive_statistics, abstractions);
+	    tmpldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
+					 limit_seconds_mas, limit_memory_mas, prune_dead_operators, expensive_statistics, abstractions);
 
-    } else {
-	if(!ldSim) {
-	    init_ldsim(unit_cost, cost_type, ldSim);
-	    ldSim->init_atomic_abstractions();
-	}
+	} else {
+	    if(!ldSim) {
+		init_ldsim(unit_cost, cost_type, ldSim);
+		ldSim->init_atomic_abstractions();
+	    }
 
-	ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-				  limit_seconds_mas, limit_memory_mas, prune_dead_operators,  expensive_statistics,abstractions);
+	    ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
+				      limit_seconds_mas, limit_memory_mas, prune_dead_operators,  expensive_statistics,abstractions);
 	
+	}
     }
 } 
 
@@ -212,7 +214,8 @@ AbsBuilderMAS::AbsBuilderMAS(const Options &opts) :
     limit_memory_mas(opts.get<int>("limit_memory")),
     prune_dead_operators(opts.get<bool>("prune_dead_operators")),
     store_original_operators(opts.get<bool>("store_original_operators")),
-    restart(opts.get<bool>("restart")) {
+    restart(opts.get<bool>("restart")), 
+    num_abstractions(opts.get<int>("num_abstractions")) {
 }
 
 
@@ -471,6 +474,11 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
     parser.add_option<bool>("restart",
                             "If true, starts from atomic abstraction heuristics",
                             "false");
+
+
+    parser.add_option<int>("num_abstractions",
+                            "how many abstractions should be generated",
+                            "1");
 
 
     parser.add_option<bool>("store_original_operators",

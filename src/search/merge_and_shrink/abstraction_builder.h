@@ -79,6 +79,7 @@ class AbsBuilderMAS : public AbstractionBuilder {
     bool store_original_operators;
 
     const bool restart;
+    const int num_abstractions; 
 
 public: 
     AbsBuilderMAS(const Options &opts); 

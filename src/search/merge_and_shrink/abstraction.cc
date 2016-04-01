@@ -610,6 +610,7 @@ void Abstraction::normalize2() {
 					   transitions_by_label_based_on_operators[label_no][i])));
         }
         vector<AbstractTransition> ().swap(transitions);
+	vector<boost::dynamic_bitset<>> ().swap(transitions_by_label_based_on_operators[label_no]);
     }
 
     /* Now we handle "new" labels. We iterate over the fresh labels and
@@ -660,6 +661,7 @@ void Abstraction::normalize2() {
                     }
                 }
                 vector<AbstractTransition> ().swap(transitions);
+		vector<boost::dynamic_bitset<>> ().swap(transitions_by_label_based_on_operators[parent_id]);
 
                 // mark parent as irrelevant (unused labels should not be
                 // marked as relevant in order to avoid confusions when
@@ -1376,6 +1378,7 @@ int CompositeAbstraction::memory_estimate() const {
 void Abstraction::release_memory() {
     vector<bool>().swap(relevant_labels);
     vector<vector<AbstractTransition> >().swap(transitions_by_label);
+    vector<vector<boost::dynamic_bitset<>> >().swap(transitions_by_label_based_on_operators);
     lts.reset();
 }
 
