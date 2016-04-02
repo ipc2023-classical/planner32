@@ -93,7 +93,10 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 				       std::vector<std::unique_ptr<Abstraction> > & abstractions) const {
     Abstraction::store_original_operators = store_original_operators;
     
-    for(int i = 0; i < num_abstractions; ++i) {
+    for(int i = 0; i < num_abstractions ; ++i) {
+	int remaining_time = max(0, min<int>(limit_seconds_mas, limit_seconds_total - g_timer()));
+	if(remaining_time <= 0) break;
+
 	if(restart) {
 	    ldSim->release_memory();
 	    std::unique_ptr<LDSimulation> tmpldSim;
@@ -101,7 +104,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 	    tmpldSim->init_atomic_abstractions();
 
 	    tmpldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-					 limit_seconds_mas, limit_memory_mas, prune_dead_operators, expensive_statistics, abstractions);
+					 remaining_time, limit_memory_mas, prune_dead_operators, expensive_statistics, abstractions);
 
 	} else {
 	    if(!ldSim) {
@@ -110,7 +113,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 	    }
 
 	    ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-				      limit_seconds_mas, limit_memory_mas, prune_dead_operators,  expensive_statistics,abstractions);
+				      remaining_time, limit_memory_mas, prune_dead_operators,  expensive_statistics,abstractions);
 	
 	}
     }
@@ -209,7 +212,8 @@ AbsBuilderMAS::AbsBuilderMAS(const Options &opts) :
     AbstractionBuilder(opts), 
     merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
     shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
-    shrink_after_merge(opts.get<bool>("shrink_after_merge")), 
+    shrink_after_merge(opts.get<bool>("shrink_after_merge")),
+    limit_seconds_total(opts.get<int>("limit_seconds_total")), 
     limit_seconds_mas(opts.get<int>("limit_seconds")), 
     limit_memory_mas(opts.get<int>("limit_memory")),
     prune_dead_operators(opts.get<bool>("prune_dead_operators")),
@@ -448,9 +452,15 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
     AbstractionBuilder::add_options_to_parser(parser);
 
     parser.add_option<int>("limit_seconds",
+			   "limit the number of seconds for each iteration"
+			   "By default: 300 ",
+			   "300");
+
+    parser.add_option<int>("limit_seconds_total",
 			   "limit the number of seconds for building the merge and shrink abstractions"
-			   "By default: 1700 ",
-			   "1700");
+			   "By default: ",
+			   "1500");
+
     parser.add_option<int>("limit_memory",
 		       "limit the memory for building the merge and shrink abstractions"
 			   "By default:  ",
