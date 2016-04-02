@@ -20,14 +20,17 @@ using namespace std;
 static const int infinity = numeric_limits<int>::max();
 
 MergeDFP::MergeDFP()
-    : MergeStrategy()/*,
-      border_atomics_composites(remaining_merges + 1) */{
+    : MergeStrategy(),
+      border_atomics_composites(remaining_merges + 1) {
     // n := remaining_merges + 1 is the number of variables of the planning task
     // and thus the number of atomic abstractions. These will be stored at
     // indices 0 to n-1 and thus n is the index at which the first composite
     // abstraction will be stored at.
 }
 
+
+void MergeDFP::init_strategy (const std::vector <Abstraction * > & /*abstractions*/) {
+}
 
 size_t MergeDFP::get_corrected_index(int index) const {
     // This method assumes that we iterate over the vector of all
@@ -40,11 +43,9 @@ size_t MergeDFP::get_corrected_index(int index) const {
     // when new abstractions were not inserted after existing abstractions,
     // but rather replaced arbitrarily one of the two original abstractions.
     assert(index >= 0);
-    //if (index >= border_atomics_composites)
-    if (index > total_merges)
+    if (index >= border_atomics_composites)
         return index;
-    //return border_atomics_composites - 1 - index;
-    return total_merges - index;
+    return border_atomics_composites - 1 - index;
 }
 
 // Alvaro: Merge strategies have now a limit on the size of the

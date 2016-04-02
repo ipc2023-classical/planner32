@@ -168,7 +168,9 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     //variables, filling with nullptr. Then composite abstractions
     vector<Abstraction *> all_abstractions(g_variable_domain.size(), nullptr);
     int index_atomic = 0;
+    int remaining_abstractions = 0;
     for (auto a : abstractions) {
+	remaining_abstractions ++;
 	if (a->get_varset().size() == 1) {
 	    all_abstractions[index_atomic++] = a->clone();
 	}else{
@@ -188,7 +190,10 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
 // With the reduction methods we use here, this should just apply label reduction on all abstractions
     }
 
-    while (!merge_strategy->done() && t_mas() < limit_seconds_mas && estimated_memory_MB(all_abstractions) < limit_memory_mas ) {
+    while (!merge_strategy->done() && remaining_abstractions > 1 && 
+	   t_mas() < limit_seconds_mas && estimated_memory_MB(all_abstractions) < limit_memory_mas ) {
+	cout << "Remaining: " << remaining_abstractions << endl; 
+	remaining_abstractions--;
         pair<int, int> next_systems = merge_strategy->get_next(all_abstractions);
         int system_one = next_systems.first;
         int system_two = next_systems.second;
@@ -323,15 +328,18 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
     //       allocates memory.
     Timer t;
 
+    int remaining_abstractions = 0;
     vector<Abstraction *> all_abstractions;
     if(abstractions.empty()) {
 	// vector of all abstractions. entries with 0 have been merged.
 	all_abstractions.reserve(g_variable_domain.size() * 2 - 1);
 	Abstraction::build_atomic_abstractions(all_abstractions, labels.get());
+	remaining_abstractions = all_abstractions.size();
     } else {
 	all_abstractions.resize(g_variable_domain.size(), nullptr);
 	int index_atomic = 0;
 	for (auto a : abstractions) {
+	    remaining_abstractions++;
 	    if (a->get_varset().size() == 1) {
 		all_abstractions[index_atomic++] = a->clone();
 	    }else{
@@ -393,7 +401,6 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
     }
 
 
-    int remaining_abstractions = all_abstractions.size();
     remaining_abstractions -= remove_useless_abstractions(all_abstractions);
 
     DEBUG_MAS(cout << "Merging abstractions..." << endl;);

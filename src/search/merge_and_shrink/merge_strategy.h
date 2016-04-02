@@ -29,7 +29,7 @@ public:
 	init_strategy(abstractions);
     }
 
-    virtual void init_strategy (const std::vector <Abstraction * > & ) {}
+    virtual void init_strategy (const std::vector <Abstraction * > & ) = 0;
 
     virtual void remove_useless_vars (const std::vector<int> & ) {}
 

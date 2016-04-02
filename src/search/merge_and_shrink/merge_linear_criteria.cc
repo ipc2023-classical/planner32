@@ -41,7 +41,11 @@ MergeLinearCriteria::MergeLinearCriteria(const Options &opts) :
 void MergeLinearCriteria::init_strategy (const std::vector <Abstraction * > & abstractions){
     remaining_vars.clear();
     for (auto abs : abstractions) {
-	if (abs && abs->get_varset().size() == 1) remaining_vars.push_back(*(abs->get_varset().begin()));
+	if (abs) {
+	    assert(abs->get_varset().size() == 1); 
+	    if (abs->get_varset().size() == 1) remaining_vars.push_back(*(abs->get_varset().begin()));
+	} 
+
     }
 
     if (order == REVERSE_LEVEL) {
@@ -52,7 +56,8 @@ void MergeLinearCriteria::init_strategy (const std::vector <Abstraction * > & ab
     } else {
 	std::sort(begin(remaining_vars), end(remaining_vars), std::greater<int>());
     }
-  
+
+
     for(int i = 0; i < criteria.size(); ++i){
 	criteria[i]->init();
     }
