@@ -35,6 +35,7 @@ class SymBAUnsat : public SearchEngine, public SymController{
 
   const double multiply_time_by;
   const int num_fails_to_multiply_time;
+  const int time_fails_to_multiply_time;
   
  
   const double shouldAbstractRatio;
@@ -54,7 +55,7 @@ class SymBAUnsat : public SearchEngine, public SymController{
   //std::vector <SymPH *> phs;
   //std::unique_ptr<UCTTree> ph;
 
-  int num_iterations_without_reward;
+  int num_iterations_without_reward, time_last_reward;
   std::vector<std::unique_ptr<UCTNode> > nodes;
   std::map<std::set<int>, UCTNode *> nodesByPattern;
 

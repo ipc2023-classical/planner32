@@ -23,14 +23,15 @@ SymBAUnsat::SymBAUnsat(const Options &opts) :
     ratioRelaxTime(opts.get<double> ("relax_ratio_time")), 
     ratioRelaxNodes(opts.get<double> ("relax_ratio_nodes")), 
     multiply_time_by (opts.get<double> ("multiply_time_by")), 
-    num_fails_to_multiply_time(opts.get<int> ("num_fails_to_multiply_time")), 
+    num_fails_to_multiply_time(opts.get<int> ("num_fails_to_multiply_time")),
+    time_fails_to_multiply_time(opts.get<int> ("time_fails_to_multiply_time")), 
     shouldAbstractRatio(opts.get<double> ("should_abstract_ratio")), 
     maxNumAbstractions(opts.get<int> ("max_abstractions")), 
     UCT_C(opts.get<double> ("uct_c")),
     rewardType (UCTRewardType(opts.get_enum("reward_type"))), 
     RAVE_K (opts.get<double> ("rave_k")),
     add_abstract_to_ongoing_searches_time (opts.get<int>( "add_abstract_to_ongoing_searches_time")),
-    numAbstractions(0), num_iterations_without_reward (0),
+    numAbstractions(0), num_iterations_without_reward (0),time_last_reward(g_timer()), 
     time_step_abstract(0), time_step_original(0), 
     time_select_exploration(0),  time_notify_mutex(0), 
     time_init(0) {  
@@ -196,19 +197,21 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	    cout << "  found dead ends: " << newDeadEnds.nodeCount() << endl; 
 
 	    insertDeadEnds(newDeadEnds, currentSearch->isFW());
+	    num_iterations_without_reward = 0;
+	    time_last_reward = g_timer();
 	} else {
 	    cout <<  "  with no results "  << endl; 
+	    num_iterations_without_reward ++;
+	    if(num_iterations_without_reward > num_fails_to_multiply_time && 
+	       g_timer() - time_last_reward > time_fails_to_multiply_time) {
+		searchParams.maxStepNodesMin *= multiply_time_by;
+		cout << "Increased node bound: " << searchParams.getMaxStepNodes() << endl;
+		num_iterations_without_reward = 0;
+		time_last_reward = g_timer();
+	    }
 	}
 
 	double reward = computeReward(newDeadEnds, time_spent)*multiplier;
-	if(reward < 0.01){
-	    num_iterations_without_reward ++;
-	    if(num_iterations_without_reward > num_fails_to_multiply_time) {
-		searchParams.maxStepNodesMin *= multiply_time_by;
-	    }
-	} else {
-	    num_iterations_without_reward = 0;
-	}
 	cout << "Reward: " << reward << endl;
 
 	for (UCTNode * node : uct_trace) {
@@ -406,7 +409,11 @@ static SearchEngine *_parse(OptionParser &parser) {
 			      "2");
 
     parser.add_option<int>("num_fails_to_multiply_time",
-			   "", "5");
+			   "", "10");
+
+    parser.add_option<int>("time_fails_to_multiply_time",
+			   "", "100");
+
     
     
 
