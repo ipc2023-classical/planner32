@@ -32,8 +32,9 @@ private:
     int visits_fw, visits_bw;
     bool redundant_fw, redundant_bw;
 
-    std::vector<double> rave_reward;//_fw, rave_reward_bw;
-    std::vector<int> rave_visits;//_fw, rave_visits_bw;
+    std::vector<double> rave_reward;
+    std::vector<int> rave_visits;
+    int total_rave_visits;
 
     bool isExplored (bool fw) const {
 	return (fw && visits_fw > 0) || (!fw && visits_bw > 0);
@@ -86,8 +87,10 @@ public:
     }
 
 
-    UCTNode * getChild (bool fw, double UCT_C, double RAVE_K);
+    UCTNode * getChild (bool fw, double UCT_C, double RAVE_K, UCTNode * root) const;
     UCTNode * getRandomChild (bool fw);
+
+    double get_rave_value(int var, double UCT_C) const;
 
     double uct_value(bool fw, int visits_parent, double UCT_C, double RAVE_B = 0) const;
 

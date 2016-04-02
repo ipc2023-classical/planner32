@@ -479,7 +479,7 @@ distclean: clean
 ## subdirectory, it will strip the directory part in the output. Hence
 ## the for loop with the sed call.
 
-Makefile.depend: $(SOURCES) $(HEADERS)
+Makefile.depend: $(CUDD_ROOT) $(SOURCES) $(HEADERS)
 	rm -f Makefile.temp
 	for source in $(SOURCES) ; do \
 	    $(DEPEND) $(CXXFLAGS) $$source > Makefile.temp0; \

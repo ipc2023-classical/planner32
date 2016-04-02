@@ -5,6 +5,8 @@
 
 #include "../globals.h"
 #include "../rng.h"
+#include "../debug.h"
+
 #include "../legacy_causal_graph.h"
 
 #include <algorithm>
@@ -28,8 +30,6 @@ UCTNode::UCTNode(const std::set<int> & pattern_) :
     redundant_fw(false), redundant_bw(false) { 
 
 }
-
-
 
 void UCTNode::init(SymVariables * vars, const SymParamsMgr & mgrParams, 
 		   SymManager * omgr, AbsTRsStrategy absTRsStrategy) {
@@ -215,42 +215,42 @@ UCTNode * UCTNode::getRandomChild (bool fw)  {
     return children_list[num_selected];	
 }
 
-UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K)  {    
+
+double UCTNode::get_rave_value(int var, double UCT_C) const {
+    return rave_reward[var] + UCT_C*sqrt(log(total_rave_visits)/rave_visits[var]); 
+}
+
+UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K, UCTNode * root) const {    
     const auto & children_list = (fw ? children_fw : children_bw);
     if(children_list.empty()) return nullptr;
-
     vector<UCTNode *> best_children;
-    vector<double> best_rave;
+   
+    if(!root->rave_reward.empty()) {
+	double best_value = numeric_limits<double>::min();	    
+	for(auto c : children_list) {
+	    if(c->isExplored(fw)) continue;
+	    double c_val = root->get_rave_value(children_var.at(c), UCT_C);
+	    if(best_value <= c_val) {
+		if(best_value < c_val){
+		    best_value = c_val;
+		    best_children.clear();
+		}
 
-    //double total_rave = 0;
-    for(auto c : children_list) {
-	if(!c->isExplored(fw)) {
-	    best_children.push_back(c);
-	    // if (RAVE_K){ 
-	    // 	double rave =(rave_reward.empty() ? 0.0 : rave_reward[children_var[c]]);
-	    // 	best_rave.push_back(rave);
-	    // 	total_rave +=  rave;
-	    // }
+		best_children.push_back(c);
+	    }
+	}
+    } else {
+	for(auto c : children_list) {
+	    if(!c->isExplored(fw)) {
+		best_children.push_back(c);
+	    }
 	}
     }
     
     if(!best_children.empty()) {
-	// if (total_rave >= 1){
-	//     double val = g_rng.next(total_rave);
-	//    int num_selected = 0;
-	//    while (num_selected < best_children.size() - 1) {
-	//        val-= rave_reward[children_var[best_children[num_selected]]];
-	//        if(val < 0) break;
-	//        num_selected ++;
-	//    }
-	//    cout << "Num selected: " << num_selected << endl;
-	//    return best_children[num_selected];
-	// }else{
-	    int num_selected = g_rng.next(best_children.size()); 
-	    return best_children[num_selected];	
-
-	    //}
-    }
+	int num_selected = g_rng.next(best_children.size()); 
+	return best_children[num_selected];
+    }	
 
     int total_visits = 0;
     for(auto c : children_list) {
@@ -259,21 +259,18 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K)  {
 
 
     double best_value = numeric_limits<double>::min();
-    cout << "Child values: ";
+    DEBUG_MSG(cout << "Child values: ";);
     for(auto c : children_list) {
 	double c_val = 0;
-	if(RAVE_K){
-	    //vector<double> & rave_reward = (fw? rave_reward_fw : rave_reward_bw);
-	    double RAVE_Q = (rave_reward.empty() ? 0.0 : rave_reward[children_var[c]]);
-		
+	if(!rave_reward.empty()){
+	    double RAVE_Q = rave_reward[children_var.at(c)];
 	    double RAVE_B = sqrt(RAVE_K/(3*total_visits + RAVE_K));
-    
     
 	    c_val = c->uct_value(fw, total_visits, UCT_C, RAVE_B) + RAVE_B*RAVE_Q;
 	}else{
 	    c_val = c->uct_value(fw, total_visits, UCT_C, 0);
 	}
-	cout << c_val << " "; 
+	DEBUG_MSG(cout << c_val << " ";);
 	if(best_value <= c_val) {
 	    if(best_value < c_val){
 		best_value = c_val;
@@ -283,7 +280,7 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K)  {
 	    best_children.push_back(c);
 	}
     }
-    cout << endl;
+    DEBUG_MSG(cout << endl;);
 
     int num_selected = g_rng.next(best_children.size()); 
     return best_children[num_selected];	
@@ -380,6 +377,7 @@ void UCTNode::notifyRewardRAVE (bool fw, double new_reward, const std::set<int> 
     if(rave_reward.empty()) {
 	rave_reward.resize(g_variable_domain.size(), 0.0);
 	rave_visits.resize(g_variable_domain.size(), 0);
+	total_rave_visits = 0;
     }
     //Apply RAVE
     for (int v : pattern) {
@@ -390,5 +388,6 @@ void UCTNode::notifyRewardRAVE (bool fw, double new_reward, const std::set<int> 
     
 	rave_reward[v] =  (rave_reward[v]*rave_visits[v] + new_reward) / (rave_visits[v]+1);
 	rave_visits[v] ++;
+	total_rave_visits++;
     }    
 }

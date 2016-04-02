@@ -94,7 +94,7 @@ UCTNode * SymBAUnsat::relax(UCTNode * node,
 	if (rewardType == UCTRewardType::RAND) {
 	    node = node->getRandomChild(fw);
 	} else {
-	    node = node->getChild(fw, UCT_C, RAVE_K);
+	    node = node->getChild(fw, UCT_C, RAVE_K, getRoot());
 	}
 	
 	if(!node) break; 
@@ -228,12 +228,13 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 
 
 double SymBAUnsat::computeReward (const BDD & bdd, double time_spent) const {
+    if(bdd.IsZero()) return 0;
     switch(rewardType) {
     case STATES_NODES:
 	if (bdd.nodeCount() < 100000) {
-	    return  10*vars->percentageNumStates(bdd);
+	    return std::max<double>(1.0, 10*vars->percentageNumStates(bdd));
 	} else {
-	    return std::max (0.0, (10000000 - bdd.nodeCount())/10000000.0);
+	    return std::max <double> (0.25, (10000000 - bdd.nodeCount())/10000000.0);
 	}
 	
     case STATES: 
