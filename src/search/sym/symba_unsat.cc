@@ -240,7 +240,7 @@ double SymBAUnsat::computeReward (const BDD & bdd, double time_spent) const {
     case STATES: 
 	return vars->percentageNumStates(bdd);
     case NODES:
-	return bdd.nodeCount()/100000.0;
+	return  std::min(std::max <double> (0.5, bdd.nodeCount()/100000.0), 10.0);
     case STATES_TIME:
 	return vars->percentageNumStates(bdd) * 1800.0/(1 + time_spent); 
     case NODES_TIME:
