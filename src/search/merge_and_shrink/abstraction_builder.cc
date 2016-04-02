@@ -62,10 +62,13 @@ void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost co
 	init_ldsim(unit_cost, cost_type, ldSim);
     }
 
+    int remaining_time = max(0, min<int>(limit_seconds_mas, limit_seconds_total - g_timer()));
+
+
     ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, 
 			     limit_transitions_merge, original_merge,
 			     shrink_strategy.get(), forbid_lr, 
-			     limit_seconds_mas, 
+			     remaining_time, limit_memory_kb_total, 
 			     intermediate_simulations, incremental_simulations, 
 			     simulation_type, 
 			     label_dominance_type, 
@@ -104,7 +107,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 	    tmpldSim->init_atomic_abstractions();
 
 	    tmpldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-					 remaining_time, limit_memory_mas, prune_dead_operators, expensive_statistics, abstractions);
+					 remaining_time, limit_memory_kb_total, prune_dead_operators, expensive_statistics, abstractions);
 
 	} else {
 	    if(!ldSim) {
@@ -113,7 +116,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 	    }
 
 	    ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
-				      remaining_time, limit_memory_mas, prune_dead_operators,  expensive_statistics,abstractions);
+				      remaining_time, limit_memory_kb_total, prune_dead_operators,  expensive_statistics,abstractions);
 	
 	}
     }
@@ -146,7 +149,9 @@ void AbsBuilderMasSimulation::dump_options() const {
 }
 
 AbstractionBuilder::AbstractionBuilder(const Options &opts_)  : 
-    opts (opts_), expensive_statistics (opts.get<bool>("expensive_statistics"))  {     
+    opts (opts_), expensive_statistics (opts.get<bool>("expensive_statistics")), 
+    limit_seconds_total(opts.get<int>("limit_seconds_total")), 
+    limit_memory_kb_total(opts.get<int>("limit_memory_kb")) {     
 }
 
 AbsBuilderAtomic::AbsBuilderAtomic(const Options &opts) : 
@@ -213,9 +218,7 @@ AbsBuilderMAS::AbsBuilderMAS(const Options &opts) :
     merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
     shrink_strategy(opts.get<ShrinkStrategy *>("shrink_strategy")),
     shrink_after_merge(opts.get<bool>("shrink_after_merge")),
-    limit_seconds_total(opts.get<int>("limit_seconds_total")), 
     limit_seconds_mas(opts.get<int>("limit_seconds")), 
-    limit_memory_mas(opts.get<int>("limit_memory")),
     prune_dead_operators(opts.get<bool>("prune_dead_operators")),
     store_original_operators(opts.get<bool>("store_original_operators")),
     restart(opts.get<bool>("restart")), 
@@ -327,6 +330,19 @@ void AbstractionBuilder::add_options_to_parser(OptionParser &parser) {
 			    "prints a big warning on stderr with information on the performance impact. "
 			    "Don't use when benchmarking!)",
 			    "false");
+
+
+    parser.add_option<int>("limit_seconds_total",
+			   "limit the number of seconds for building the merge and shrink abstractions"
+			   "By default: 1400, reserving ~100 seconds for the preprocessor and ~300 for search  ",
+			   "1400");
+
+    parser.add_option<int>("limit_memory_kb",
+			   "limit the memory for building the merge and shrink abstractions"
+			   "By default:  ",
+			   "2000000");
+
+
 }
 
 
@@ -334,6 +350,11 @@ void AbstractionBuilder::add_options_to_parser(OptionParser &parser) {
 static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 
     AbstractionBuilder::add_options_to_parser(parser);
+
+    parser.add_option<int>("limit_seconds",
+			   "limit the number of seconds for each iteration"
+			   "By default: 300 ",
+			   "300");
 
     parser.add_option<int>("limit_merge",
 			   "limit on the number of abstract states after the merge"
@@ -344,16 +365,6 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 			   "limit on the number of transitions after the merge"
 			   "By default: 0: no limit at all",
 			   "0");
-
-    parser.add_option<int>("limit_seconds",
-			   "limit the number of seconds for building the merge and shrink abstractions"
-			   "By default: 1700 ",
-			   "1700");
-
-    parser.add_option<int>("limit_memory",
-			   "limit the memory for building the merge and shrink abstractions"
-			   "By default:  ",
-			   "2000");
 
 
     parser.add_option<bool>("intermediate_simulations",
@@ -455,18 +466,6 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
 			   "limit the number of seconds for each iteration"
 			   "By default: 300 ",
 			   "300");
-
-    parser.add_option<int>("limit_seconds_total",
-			   "limit the number of seconds for building the merge and shrink abstractions"
-			   "By default: ",
-			   "1500");
-
-    parser.add_option<int>("limit_memory",
-		       "limit the memory for building the merge and shrink abstractions"
-			   "By default:  ",
-			   "2000");
-
-
 
     parser.add_option<MergeStrategy *>(
 	"merge_strategy",

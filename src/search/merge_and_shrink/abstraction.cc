@@ -1360,6 +1360,8 @@ int CompositeAbstraction::memory_estimate() const {
     result += sizeof(vector<AbstractStateRef> ) * lookup_table.capacity();
     for (int i = 0; i < lookup_table.size(); i++)
         result += sizeof(AbstractStateRef) * lookup_table[i].capacity();
+
+    result += components[0]->memory_estimate() + components[1]->memory_estimate(); 
     return result;
 }
 

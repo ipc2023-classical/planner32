@@ -88,7 +88,7 @@ public:
     void build_abstraction(MergeStrategy * merge_strategy, int limit_absstates_merge, 
 			   int limit_transitions_merge, bool original_merge,
 			   ShrinkStrategy * shrink_strategy, bool forbid_lr, 
-			   int limit_seconds_mas, 
+			   int limit_seconds_mas, int limit_memory_kb_total,
 			   bool intermediate_simulations, bool incremental_simulations,
 			   SimulationType simulation_type, 
 			   LabelDominanceType label_dominance_type, 

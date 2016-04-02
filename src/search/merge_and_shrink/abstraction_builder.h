@@ -16,6 +16,9 @@ class AbstractionBuilder {
 protected: 
     const bool expensive_statistics;
 
+    const int limit_seconds_total;
+    const int limit_memory_kb_total; //Limit of seconds for building the abstraction
+
 public: 
     AbstractionBuilder(const Options &opts);
     virtual ~AbstractionBuilder() = default;
@@ -72,9 +75,8 @@ class AbsBuilderMAS : public AbstractionBuilder {
     std::unique_ptr<MergeStrategy> merge_strategy;
     std::unique_ptr<ShrinkStrategy> shrink_strategy;
     const bool shrink_after_merge;
-    const int limit_seconds_total; 
+     
     const int limit_seconds_mas; //Limit of seconds for building the abstraction
-    const int limit_memory_mas; //Limit of seconds for building the abstraction
 
     bool prune_dead_operators;
     bool store_original_operators;

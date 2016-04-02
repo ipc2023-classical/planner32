@@ -159,7 +159,7 @@ double LDSimulation::estimated_memory_MB (vector<Abstraction * > all_abstraction
 
 // Just main loop copied from merge_and_shrink heuristic 
 void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStrategy * shrink_strategy,
-				      bool shrink_after_merge, int limit_seconds_mas, int limit_memory_mas,
+				      bool shrink_after_merge, int limit_seconds, int limit_memory_kb,
 				      bool prune_dead_operators, bool use_expensive_statistics, 
 				      std::vector<std::unique_ptr<Abstraction> > & res) const {
     Timer t_mas;
@@ -191,8 +191,12 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     }
 
     while (!merge_strategy->done() && remaining_abstractions > 1 && 
-	   t_mas() < limit_seconds_mas && estimated_memory_MB(all_abstractions) < limit_memory_mas ) {
-	cout << "Remaining: " << remaining_abstractions << endl; 
+	   t_mas() < limit_seconds && get_peak_memory_in_kb() < limit_memory_kb ) {
+
+	cout << "Remaining: " << remaining_abstractions <<
+	    " time: " << t_mas() << "/" << limit_seconds  << "s" <<  
+	    " memory: " << get_peak_memory_in_kb()  << "/" << limit_memory_kb << " KB" << endl; 
+
 	remaining_abstractions--;
         pair<int, int> next_systems = merge_strategy->get_next(all_abstractions);
         int system_one = next_systems.first;
@@ -315,7 +319,7 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
 void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_absstates_merge, 
 				     int limit_transitions_merge, bool original_merge, 
 				     ShrinkStrategy * shrink_strategy, bool forbid_lr, 
-				     int limit_seconds_mas, 
+				     int limit_seconds, int limit_memory_kb,  
 				     bool intermediate_simulations, bool incremental_simulations, 
 				     SimulationType simulation_type, 
 				     LabelDominanceType label_dominance_type, 
@@ -406,7 +410,13 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
     DEBUG_MAS(cout << "Merging abstractions..." << endl;);
 
     merge_strategy->remove_useless_vars (useless_vars);
-    while (!merge_strategy->done() && t() <= limit_seconds_mas && remaining_abstractions > 1) {
+    while (!merge_strategy->done() && t() <= limit_seconds && 
+	   get_peak_memory_in_kb() < limit_memory_kb && 
+	   remaining_abstractions > 1) {
+	
+	cout << "Remaining: " << remaining_abstractions <<
+	    " time: " << t() << "/" << limit_seconds  << "s" <<  
+	    " memory: " << get_peak_memory_in_kb()  << "/" << limit_memory_kb << " KB" << endl; 
 
         pair<int, int> next_systems = original_merge ? merge_strategy->get_next(all_abstractions) : 
 	    merge_strategy->get_next(all_abstractions, limit_absstates_merge, limit_transitions_merge);

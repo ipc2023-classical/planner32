@@ -153,7 +153,7 @@ class DominanceRelationLR : public DominanceRelation {
 	
         label_dominance.init(_ltss, *this, labelMap);
 	
-	std::cout << "Compute LDSim on " << _ltss.size() << " LTSs " << t() << "s";
+	std::cout << "Compute LDSim on " << _ltss.size() << " LTSs. Init in " << t() << "s: " << std::flush;
 	do{
 	    //label_dominance.dump();
 	    if (incremental_step) {
@@ -167,7 +167,7 @@ class DominanceRelationLR : public DominanceRelation {
 		    //_dominance_relation[i]->dump(_ltss[i]->get_names());
 		}
 	    }
-	    std::cout << " " << t() << "s";
+	    std::cout << " " << t() << "s" << std::flush;
 	    //return; //PIET-edit: remove this for actual runs; just here for debugging the complex stuff
 	}while(label_dominance.update(_ltss, *this));
 	std::cout << std::endl;
