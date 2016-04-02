@@ -152,7 +152,7 @@ class DominanceRelationLR : public DominanceRelation {
 
 	
         label_dominance.init(_ltss, *this, labelMap);
-						
+	
 	std::cout << "Compute LDSim on " << _ltss.size() << " LTSs " << t() << "s";
 	do{
 	    //label_dominance.dump();
@@ -160,6 +160,7 @@ class DominanceRelationLR : public DominanceRelation {
 		// Should be enough to just update the last (i.e., the new) simulation here.
 		update(simulations.size() - 1, _ltss.back(), 
 		       label_dominance, *(simulations.back()));
+		
 	    } else {
 		for (int i = 0; i < simulations.size(); i++){
 		    update(i, _ltss[i], label_dominance, *(simulations[i]));
@@ -223,6 +224,7 @@ DominanceRelationLR(Labels * labels) : label_dominance(labels)
 	    }
 	}
 
+
 	//b) prune transitions dominated by noop in a transition system
 	for (int l = 0; l < label_dominance.get_num_labels(); l++){
 	    int lts = label_dominance.get_dominated_by_noop_in(l);
@@ -237,6 +239,7 @@ DominanceRelationLR(Labels * labels) : label_dominance(labels)
 							   labelMap, labelMap.get_old_id(l));
 	    }
 	}
+
 
 	//c) prune transitions dominated by other transitions
 	for (int lts = 0; lts < abstractions.size(); lts++) {

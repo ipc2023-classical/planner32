@@ -81,6 +81,7 @@ public:
 
     void reset();
     void dump(const std::vector<std::string> & names) const;
+    void dump() const;
 
     BDD getSimulatedBDD(const State & state) const;
     BDD getSimulatingBDD(const State & state) const;
@@ -90,7 +91,7 @@ public:
     void precompute_dominated_bdds();
     void precompute_dominating_bdds();
 
-    inline const Abstraction * get_abstraction() {
+    inline const Abstraction * get_abstraction() const {
 	return abs;
     }
 
@@ -114,7 +115,6 @@ public:
 
     void shrink();
 
-    
     void compute_list_dominated_states();
 
 };

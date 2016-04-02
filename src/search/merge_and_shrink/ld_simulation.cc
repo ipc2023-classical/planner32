@@ -256,6 +256,8 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
 	    other_abstraction->normalize();
 	}
 
+
+
         Abstraction *new_abstraction = new CompositeAbstraction(labels.get(),
                                                                 abstraction,
                                                                 other_abstraction);
@@ -303,7 +305,6 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     }    
 
     if(prune_dead_operators) prune_dead_ops(all_abstractions);
-
 }
 
 void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_absstates_merge, 
@@ -528,7 +529,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
                 }
             }
             
-            if (incremental_simulations) {
+            if (incremental_simulations) {		
 		dominance_relation->
 		    init_incremental(new_abstraction, 
 				     abstraction->get_simulation_relation(),
