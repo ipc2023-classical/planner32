@@ -20,7 +20,8 @@ using namespace __gnu_cxx;
 
 LabelReducer::LabelReducer(const Options &options)
     : label_reduction_method(LabelReductionMethod(options.get_enum("label_reduction_method"))),
-      label_reduction_system_order(LabelReductionSystemOrder(options.get_enum("label_reduction_system_order"))) {
+      label_reduction_system_order(LabelReductionSystemOrder(options.get_enum("label_reduction_system_order"))), 
+      max_time(options.get<int>("label_reduction_max_time")){
 
     size_t max_no_systems = g_variable_domain.size() * 2 - 1;
     system_order.reserve(max_no_systems);
@@ -113,7 +114,8 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
     vector<EquivalenceRelation *> local_equivalence_relations(
         all_abstractions.size(), 0);
 
-    for (int i = 0; i < max_iterations; ++i) {
+    Timer t;
+    for (int i = 0; i < max_iterations && t() < max_time; ++i) {
         size_t abs_index = system_order[system_order_index];
         Abstraction *current_abstraction = all_abstractions[abs_index];
 
@@ -449,6 +451,8 @@ void LabelReducer::dump_options() const {
         }
         cout << endl;
     }
+
+    cout << "max time for label reduction: " << max_time << endl;
 }
 
 bool LabelReducer::applies_perfect_label_reduction() const {

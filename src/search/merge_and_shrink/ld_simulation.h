@@ -74,6 +74,8 @@ protected:
 
     int remove_useless_abstractions(std::vector<Abstraction *> & abstractions) ;
 
+    int remove_useless_atomic_abstractions(std::vector<Abstraction *> & abstractions) const;
+
     double estimated_memory_MB (std::vector<Abstraction * > all_abstractions) const;
 
 

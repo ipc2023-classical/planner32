@@ -323,6 +323,10 @@ void AbstractionBuilder::add_options_to_parser(OptionParser &parser) {
 			   "for the choices all_abstractions and all_abstractions_with_fixpoint "
 			   "for the option label_reduction_method.", "RANDOM");
 
+    parser.add_option<int>("label_reduction_max_time",
+			   "limit the number of seconds for label reduction"
+			   "60");
+
     parser.add_option<bool>("expensive_statistics",
 			    "show statistics on \"unique unlabeled edges\" (WARNING: "
 			    "these are *very* slow, i.e. too expensive to show by default "

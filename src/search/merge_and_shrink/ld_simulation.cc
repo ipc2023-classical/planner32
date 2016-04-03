@@ -98,6 +98,7 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
 
 void LDSimulation::init_atomic_abstractions() {
     Abstraction::build_atomic_abstractions(abstractions, labels.get());
+    if(!useless_vars.empty()) remove_useless_atomic_abstractions(abstractions);
 }
 
 void LDSimulation::init_factored_systems(const std::vector<std::vector<int> > & partition_vars) {
@@ -316,6 +317,23 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     if(prune_dead_operators) prune_dead_ops(all_abstractions);
 }
 
+
+int LDSimulation::remove_useless_atomic_abstractions(std::vector<Abstraction* > & abss) const {
+    int total = 0;
+    for (int i = 0; i < abss.size(); ++i) {
+	if (abss[i]) {
+	    const vector <int> & abs_varset = abss[i]->get_varset();
+	    if(abs_varset.size() == 1) {
+		if(std::find(begin(useless_vars), end(useless_vars), abs_varset[0]) != end(useless_vars)){
+		    total ++;
+		    abss[i] = nullptr;
+		}
+	    }
+	}
+    }
+    return total;
+}
+
 void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_absstates_merge, 
 				     int limit_transitions_merge, bool original_merge, 
 				     ShrinkStrategy * shrink_strategy, bool forbid_lr, 
@@ -339,6 +357,9 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	all_abstractions.reserve(g_variable_domain.size() * 2 - 1);
 	Abstraction::build_atomic_abstractions(all_abstractions, labels.get());
 	remaining_abstractions = all_abstractions.size();
+
+	if(!useless_vars.empty()) 
+	    remaining_abstractions -= remove_useless_atomic_abstractions(abstractions);
     } else {
 	all_abstractions.resize(g_variable_domain.size(), nullptr);
 	int index_atomic = 0;
@@ -357,7 +378,9 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
     if (intermediate_simulations) {
 	if(!forbid_lr){
 	    DEBUG_MAS(cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;);
-	    labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    // With the reduction methods we use here, this should
+	    // just apply label reduction on all abstractions
+	    labels->reduce(make_pair(0, 1), all_abstractions);
 	    DEBUG_MAS(cout << "Normalize: " << t() << endl;);
 	    for (auto abs : all_abstractions) {
 		if(abs){
