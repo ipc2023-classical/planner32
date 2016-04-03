@@ -97,7 +97,6 @@ void ShrinkStrategy::shrink_before_merge(Abstraction &abs1, Abstraction &abs2) {
     pair<int, int> new_sizes = compute_shrink_sizes(abs1.size(), abs2.size());
     int new_size1 = new_sizes.first;
     int new_size2 = new_sizes.second;
-
     if (new_size2 != abs2.size()) {
         shrink(abs2, new_size2);
     }

@@ -42,7 +42,7 @@ void MergeLinearCriteria::init_strategy (const std::vector <Abstraction * > & ab
     remaining_vars.clear();
     for (auto abs : abstractions) {
 	if (abs) {
-	    assert(abs->get_varset().size() == 1); 
+	    assert(abs->get_varset().size() == 1 || abs == abstractions.back()); 
 	    if (abs->get_varset().size() == 1) remaining_vars.push_back(*(abs->get_varset().begin()));
 	} 
 

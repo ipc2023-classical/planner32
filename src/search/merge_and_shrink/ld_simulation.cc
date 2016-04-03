@@ -159,7 +159,7 @@ double LDSimulation::estimated_memory_MB (vector<Abstraction * > all_abstraction
 }
 
 // Just main loop copied from merge_and_shrink heuristic 
-void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStrategy * shrink_strategy,
+void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStrategy * shrink_strategy, 
 				      bool shrink_after_merge, int limit_seconds, int limit_memory_kb,
 				      bool prune_dead_operators, bool use_expensive_statistics, 
 				      std::vector<std::unique_ptr<Abstraction> > & res) const {
@@ -183,9 +183,10 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     for(int i = 0; i < g_variable_domain.size(); i++) {
 	if(!all_abstractions[i]) used_vars.push_back(i);
     }
+
     merge_strategy->init(all_abstractions);
     merge_strategy->remove_useless_vars (used_vars);
-
+    
     if(abstractions.size() > 1){
 	labels->reduce(make_pair(0, 1), all_abstractions); 
 // With the reduction methods we use here, this should just apply label reduction on all abstractions
@@ -343,7 +344,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 				     LabelDominanceType label_dominance_type, 
 				     int switch_off_label_dominance, bool complex_lts, 
 				     bool apply_subsumed_transitions_pruning, bool apply_label_dominance_reduction, 
-				     bool apply_simulation_shrinking, bool use_expensive_statistics ) {
+				     bool apply_simulation_shrinking, bool preserve_all_optimal_plans, bool use_expensive_statistics ) {
 
     // TODO: We're leaking memory here in various ways. Fix this.
     //       Don't forget that build_atomic_abstractions also
@@ -400,7 +401,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 			      complex_lts,
 			      apply_subsumed_transitions_pruning, 
 			      apply_label_dominance_reduction, 
-			      apply_simulation_shrinking);
+			      apply_simulation_shrinking, preserve_all_optimal_plans);
 
     } else if (shrink_strategy) {
 	if(!forbid_lr){
@@ -455,9 +456,9 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
         assert(other_abstraction);
 
 	if(original_merge){
-	    if((!limit_absstates_merge || 
-		abstraction->size() * other_abstraction->size() <= limit_absstates_merge) && 
-	       (!limit_transitions_merge || abstraction->estimate_transitions(other_abstraction) <= limit_transitions_merge)) {
+	    if((limit_absstates_merge &&  
+		abstraction->size() * other_abstraction->size() > limit_absstates_merge) || 
+	       (limit_transitions_merge && abstraction->estimate_transitions(other_abstraction) > limit_transitions_merge)) {
 		break;
 	    }
 	}
@@ -580,7 +581,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 				  switch_off_label_dominance, complex_lts,
 				  apply_subsumed_transitions_pruning, 
 				  apply_label_dominance_reduction, 
-				  apply_simulation_shrinking, 
+				  apply_simulation_shrinking, preserve_all_optimal_plans,
 				  incremental_simulations);
 	    
         }
@@ -623,8 +624,8 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
 					 int switch_off_label_dominance, bool complex_lts,
 					 bool apply_subsumed_transitions_pruning, 
 					 bool apply_label_dominance_reduction, 
-					 bool apply_simulation_shrinking, 
-					 bool incremental_step) {
+					 bool apply_simulation_shrinking, bool preserve_all_optimal_plans, 
+					 bool incremental_step ) {
     if(!dominance_relation) {
 	dominance_relation = std::move(create_dominance_relation(simulation_type, 
 								 label_dominance_type, 
@@ -680,7 +681,7 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
 		  for (auto abs : abstractions) {
 		      abs->statistics(false);
 		  });
-        int num_pruned_trs = dominance_relation->prune_subsumed_transitions(abstractions, labelMap, ltss_simple, lts_id/*TODO: Hack lts_complex will not work ever */);
+        int num_pruned_trs = dominance_relation->prune_subsumed_transitions(abstractions, labelMap, ltss_simple, lts_id/*TODO: Hack lts_complex will not work ever */, preserve_all_optimal_plans);
 
 	remove_dead_labels(abstractions);
 
@@ -753,7 +754,8 @@ void LDSimulation::compute_final_simulation(SimulationType simulation_type,
 					    bool intermediate_simulations, bool complex_lts, 
 					    bool apply_subsumed_transitions_pruning, 
 					    bool apply_label_dominance_reduction, 
-					    bool apply_simulation_shrinking) {
+					    bool apply_simulation_shrinking, 
+					    bool preserve_all_optimal_plans) {
     cout << "Computing simulation..." << endl;
     if (!dominance_relation){
 	dominance_relation = std::move(create_dominance_relation(simulation_type, 
@@ -767,7 +769,7 @@ void LDSimulation::compute_final_simulation(SimulationType simulation_type,
 			  complex_lts,
 			  apply_subsumed_transitions_pruning, 
 			  apply_label_dominance_reduction, 
-			  apply_simulation_shrinking);    
+			  apply_simulation_shrinking, preserve_all_optimal_plans);    
 
     cout << endl;
     cout << "Done initializing simulation heuristic [" << g_timer << "]"
@@ -824,9 +826,11 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
     } else {
         boost::dynamic_bitset<> required_operators(g_operators.size());
         for (int i = 0; i < labels->get_size(); i++) {
-            if (dead_labels[i] || labels->is_label_reduced(i)) {
+            if (dead_labels[i] || labels->is_label_reduced(i) || 
+		(i < g_operators.size() && g_operators[i].is_dead())) {
                 continue;
             }
+
             boost::dynamic_bitset<> required_operators_for_label;
             for (auto abs : all_abstractions) {
                 if (!abs || !abs->get_relevant_labels()[i])
@@ -834,18 +838,18 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
                 const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
                 const auto & t_ops = abs->get_transition_ops_for_label(i);
 
-                //cout << transitions.size() << " " << abs->get_relevant_labels()[i] << endl;
                 boost::dynamic_bitset<> required_operators_for_abstraction(g_operators.size());
                 for (int j = 0; j < transitions.size(); j++) {
                     required_operators_for_abstraction |= t_ops[j];
                 }
                 if (required_operators_for_label.size() == 0) {
+
                     required_operators_for_label = required_operators_for_abstraction;
                 } else {
                     required_operators_for_label &= required_operators_for_abstraction;
                 }
             }
-            //cout << endl;
+
             required_operators |= required_operators_for_label;
         }
         printf("Dead operators detected by storing original operators: %lu / %lu (%.2lf%%)\n",

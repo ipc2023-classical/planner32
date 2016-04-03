@@ -53,7 +53,7 @@ protected:
 			       int switch_off_label_dominance, bool complex_lts,
 			       bool apply_subsumed_transitions_pruning, 
 			       bool apply_label_dominance_reduction, 
-			       bool apply_simulation_shrinking, 
+			       bool apply_simulation_shrinking, bool preserve_all_optimal_plans,
 			       bool incremental_step = false);
 
     std::vector<std::vector<int> > get_variable_partition_greedy();
@@ -67,7 +67,7 @@ protected:
     // transitions are only checked for lts_id
     int prune_subsumed_transitions(const LabelMap & labelMap,
 				   const std::vector<LabelledTransitionSystem *> & ltss, 
-				   int lts_id);
+				   int lts_id, bool preserve_all_optimal_plans);
 
 
     void remove_dead_labels(std::vector<Abstraction *> & abstractions);
@@ -97,14 +97,15 @@ public:
 			   int switch_off_label_dominance,
 			   bool complex_lts, 
 			   bool apply_subsumed_transitions_pruning, bool apply_label_dominance_reduction, 
-			   bool apply_simulation_shrinking, bool expensive_statistics );
+			   bool apply_simulation_shrinking, 
+			   bool preserve_all_optimal_plans, bool expensive_statistics );
 
 
     void compute_final_simulation(SimulationType simulation_type, 
 				  LabelDominanceType label_dominance_type, 
 				  int switch_off_label_dominance, bool intermediate_simulations, bool complex_lts, 
 				  bool apply_subsumed_transitions_pruning, 
-				  bool apply_label_dominance_reduction, bool apply_simulation_shrinking); 
+				  bool apply_label_dominance_reduction, bool apply_simulation_shrinking, bool preserve_all_optimal_plans); 
 
     void complete_heuristic(MergeStrategy * merge_strategy, 
 			    ShrinkStrategy * shrink_strategy,

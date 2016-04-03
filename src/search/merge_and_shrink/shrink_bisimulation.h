@@ -35,7 +35,7 @@ class ShrinkBisimulation : public ShrinkStrategy {
         Abstraction &abs,
         int target_size,
         EquivalenceRelation &equivalence_relation);
-
+    
     int initialize_groups(const Abstraction &abs,
                           std::vector<int> &state_to_group);
     void compute_signatures(
@@ -55,7 +55,7 @@ public:
     virtual void shrink_atomic(Abstraction &abs);
     virtual void shrink_before_merge(Abstraction &abs1, Abstraction &abs2);
 
-    static ShrinkStrategy *create_default();
+    static ShrinkStrategy *create_default(bool aggregate_goals = false, int limit_states = std::numeric_limits<int>::max());
 };
 
 #endif

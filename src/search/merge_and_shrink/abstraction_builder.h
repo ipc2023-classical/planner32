@@ -98,6 +98,35 @@ public:
 }; 
 
 
+
+class AbsBuilderDefault : public AbstractionBuilder {
+    std::unique_ptr<MergeStrategy> merge_strategy;
+    const bool original_merge;
+    const int limit_absstates_merge;
+    const int limit_transitions_merge; 
+
+    const int limit_absstates_shrink; 
+     
+    const int limit_seconds_mas; //Limit of seconds for building the abstraction
+
+    const int num_abstractions;
+    const int switch_off_label_dominance;
+
+public: 
+    AbsBuilderDefault(const Options &opts); 
+    virtual ~AbsBuilderDefault() = default;
+
+    virtual void build_abstraction (bool unit_cost, OperatorCost cost_type,
+				    std::unique_ptr<LDSimulation> & ldSim, 
+				    std::vector<std::unique_ptr<Abstraction> > & abstractions) const;
+
+    virtual void dump_options() const {
+	std::cout << "AbsBuilderDefault" << std::endl;
+    }
+}; 
+
+
+
 class AbsBuilderMasSimulation : public AbstractionBuilder{
 
     const SimulationType simulation_type; 

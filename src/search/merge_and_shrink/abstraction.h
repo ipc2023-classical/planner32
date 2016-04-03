@@ -58,6 +58,7 @@ class Abstraction {
     friend class LDSimulation; // for setting store_original_operators -- TODO: refactor!
     friend class AbsBuilderMasSimulation; // for setting store_original_operators -- TODO: refactor!
     friend class AbsBuilderMAS; // for setting store_original_operators -- TODO: refactor!
+    friend class AbsBuilderDefault; // for setting store_original_operators -- TODO: refactor!
 
     static const int PRUNED_STATE;
     static const int DISTANCE_UNKNOWN;

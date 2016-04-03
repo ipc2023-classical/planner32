@@ -178,6 +178,8 @@ ShrinkOwnLabels *ShrinkOwnLabels::create_default() {
     Options opts;
     opts.set("max_states", infinity);
     opts.set("max_states_before_merge", infinity);
+    opts.set<bool>("goal_shrinking", true);
+
     return new ShrinkOwnLabels(opts);
 }
 

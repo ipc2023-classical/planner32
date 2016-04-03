@@ -5,6 +5,12 @@
 #include "dominance_relation.h"
 
 #include "shrink_strategy.h"
+#include "shrink_bisimulation.h"
+#include "shrink_composite.h"
+#include "shrink_own_labels.h"
+
+
+
 #include "merge_strategy.h"
 #include "variable_partition_finder.h"
 
@@ -75,16 +81,18 @@ void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost co
 			     switch_off_label_dominance, 
 			     complex_lts, 
 			     apply_subsumed_transitions_pruning, apply_label_dominance_reduction, 
-			     apply_simulation_shrinking, expensive_statistics);
+			     apply_simulation_shrinking, /*preserve_all_optimal_plans*/ false,
+				 expensive_statistics);
 
 
     if(compute_final_simulation)
 	ldSim->compute_final_simulation(simulation_type, 
 					label_dominance_type, 
-					switch_off_label_dominance, 
-					intermediate_simulations, complex_lts, 
-					apply_subsumed_transitions_pruning, 
-					apply_label_dominance_reduction, apply_simulation_shrinking); 
+					    switch_off_label_dominance, 
+					    intermediate_simulations, complex_lts, 
+					    apply_subsumed_transitions_pruning, 
+					    apply_label_dominance_reduction, apply_simulation_shrinking,
+					    /*preserve_all_optimal_plans*/false); 
 
     if(prune_dead_operators) ldSim->prune_dead_ops();
 
@@ -106,7 +114,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 	    init_ldsim(unit_cost, cost_type, tmpldSim);
 	    tmpldSim->init_atomic_abstractions();
 
-	    tmpldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
+	    tmpldSim->complete_heuristic(merge_strategy.get(),  shrink_strategy.get(),shrink_after_merge, 
 					 remaining_time, limit_memory_kb_total, prune_dead_operators, expensive_statistics, abstractions);
 
 	} else {
@@ -115,7 +123,7 @@ void AbsBuilderMAS::build_abstraction (bool unit_cost, OperatorCost cost_type,
 		ldSim->init_atomic_abstractions();
 	    }
 
-	    ldSim->complete_heuristic(merge_strategy.get(), shrink_strategy.get(), shrink_after_merge, 
+	    ldSim->complete_heuristic(merge_strategy.get(),  shrink_strategy.get(), shrink_after_merge, 
 				      remaining_time, limit_memory_kb_total, prune_dead_operators,  expensive_statistics,abstractions);
 	
 	}
@@ -226,6 +234,20 @@ AbsBuilderMAS::AbsBuilderMAS(const Options &opts) :
 }
 
 
+
+AbsBuilderDefault::AbsBuilderDefault(const Options &opts) : 
+    AbstractionBuilder(opts), 
+    merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), original_merge(opts.get<bool>("original_merge")),				   
+    limit_absstates_merge(opts.get<int>("limit_merge")),
+    limit_transitions_merge(opts.get<int>("limit_transitions_merge")), 
+    limit_absstates_shrink(opts.get<int>("limit_shrink")),
+
+    limit_seconds_mas(opts.get<int>("limit_seconds")), 
+    num_abstractions(opts.get<int>("num_abstractions")), 
+    switch_off_label_dominance(opts.get<int>("switch_off_label_dominance")) {
+}
+
+
 static AbstractionBuilder *_parse_composite(OptionParser &parser) {
     AbstractionBuilder::add_options_to_parser(parser);
 
@@ -324,7 +346,7 @@ void AbstractionBuilder::add_options_to_parser(OptionParser &parser) {
 			   "for the option label_reduction_method.", "RANDOM");
 
     parser.add_option<int>("label_reduction_max_time",
-			   "limit the number of seconds for label reduction"
+			   "limit the number of seconds for label reduction",
 			   "60");
 
     parser.add_option<bool>("expensive_statistics",
@@ -364,6 +386,11 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 			   "limit on the number of abstract states after the merge"
 			   "By default: 1, does not perform any merge",
 			   "1");
+
+
+    parser.add_option<bool>("original_merge",
+                            "Whether it continues merging variables after the next recommended merge has exceeded size",
+                            "false");
 
     parser.add_option<int>("limit_transitions_merge",
 			   "limit on the number of transitions after the merge"
@@ -419,10 +446,6 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 
     parser.add_option<bool>("shrink_after_merge",
                             "If true, performs the shrinking after merge instead of before",
-                            "false");
-
-    parser.add_option<bool>("original_merge",
-                            "Whether it continues merging variables after the next recommended merge has exceeded size",
                             "false");
 
     parser.add_option<bool>("incremental_pruning",
@@ -517,3 +540,182 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
 
 
 static Plugin<AbstractionBuilder> _plugin_mas("builder_mas", _parse_mas);
+
+
+
+
+
+static AbstractionBuilder *_parse_default(OptionParser &parser) {
+
+    AbstractionBuilder::add_options_to_parser(parser);
+
+    parser.add_option<int>("limit_seconds",
+			   "limit the number of seconds for each iteration"
+			   "By default: 300 ",
+			   "300");
+
+    parser.add_option<MergeStrategy *>(
+	"merge_strategy",
+	"merge strategy; choose between merge_linear and merge_dfp",
+	"merge_dfp");
+
+
+    parser.add_option<int>("num_abstractions",
+                            "how many abstractions should be generated",
+                            "1");
+
+
+    parser.add_option<int>("limit_merge",
+			   "limit on the number of abstract states after the merge"
+			   "By default: 100000",
+			   "100000");
+
+    parser.add_option<int>("limit_shrink",
+			   "limit on the number of abstract states for shrinking",
+			   "100000");
+
+
+    parser.add_option<bool>("original_merge",
+                            "Whether it continues merging variables after the next recommended merge has exceeded size",
+                            "false");
+
+    parser.add_option<int>("limit_transitions_merge",
+			   "limit on the number of transitions after the merge", 
+			    "100000");
+
+    parser.add_option<int>("switch_off_label_dominance",
+			   "disables label dominance if there are too many labels"
+			   "By default: 1000, to avoid memory errors",
+			   "200");
+
+
+
+    Options opts = parser.parse();
+
+    if (parser.help_mode())
+        return 0;
+
+    if (!parser.dry_run())
+        return new AbsBuilderDefault(opts);
+    else
+        return 0;
+}
+
+
+static Plugin<AbstractionBuilder> _plugin_default("builder", _parse_default);
+
+
+
+
+
+
+
+void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_type,
+					   std::unique_ptr<LDSimulation> & ldSim_, 
+					   std::vector<std::unique_ptr<Abstraction> > & abstractions) const {
+
+    Abstraction::store_original_operators = true;
+
+    bool preserve_all_optimal_plans = ldSim_.get() != nullptr;
+    LDSimulation * ldSim = nullptr;
+    std::unique_ptr<LDSimulation> tmpldSim;
+
+    if(!ldSim) {
+	init_ldsim(unit_cost, cost_type, ldSim_);
+	ldSim = ldSim_.get();
+    } else {
+	ldSim_->release_memory();
+	init_ldsim(unit_cost, cost_type, tmpldSim);
+	ldSim = tmpldSim.get(); 
+    }
+
+
+    int remaining_time = max(0, min<int>(limit_seconds_mas, limit_seconds_total - g_timer()));
+
+
+   // 1) Incremental simulations without shrinking or label reduction
+
+    cout << "1) Incremental simulations without shrinking or label reduction. Max states: "
+	 << limit_absstates_merge << " transitions: " << limit_transitions_merge  << endl;
+
+    ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, 
+			     limit_transitions_merge, /*original_merge*/ true,
+			     nullptr, /*forbid_lr*/ true, 
+			     remaining_time, limit_memory_kb_total, 
+			     /*intermediate_simulations */true, /*incremental_simulations*/ true, 
+			     SimulationType::SIMPLE, 
+			     LabelDominanceType::NORMAL, 
+			     switch_off_label_dominance, 
+			     /*complex_lts*/ false, 
+			     /*apply_subsumed_transitions_pruning*/ true, /*apply_label_dominance_reduction*/false, 
+			     /*apply_simulation_shrinking*/false, preserve_all_optimal_plans, expensive_statistics);
+
+
+    ldSim->compute_final_simulation(SimulationType::SIMPLE, 
+				    LabelDominanceType::NORMAL,
+				    switch_off_label_dominance, 
+				    true, false, 
+				    true, 
+				    false, false, preserve_all_optimal_plans); 
+
+    ldSim->prune_dead_ops();
+
+    // 2) Incremental simulations with shrinking and label reduction
+    cout << "2) Incremental simulations with shrinking and label reduction " << endl;
+    unique_ptr<ShrinkStrategy> bisim (ShrinkBisimulation::create_default(true));
+
+    remaining_time = max(0, min<int>(limit_seconds_mas, limit_seconds_total - g_timer()));
+
+    ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, 
+			     limit_transitions_merge, original_merge,
+			     bisim.get(), /*forbid_lr*/ false, 
+			     remaining_time, limit_memory_kb_total, 
+			     /*intermediate_simulations */true, /*incremental_simulations*/ true, 
+			     SimulationType::SIMPLE, 
+			     LabelDominanceType::NORMAL, 
+			     switch_off_label_dominance, 
+			     /*complex_lts*/ false, 
+			     /*apply_subsumed_transitions_pruning*/ true, /*apply_label_dominance_reduction*/false, 
+			     /*apply_simulation_shrinking*/false, preserve_all_optimal_plans, expensive_statistics);
+
+    ldSim->compute_final_simulation(SimulationType::SIMPLE, 
+				    LabelDominanceType::NORMAL,
+				    switch_off_label_dominance, 
+				    true, false, 
+				    true, 
+				    false, false, preserve_all_optimal_plans); 
+    
+    ldSim->prune_dead_ops();
+
+    cout << "3) Complete abstractions" << endl;
+
+    // 3) Complete abstractions 
+    unique_ptr<ShrinkStrategy> bisim_limit (limit_absstates_shrink == 0 ? 
+					    ShrinkBisimulation::create_default(true) :
+					    ShrinkBisimulation::create_default(true, limit_absstates_shrink));
+
+    unique_ptr<ShrinkStrategy> own (ShrinkOwnLabels::create_default());
+    std::vector<ShrinkStrategy *> strategies; 
+    strategies.push_back(own.get());
+    strategies.push_back(bisim_limit.get());
+    unique_ptr<ShrinkStrategy> shrink_combined (ShrinkComposite::create_default(strategies));
+    
+
+
+    Abstraction::store_original_operators = false;
+    
+    for(int i = 0; i < num_abstractions ; ++i) {
+	int remaining_time = max(0, min<int>(limit_seconds_mas, limit_seconds_total - g_timer()));
+	if(remaining_time <= 0) break;
+
+	ldSim->complete_heuristic(merge_strategy.get(), shrink_combined.get(),  /*shrink_after_merge*/ false, 
+				  remaining_time, limit_memory_kb_total, /*prune_dead_operators*/true,  
+				  expensive_statistics, abstractions);
+	
+    }
+
+    ldSim->prune_dead_ops();
+	
+
+}
+

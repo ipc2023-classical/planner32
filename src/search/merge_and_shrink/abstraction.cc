@@ -108,6 +108,7 @@ const vector<AbstractTransition> &Abstraction::get_transitions_for_label(int lab
 }
 
 const std::vector<boost::dynamic_bitset<>> &Abstraction::get_transition_ops_for_label(int label_no) const{
+    assert (label_no < transitions_by_label_based_on_operators.size());
     return transitions_by_label_based_on_operators[label_no];
 }
 
@@ -1409,7 +1410,7 @@ void Abstraction::statistics(bool include_expensive_statistics) const {
         cout << unique_unlabeled_transitions()  << "/";
     //else
     //    cout << "???";
-    cout << total_transitions() << " arcs, " << memory /* << " bytes << */ << " [t=" << g_timer << "]" << endl;
+    cout << total_transitions() << " arcs" /* << memory  << " bytes <<  << " [t=" << g_timer << "]" */<< endl;
 
     if (store_original_operators && include_expensive_statistics) {
         cout << tag();
