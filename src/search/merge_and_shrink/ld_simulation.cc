@@ -168,12 +168,11 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     //Insert atomic abstractions in the first g_variable_domain
     //variables, filling with nullptr. Then composite abstractions
     vector<Abstraction *> all_abstractions(g_variable_domain.size(), nullptr);
-    int index_atomic = 0;
     int remaining_abstractions = 0;
     for (auto a : abstractions) {
 	remaining_abstractions ++;
 	if (a->get_varset().size() == 1) {
-	    all_abstractions[index_atomic++] = a->clone();
+	    all_abstractions[*(a->get_varset().begin())] = a->clone();
 	}else{
 	    all_abstractions.push_back(a->clone());
 	}
@@ -363,17 +362,25 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	    remaining_abstractions -= remove_useless_atomic_abstractions(abstractions);
     } else {
 	all_abstractions.resize(g_variable_domain.size(), nullptr);
-	int index_atomic = 0;
 	for (auto a : abstractions) {
 	    remaining_abstractions++;
 	    if (a->get_varset().size() == 1) {
-		all_abstractions[index_atomic++] = a->clone();
+		all_abstractions[*(a->get_varset().begin())] = a->clone();
 	    }else{
 		all_abstractions.push_back(a->clone());
 	    }
 	}
 	abstractions.clear();
     }
+
+    vector<int> used_vars; 
+    for(int i = 0; i < g_variable_domain.size(); i++) {
+	if(!all_abstractions[i]) used_vars.push_back(i);
+    }
+
+    merge_strategy->init(all_abstractions);
+    merge_strategy->remove_useless_vars (used_vars);
+
 
     // compute initial simulations, based on atomic abstractions
     if (intermediate_simulations) {

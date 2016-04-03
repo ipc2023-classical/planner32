@@ -196,7 +196,7 @@ int MergeLinearCriteria::next(const std::vector<Abstraction *> &all_abstractions
 }
 
 void MergeLinearCriteria::remove_useless_vars (const std::vector<int> & useless_vars) {
-    for (int v : useless_vars) cout << "Remove useless var: " << v << endl;
+    for (int v : useless_vars) cout << "Remove var from merge consideration: " << v << endl;
     remaining_vars.erase(std::remove_if(begin(remaining_vars), end(remaining_vars), 
 					[&](int i) {
 					    return std::find (begin(useless_vars), 
