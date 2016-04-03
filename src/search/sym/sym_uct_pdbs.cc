@@ -52,7 +52,7 @@ SymBreadthFirstSearch * UCTNode::initSearch(bool fw, const SymParamsSearch & sea
 }
 
 
-void UCTNode::refine_pattern (const set<int> & pattern, vector<pair<int, set<int>>> & patterns, int v) const {    
+void UCTNode::refine_pattern (const set<int> & pattern, vector<pair<int, set<int>>> & patterns, int relaxed_variable) const {    
     vector<set<int>> patterns_goal(pattern.size());
     vector<bool> pattern_goal_redundant (pattern.size(), false);
     vector<int> pattern_var (g_variable_domain.size(), -1);
@@ -98,7 +98,7 @@ void UCTNode::refine_pattern (const set<int> & pattern, vector<pair<int, set<int
 		patterns.erase(remove_if(begin(patterns), end(patterns), 
 					 [&](const pair<int, set<int>>  & p1){return isSubset(p1.second, patterns_goal[g]);
 					 }), end(patterns));
-		patterns.push_back(pair<int, set<int>>(v, std::move(patterns_goal[g])));
+		patterns.push_back(pair<int, set<int>>(relaxed_variable, std::move(patterns_goal[g])));
 	    }
 
 	    return;
@@ -114,7 +114,7 @@ void UCTNode::refine_pattern (const set<int> & pattern, vector<pair<int, set<int
 				     [&](const pair<int, set<int>> & p1){return isSubset(p1.second, patterns_goal[g]);
 				     }), end(patterns));
 
-	    patterns.push_back(pair<int, set<int>>(v, std::move(patterns_goal[g])));
+	    patterns.push_back(pair<int, set<int>>(relaxed_variable, std::move(patterns_goal[g])));
 	}
     }
     
@@ -217,19 +217,20 @@ UCTNode * UCTNode::getRandomChild (bool fw)  {
 
 
 double UCTNode::get_rave_value(int var, double UCT_C) const {
-    return rave_reward[var] + UCT_C*sqrt(log(total_rave_visits)/rave_visits[var]); 
+    return rave_reward[var] + UCT_C*sqrt(log(total_rave_visits)/(rave_visits[var] + 1)); 
 }
 
-UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K, UCTNode * root) const {    
+UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K, UCTNode * root) const { 
     const auto & children_list = (fw ? children_fw : children_bw);
     if(children_list.empty()) return nullptr;
     vector<UCTNode *> best_children;
    
     if(!root->rave_reward.empty()) {
-	double best_value = numeric_limits<double>::min();	    
+	double best_value = numeric_limits<double>::lowest();	 
 	for(auto c : children_list) {
 	    if(c->isExplored(fw)) continue;
 	    double c_val = root->get_rave_value(children_var.at(c), UCT_C);
+	    DEBUG_MSG(cout << "  Rave value " <<  children_var.at(c) << " is " << c_val ;);
 	    if(best_value <= c_val) {
 		if(best_value < c_val){
 		    best_value = c_val;
@@ -239,6 +240,7 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K, UCTNode * roo
 		best_children.push_back(c);
 	    }
 	}
+	DEBUG_MSG(cout << endl;);
     } else {
 	for(auto c : children_list) {
 	    if(!c->isExplored(fw)) {
@@ -246,31 +248,32 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K, UCTNode * roo
 	    }
 	}
     }
+
     
     if(!best_children.empty()) {
 	int num_selected = g_rng.next(best_children.size()); 
 	return best_children[num_selected];
     }	
 
+    
     int total_visits = 0;
     for(auto c : children_list) {
 	total_visits += (fw ? c->visits_fw : c->visits_bw);
     } 
 
-
-    double best_value = numeric_limits<double>::min();
-    DEBUG_MSG(cout << "Child values: ";);
+    double best_value = numeric_limits<double>::lowest();
     for(auto c : children_list) {
 	double c_val = 0;
 	if(!rave_reward.empty()){
+    
 	    double RAVE_Q = rave_reward[children_var.at(c)];
 	    double RAVE_B = sqrt(RAVE_K/(3*total_visits + RAVE_K));
     
 	    c_val = c->uct_value(fw, total_visits, UCT_C, RAVE_B) + RAVE_B*RAVE_Q;
+    
 	}else{
 	    c_val = c->uct_value(fw, total_visits, UCT_C, 0);
 	}
-	DEBUG_MSG(cout << c_val << " ";);
 	if(best_value <= c_val) {
 	    if(best_value < c_val){
 		best_value = c_val;
@@ -280,9 +283,10 @@ UCTNode * UCTNode::getChild (bool fw, double UCT_C, double RAVE_K, UCTNode * roo
 	    best_children.push_back(c);
 	}
     }
-    DEBUG_MSG(cout << endl;);
-
+    assert(!best_children.empty());
+	    
     int num_selected = g_rng.next(best_children.size()); 
+
     return best_children[num_selected];	
 } 
 
@@ -350,12 +354,12 @@ void UCTNode::propagateNewDeadEnds(BDD bdd, bool isFW) {
 bool UCTNode::chooseDirection(double UCT_C) const {
     if(visits_fw == 0 && visits_bw == 0) return g_rng.next31()% 2;
     if(visits_bw == 0) return false;
-    if(visits_fw == 0) return false;
+    if(visits_fw == 0) return true;
     
     double rfw = reward_fw + UCT_C*sqrt(log((double)visits_fw + (double)visits_bw)/(double)visits_fw); 
     double rbw = reward_bw + UCT_C*sqrt(log((double)visits_fw + (double)visits_bw)/(double)visits_bw);
 
-//    cout << "Choosing " << visits_fw << " " << visits_bw << " " << rfw << " " <<  rbw << endl;
+    DEBUG_MSG(cout << "Choosing " << visits_fw << " " << visits_bw << " " << rfw << " " <<  rbw << endl;);
     if (rfw == rbw) return g_rng.next31()% 2;
     return rfw > rbw;
 }
@@ -372,6 +376,7 @@ void UCTNode::notifyReward (bool fw, double new_reward) {
 
 
 void UCTNode::notifyRewardRAVE (bool fw, double new_reward, const std::set<int> & final_pattern) {
+    //cout << "Notify Reward RAVE" << endl;
     notifyReward(fw, new_reward);
 
     if(rave_reward.empty()) {

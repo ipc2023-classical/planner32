@@ -87,6 +87,8 @@ class SymBAUnsat : public SearchEngine, public SymController{
   double computeReward (const BDD & bdd, double time_spent) const; 
 
   bool chooseDirection() const;
+  void increase_num_iterations_without_reward() ;
+
  public:
 
  UCTNode * getUCTNode (const std::set<int> & pattern);

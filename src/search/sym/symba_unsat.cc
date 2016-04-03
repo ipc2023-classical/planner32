@@ -166,6 +166,16 @@ int SymBAUnsat::step(){
     return IN_PROGRESS;
 }
 
+void SymBAUnsat::increase_num_iterations_without_reward(){
+    num_iterations_without_reward ++;
+    if(num_iterations_without_reward > num_fails_to_multiply_time && 
+       g_timer() - time_last_reward > time_fails_to_multiply_time) {
+	searchParams.maxStepNodesMin *= multiply_time_by;
+	cout << "Increased node bound: " << searchParams.getMaxStepNodes() << endl;
+	num_iterations_without_reward = 0;
+	time_last_reward = g_timer();
+    }
+}
 
 void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, double time_spent, 
 					      const vector<UCTNode *> & uct_trace){
@@ -201,14 +211,7 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	    time_last_reward = g_timer();
 	} else {
 	    cout <<  "  with no results "  << endl; 
-	    num_iterations_without_reward ++;
-	    if(num_iterations_without_reward > num_fails_to_multiply_time && 
-	       g_timer() - time_last_reward > time_fails_to_multiply_time) {
-		searchParams.maxStepNodesMin *= multiply_time_by;
-		cout << "Increased node bound: " << searchParams.getMaxStepNodes() << endl;
-		num_iterations_without_reward = 0;
-		time_last_reward = g_timer();
-	    }
+	    increase_num_iterations_without_reward();
 	}
 
 	double reward = computeReward(newDeadEnds, time_spent)*multiplier;
@@ -300,6 +303,7 @@ bool SymBAUnsat::askHeuristic() {
 	//1) Generate a new abstract exploration
 	UCTNode * abstractNode = relax(getRoot(), fw, uct_trace, false);
 	if(!abstractNode) {
+	    increase_num_iterations_without_reward(); 
 	    if(RAVE_K) for (auto node : uct_trace) node->notifyRewardRAVE(fw, 0, uct_trace.back()->getPattern());
 	    else for (auto node : uct_trace) node->notifyReward(fw, 0);
 	    continue;
@@ -330,6 +334,7 @@ bool SymBAUnsat::askHeuristic() {
 		//If we cannot continue the search, we relax it even more
 		abstractNode = relax(abstractNode, fw, uct_trace, override_search);
 		if(!abstractNode){
+		    increase_num_iterations_without_reward();
 		    if (RAVE_K) for (auto node : uct_trace) node->notifyRewardRAVE(fw, 0, uct_trace.back()->getPattern());
 		    else for (auto node : uct_trace) node->notifyReward(fw, 0);
 		    return true;
