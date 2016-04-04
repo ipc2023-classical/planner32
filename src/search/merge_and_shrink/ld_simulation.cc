@@ -839,9 +839,11 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
             }
 
             boost::dynamic_bitset<> required_operators_for_label;
+	    bool irrelevant_for_all_abstractions = true;
             for (auto abs : all_abstractions) {
                 if (!abs || !abs->get_relevant_labels()[i])
                     continue;
+		irrelevant_for_all_abstractions = false;
                 const vector<AbstractTransition> & transitions = abs->get_transitions_for_label(i);
                 const auto & t_ops = abs->get_transition_ops_for_label(i);
 
@@ -856,8 +858,7 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
                     required_operators_for_label &= required_operators_for_abstraction;
                 }
             }
-
-            required_operators |= required_operators_for_label;
+	    if(!irrelevant_for_all_abstractions)  required_operators |= required_operators_for_label;
         }
         printf("Dead operators detected by storing original operators: %lu / %lu (%.2lf%%)\n",
 	       g_operators.size() - required_operators.count(),
