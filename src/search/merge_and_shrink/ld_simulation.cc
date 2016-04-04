@@ -52,11 +52,10 @@ LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cos
 }
 
 LDSimulation::~LDSimulation(){
-    //TODO: commented because we do not know whether this abstractions are important for someone else. 
     //Abstractions should use shared_ptr to avoid a leak here
-    // for(auto abs : abstractions){
-    //     delete abs;
-    // }
+    for(auto abs : abstractions){
+        delete abs;
+    }
 }
 
 unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(SimulationType simulation_type, 
@@ -316,6 +315,12 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     }    
 
     if(prune_dead_operators) prune_dead_ops(all_abstractions);
+
+    for (size_t i = 0; i < all_abstractions.size(); ++i) {
+        if (all_abstractions[i]) {
+	    all_abstractions[i]->release_memory();
+	}
+    }
 }
 
 
@@ -609,7 +614,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
             all_abstractions[i]->compute_distances();
             DEBUG_MAS(all_abstractions[i]->statistics(use_expensive_statistics););
             abstractions.push_back(all_abstractions[i]);
-            //all_abstractions[i]->release_memory();
+	    // all_abstractions[i]->release_memory();
         }
     }
 

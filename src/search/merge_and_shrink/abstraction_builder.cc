@@ -714,7 +714,7 @@ void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_typ
 	
     }
 
-    ldSim->prune_dead_ops();
+    //ldSim->prune_dead_ops();
 	
 
 }
