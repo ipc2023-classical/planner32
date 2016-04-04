@@ -179,7 +179,7 @@ void SymBAUnsat::increase_num_iterations_without_reward(){
 void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSearch, double time_spent, 
 					      const vector<UCTNode *> & uct_trace){
     Timer t_notify;
-    cout << "Finished " << ((currentSearch->isFW()? "fw" : "bw"))  << " in " << *(currentSearch->getAbstraction())<< ": " << flush;
+    cout << "["  << g_timer() << "] Finished " << ((currentSearch->isFW()? "fw" : "bw"))  << " in " << *(currentSearch->getAbstraction())<< ": " << flush;
     if (!currentSearch->foundSolution()){
 	cout << "proved task unsolvable!" << endl;
 	statistics(); 
@@ -349,8 +349,8 @@ bool SymBAUnsat::askHeuristic() {
 
 void SymBAUnsat::print_options() const{
     cout << "SymBAUnsat* " << endl;
-    cout << "   Search dir: " << searchDir <<   cout << endl;
-    cout << "   Abstract dir: " << abstractDir <<   cout << endl;
+    cout << "   Search dir: " << searchDir << endl;
+    cout << "   Abstract dir: " << abstractDir << endl;
 
     cout << "  Max num abstractions: " << maxNumAbstractions << endl;
     cout << "   Abs TRs Strategy: " << absTRsStrategy << endl;

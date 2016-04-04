@@ -21,17 +21,6 @@ SymController::SymController(const Options &opts)
       gamer_ordering(opts.get<bool>("gamer_ordering")) {
     std::unique_ptr<AbstractionBuilder> abstractionBuilder 
 	(opts.get<AbstractionBuilder *>("irrelevance"));
-
-    if(abstractionBuilder) {
-	unique_ptr<LDSimulation> ldSim;
-	std::vector<std::unique_ptr<Abstraction> > abstractions;
-	// TODO: This irrelevance pruning is only safe for detecting unsolvability
-	abstractionBuilder->build_abstraction
-	    (true, OperatorCost::ZERO, ldSim, abstractions);
-	cout << "LDSimulation finished" << endl;
-	
-	ldSim->release_memory();
-    }
 	
     VariableOrderFinder vo (mgrParams.variable_ordering);
     vector <int> var_order; 
@@ -49,6 +38,20 @@ SymController::SymController(const Options &opts)
     vars->init(var_order, mgrParams);
     mgrParams.print_options();
     searchParams.print_options();
+
+    //TODO: This should be done before computing the var order and
+    //initializing vars. Done here to avoid memory errors
+    if(abstractionBuilder) {
+	unique_ptr<LDSimulation> ldSim;
+	std::vector<std::unique_ptr<Abstraction> > abstractions;
+	// TODO: This irrelevance pruning is only safe for detecting unsolvability
+	abstractionBuilder->build_abstraction
+	    (true, OperatorCost::ZERO, ldSim, abstractions);
+	cout << "LDSimulation finished" << endl;
+	
+	ldSim->release_memory();
+    }
+
 }
 
 SymHNode * SymController::createHNode(SymHNode * node,

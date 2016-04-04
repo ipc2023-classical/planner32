@@ -715,12 +715,7 @@ void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_typ
     }
 
     //ldSim->prune_dead_ops();
-	
-
 }
-
-
-
 
 static AbstractionBuilder *_parse_none(OptionParser &) {
     return nullptr;

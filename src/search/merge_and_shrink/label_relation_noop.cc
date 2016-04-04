@@ -8,6 +8,7 @@
 #include "../equivalence_relation.h"
 #include "../globals.h"
 #include "../utilities.h"
+#include "../debug.h"
 
 using namespace std;
 
@@ -142,8 +143,8 @@ void LabelRelationNoop::init(const std::vector<LabelledTransitionSystem *> & lts
     }
 
     dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
-        cout << "Update label dominance: " << num_labels
-            << " labels " << lts.size() << " systems." << endl;
+    DEBUG_MSG(cout << "Update label dominance: " << num_labels
+	      << " labels " << lts.size() << " systems." << endl;);
 
     for (int i = 0; i < lts.size(); ++i){
         update(i, lts[i], sim[i]);
@@ -164,8 +165,8 @@ void LabelRelationNoop::init(const std::vector<LTSComplex *> & lts,
 
     dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
     
-    cout << "Update label dominance: " << num_labels
-            << " labels " << lts.size() << " systems." << endl;
+    DEBUG_MSG(cout << "Update label dominance: " << num_labels
+	      << " labels " << lts.size() << " systems." << endl;);
     for (int i = 0; i < lts.size(); ++i){
         update(i, lts[i], sim[i]);
     }

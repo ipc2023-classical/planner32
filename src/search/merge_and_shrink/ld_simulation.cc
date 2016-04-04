@@ -194,7 +194,7 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
     while (!merge_strategy->done() && remaining_abstractions > 1 && 
 	   t_mas() < limit_seconds && get_peak_memory_in_kb() < limit_memory_kb ) {
 
-	cout << "Remaining: " << remaining_abstractions <<
+	cout << endl << "Remaining: " << remaining_abstractions <<
 	    " time: " << t_mas() << "/" << limit_seconds  << "s" <<  
 	    " memory: " << get_peak_memory_in_kb()  << "/" << limit_memory_kb << " KB" << endl; 
 
@@ -276,8 +276,7 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
         other_abstraction->release_memory();
 
         cout << "Merged: "; new_abstraction->statistics(use_expensive_statistics);
-	cout << endl;
-
+	
         all_abstractions[system_one] = 0;
         all_abstractions[system_two] = 0;
         all_abstractions.push_back(new_abstraction);
@@ -452,7 +451,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	   get_peak_memory_in_kb() < limit_memory_kb && 
 	   remaining_abstractions > 1) {
 	
-	cout << "Remaining: " << remaining_abstractions <<
+	cout << endl << "Remaining: " << remaining_abstractions <<
 	    " time: " << t() << "/" << limit_seconds  << "s" <<  
 	    " memory: " << get_peak_memory_in_kb()  << "/" << limit_memory_kb << " KB" << endl; 
 
@@ -491,7 +490,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 
 	remaining_abstractions --;
         cout << "Merged: "; new_abstraction->statistics(use_expensive_statistics);
-	cout << endl;
+
 
         all_abstractions[system_one] = 0;
         all_abstractions[system_two] = 0;
@@ -652,7 +651,7 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
     vector<LabelledTransitionSystem *> ltss_simple;
     vector<LTSComplex *> ltss_complex;
     // Generate LTSs and initialize simulation relations
-    cout << "Building LTSs and Simulation Relations:";
+    DEBUG_MSG(cout << "Building LTSs and Simulation Relations:";);
     for (auto a : abstractions){
         a->compute_distances();
 	if (!a->is_solvable()){
@@ -668,9 +667,9 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
             lts_size= ltss_simple.back()->size();
             lts_trs= ltss_simple.back()->num_transitions();
         }
-        cout << " " << lts_size << " (" << lts_trs << ")";
+        DEBUG_MSG(cout << " " << lts_size << " (" << lts_trs << ")";);
     }
-    cout << endl;
+    DEBUG_MSG(cout << endl;);
 
     if (!incremental_step) {
 	dominance_relation->init(abstractions);
@@ -753,7 +752,7 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
 
     if(!abstractions.empty()) 
 	cout << abstractions.back()->get_num_nonreduced_labels() << " / " << 
-	    abstractions.back()->get_num_labels() << " labels still alive. "; 
+	    abstractions.back()->get_num_labels() << " labels still alive. " << endl; 
     DEBUG_MAS(cout << "Final LTSs: ";);
     for (auto abs : abstractions) {
         abs->normalize();
