@@ -14,6 +14,7 @@
 class SymBreadthFirstSearch;
 class UCTNode;
 
+
 class SymBAUnsat : public SearchEngine, public SymController{
   Dir searchDir; //Direction of search in the original state space
   Dir abstractDir; //Direction of search in the abstract state space
@@ -37,7 +38,6 @@ class SymBAUnsat : public SearchEngine, public SymController{
   const int num_fails_to_multiply_time;
   const int time_fails_to_multiply_time;
   
- 
   const double shouldAbstractRatio;
   const int maxNumAbstractions;
 
@@ -109,7 +109,6 @@ class SymBAUnsat : public SearchEngine, public SymController{
   UCTNode * getRoot () const {
       return nodes[0].get();
   }
-
 };
 
 

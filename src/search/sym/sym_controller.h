@@ -20,6 +20,8 @@ class SymVariables;
 class Options;
 class SymPH;
 class SymBDExp;
+class AbstractionBuilder;
+
 
 class SymController { 
  protected:

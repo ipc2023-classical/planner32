@@ -489,11 +489,11 @@ void SymManager::init_transitions(){
     }
     // PIET-edit: commented out for (better) readability of the output
     cout << "TRs cost=" << it->first << " (" << it->second.size() << ")" << endl;
-    /*cout << "TRs cost=" << it->first << " (" << it->second.size() << "): ";
-    for(auto bdd : it->second){
-      cout <<" "<< bdd.nodeCount();      
-    }
-    cout << endl;*/
+    // cout << "TRs cost=" << it->first << " (" << it->second.size() << "): ";
+    // for(auto bdd : it->second){
+    //   cout <<" "<< bdd.nodeCount();      
+    // }
+    // cout << endl;
   }
 }
 

@@ -315,7 +315,7 @@ static Heuristic *_parse(OptionParser &parser) {
                            "for the option label_reduction_method.", "RANDOM");
 
     parser.add_option<int>("label_reduction_max_time",
-			   "limit the number of seconds for label reduction"
+			   "limit the number of seconds for label reduction",
 			   "60");
 
     parser.add_option<bool>("expensive_statistics",

@@ -719,3 +719,11 @@ void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_typ
 
 }
 
+
+
+
+static AbstractionBuilder *_parse_none(OptionParser &) {
+    return nullptr;
+}
+
+static Plugin<AbstractionBuilder> _plugin_none("none", _parse_none);

@@ -9,7 +9,6 @@
 #include "../option_parser.h"
 #include "../plugin.h"
 
-
 SymBAUnsat::SymBAUnsat(const Options &opts) : 
     SearchEngine(opts), SymController(opts),
     searchDir(Dir(opts.get_enum("search_dir"))),
@@ -215,7 +214,7 @@ void SymBAUnsat::notifyFinishedAbstractSearch(SymBreadthFirstSearch * currentSea
 	}
 
 	double reward = computeReward(newDeadEnds, time_spent)*multiplier;
-	cout << "Reward: " << reward << endl;
+	DEBUG_MSG(cout << "Reward: " << reward << endl;);
 
 	for (UCTNode * node : uct_trace) {
 	    if(RAVE_K) {
@@ -412,7 +411,7 @@ static SearchEngine *_parse(OptionParser &parser) {
 
     parser.add_option<double>("multiply_time_by",
 			      "", 
-			      "2");
+			      "1.5");
 
     parser.add_option<int>("num_fails_to_multiply_time",
 			   "", "10");
@@ -420,10 +419,7 @@ static SearchEngine *_parse(OptionParser &parser) {
     parser.add_option<int>("time_fails_to_multiply_time",
 			   "", "100");
 
-    
-    
-
-  
+      
     parser.add_enum_option("tr_st", AbsTRsStrategyValues,
 			   "abstraction TRs strategy", "IND_TR_SHRINK");
   
@@ -433,7 +429,7 @@ static SearchEngine *_parse(OptionParser &parser) {
 			      "relax the search when has more than this estimated time/nodes· If it is zero, it abstract the current perimeter (when askHeuristic is called)", "0");
 
     parser.add_option<double>("ratio_increase", 
-			      "maxStepTime is multiplied by ratio to the number of abstractions", "2");
+			      "maxStepTime is multiplied by ratio to the number of abstractions", "1.5");
 
     parser.add_option<double>("uct_c", 
 			      "constant for uct formula", "1.0");
@@ -442,11 +438,11 @@ static SearchEngine *_parse(OptionParser &parser) {
 			      "constant for RAVE formula. Disabled by default", "0.0");
 
     parser.add_enum_option("reward_type", UCTRewardTypeValues,
-			   "type of reward function", "STATES");
+			   "type of reward function", "RANDOM");
 
     parser.add_option<int>("add_abstract_to_ongoing_searches_time", 
 			    "includes the abstract searches that were incomplete to the set of ongoing searches", 
-			    "300");
+			    "0");
 
     Options opts = parser.parse();
 
