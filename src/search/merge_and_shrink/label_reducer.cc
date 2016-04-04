@@ -42,6 +42,7 @@ LabelReducer::LabelReducer(const Options &options)
 void LabelReducer::reduce_labels(pair<int, int> next_merge,
                                  const vector<Abstraction *> &all_abstractions,
                                  std::vector<Label *> &labels) const {
+   
     if (label_reduction_method == NONE) {
         return;
     }
@@ -91,6 +92,7 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
             delete local_equivalence_relations[i];
         return;
     }
+
 
     // Make sure that we start with an index not out of range for
     // all_abstractions

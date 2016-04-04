@@ -1508,7 +1508,7 @@ void Abstraction::count_transitions
             for(int i = 0; i < remaining.size(); ++i){
                 int var = remaining[i];
                 const Label *l = labels->get_label_by_index(label_no);
-                assert(l->get_relevant_for().size() > 1);
+                //assert(l->get_relevant_for().size() > 1);
                 if((!only_empty || l->get_relevant_for().size() == 2) &&
 		   l->is_relevant_for(all_abstractions[var])){
                     result[var] += num_tr_label;
