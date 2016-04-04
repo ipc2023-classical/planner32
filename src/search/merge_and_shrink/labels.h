@@ -54,6 +54,8 @@ public:
 
     void prune_irrelevant_labels();
 
+    void reset_relevant_for (const std::vector<Abstraction *> &  abstractions); 
+
     bool applies_perfect_label_reduction() const;
 };
 

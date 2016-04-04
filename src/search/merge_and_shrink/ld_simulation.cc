@@ -177,6 +177,7 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
 	    all_abstractions.push_back(a->clone());
 	}
     }
+    labels->reset_relevant_for(all_abstractions);
 
     vector<int> used_vars; 
     for(int i = 0; i < g_variable_domain.size(); i++) {
@@ -370,6 +371,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 		all_abstractions.push_back(a->clone());
 	    }
 	}
+	labels->reset_relevant_for(all_abstractions);
 	abstractions.clear();
     }
 

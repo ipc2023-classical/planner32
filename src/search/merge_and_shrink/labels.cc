@@ -70,6 +70,12 @@ void Labels::dump_options() const {
     label_reducer->dump_options();
 }
 
+void Labels::reset_relevant_for (const std::vector<Abstraction *> &  abstractions) {
+    for (size_t i = 0; i < labels.size(); ++i) {
+	labels[i]->reset_relevant_for(abstractions);
+    }
+}
+
 void Labels::set_irrelevant_for(int label_no, Abstraction * abstraction){
     labels[label_no]->set_irrelevant_for(abstraction);
 }
