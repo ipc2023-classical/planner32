@@ -366,7 +366,7 @@ void AbstractionBuilder::add_options_to_parser(OptionParser &parser) {
     parser.add_option<int>("limit_memory_kb",
 			   "limit the memory for building the merge and shrink abstractions"
 			   "By default:  ",
-			   "2000000");
+			   "4000000");
 
 
 }
