@@ -385,7 +385,7 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
     parser.add_option<int>("limit_merge",
 			   "limit on the number of abstract states after the merge"
 			   "By default: 1, does not perform any merge",
-			   "1");
+			   "50000");
 
 
     parser.add_option<bool>("original_merge",
@@ -395,7 +395,7 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
     parser.add_option<int>("limit_transitions_merge",
 			   "limit on the number of transitions after the merge"
 			   "By default: 0: no limit at all",
-			   "0");
+			   "50000");
 
 
     parser.add_option<bool>("intermediate_simulations",

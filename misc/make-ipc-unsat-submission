@@ -48,7 +48,7 @@ cat > $DIST/plan << EOF
 DOMAIN="\$1"
 PROBLEM="\$2"
 
-"$(dirname "$0")"/src/plan "\$DOMAIN" "\$PROBLEM" "ipc" "$PLANNER_NAME" > log 2> err
+"\$(dirname "\$0")"/src/plan "\$DOMAIN" "\$PROBLEM" "ipc" "$PLANNER_NAME" > log 2> err
 
 last=\`tail -1 log\`
 last2=\`tail -2 log | grep solvable\`
