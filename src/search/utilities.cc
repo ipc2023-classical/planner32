@@ -73,7 +73,7 @@ void exit_with(ExitCode exitcode) {
         cerr << "Tried to use unsupported feature." << endl;
         break;
     case EXIT_UNSOLVABLE:
-	cout << "Total time: " << g_timer() << endl;
+	cout << "Total time: " << g_timer << endl;
         cout << "Task is provably unsolvable." << endl;
 	    cout << "unsolvable" << endl;
         break;
