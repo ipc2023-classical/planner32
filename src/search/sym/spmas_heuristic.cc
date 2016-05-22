@@ -55,7 +55,7 @@ void SPMASHeuristic::initialize() {
 	  currentSearch->isSearchable() && 
 	  (!solution.solved() || 
 	   originalSearch->getF() < solution.getCost())){
-      currentSearch->stepImage();
+      currentSearch->step();
     }
     bool perimeter_considered = false;
     if(!currentSearch->finished() && (!solution.solved() || originalSearch->getF() < solution.getCost()) &&
@@ -64,7 +64,7 @@ void SPMASHeuristic::initialize() {
       tmp.swap(phs);
       for(auto ph : tmp){
 	if(ph->init(this, vars.get(), originalStateSpace->getManager())){
-	  ph->setIgnoreIfUseful();
+	    ph->setIgnoreIfUseful(); //Allows abstract search to go beyond initial state
 	  phs.push_back(ph);
 	}else{
 	  delete ph;
@@ -91,12 +91,11 @@ void SPMASHeuristic::initialize() {
 
 	while(currentBDExp && !currentSearch->finished() && 
 	      g_timer() < generationTime && vars->totalMemory() < generationMemory){
-	  cout << "CHECKED " << g_timer() << endl;
-	  if(!currentSearch->stepImage() || 
+	    DEBUG_MSG(cout << "CHECKED " << g_timer() << endl;);
+	  if(!currentSearch->step() || 
 	     !currentSearch->isSearchable()){
 	    if(!currentSearch->finished()){
-	      
-	      currentSearch->getClosed()->getHeuristic(sp.heuristicADDs, sp.max_heuristic_value);
+	      currentSearch->getHeuristic(sp.heuristicADDs, sp.max_heuristic_value);
 	      currentBDExp = ph->relax(currentBDExp, Dir::BW);
 	      if(currentBDExp){
 		currentBDExp->desactivate();
@@ -108,7 +107,7 @@ void SPMASHeuristic::initialize() {
 
 	cout << "Finished with explorations of PH: " << endl;
 	if(currentBDExp){
-	  currentSearch->getClosed()->getHeuristic(sp.heuristicADDs, sp.max_heuristic_value);
+	  currentSearch->getHeuristic(sp.heuristicADDs, sp.max_heuristic_value);
 	}
 
 	for(const auto & heur : ph->get_intermediate_heuristics_fw()){
@@ -138,7 +137,7 @@ void SPMASHeuristic::initialize() {
 
       cout << "Done initializing symbolic perimeter merge-and-shrink heuristic [" << timer << "] total memory: " << vars->totalMemory() 
 	   << endl << "initial h value: " << compute_heuristic(
-        *g_initial_state) << endl;
+	       g_initial_state()) << endl;
     //cout << "Estimated peak memory for abstraction: " << peak_memory << " bytes" << endl;
 }
 
@@ -202,14 +201,16 @@ void SPMASHeuristic::dump_options() const {
 static ScalarEvaluator *_parse(OptionParser &parser) {
     Heuristic::add_options_to_parser(parser);
     SymController::add_options_to_parser(parser, 30e3, 1e7);
-    parser.add_list_option<SymPH *>("ph", vector<SymPH *>(), 
-			       "policies to generate abstractions. None by default.");  
+    parser.add_list_option<SymPH *>("ph", 
+				    "policies to generate abstractions. None by default.", "[]");  
   
-    parser.add_option<int>("generation_time", 1200,
-			   "maximum time used in heuristic generation");
+    parser.add_option<int>("generation_time",
+			   "maximum time used in heuristic generation", 
+			   "1200");
 
-    parser.add_option<double>("generation_memory", 3e9,
-			   "maximum memory used in heuristic generation");
+    parser.add_option<double>("generation_memory", 
+			      "maximum memory used in heuristic generation", 
+			      std::to_string(3e9));
 
 
     Options opts = parser.parse();

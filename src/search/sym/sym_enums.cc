@@ -62,6 +62,37 @@ std::ostream & operator<<(std::ostream &os, const AbsTRsStrategy & a){
   }
 }
 
+std::ostream & operator<<(std::ostream &os, const AbsMinimizationType & a){
+  switch(a){
+  case AbsMinimizationType::APPROX: return os << "approx";
+  case AbsMinimizationType::REMAP_UNDER_APPROX: return os << "remap_under_approx";
+  case AbsMinimizationType::HEAVY_BRANCH: return os << "heavy_branch";
+  case AbsMinimizationType::SHORT_PATHS: return os << "short_paths";    
+  default:
+    std::cerr << "Name of AbsMinimizationType not known";
+    exit(-1);
+  }
+}
+
+
+std::ostream & operator<<(std::ostream &os, const UCTRewardType & a){
+  switch(a){
+  case UCTRewardType::STATES: return os << "states";
+  case UCTRewardType::STATES_TIME: return os << "states_time";
+  case UCTRewardType::STATES_NODES: return os << "states_nodes";
+  case UCTRewardType::NODES: return os << "nodes";
+  case UCTRewardType::NODES_TIME: return os << "nodes_time";    
+  case UCTRewardType::NONE: return os << "none";   
+  case UCTRewardType::RAND: return os << "random";  
+  default:
+    std::cerr << "Name of AbsMinimizationType not known";
+    exit(-1);
+  }
+}
+
+
+
+
 const std::vector<std::string> MutexTypeValues {
   "MUTEX_NOT", "MUTEX_AND", "MUTEX_RESTRICT",
   "MUTEX_NPAND", "MUTEX_CONSTRAIN", "MUTEX_LICOMP", "MUTEX_EDELETION"
@@ -82,3 +113,15 @@ const std::vector<std::string> RelaxDirStrategyValues {
 const std::vector<std::string> DirValues {
   "FW", "BW", "BIDIR"
 };
+
+const std::vector<std::string> AbsMinimizationTypeValues {
+    "APPROX", "REMAP_UNDER_APPROX", "HEAVY_BRANCH", "SHORT_PATHS"
+};
+
+
+
+const std::vector<std::string> UCTRewardTypeValues {
+    "STATES", "NODES", "STATES_TIME", "NODES_TIME", "STATES_NODES", "NONE", "RANDOM"
+};
+
+

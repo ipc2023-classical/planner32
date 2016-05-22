@@ -1,7 +1,8 @@
 # By default, build in 32-bit mode. Use BITWIDTH=64 (on command
 # line or in environment) to build in 64-bit mode and BITWIDTH=native
 # to use the native bitness of the OS.
-BITWIDTH ?= 32
+#BITWIDTH ?= 32
+BITWIDTH ?= 64
 
 ## Set USE_LP to 1 to enable linear programming stuff.
 USE_LP=0
@@ -30,6 +31,7 @@ HEADERS = \
           globals.h \
           heuristic.h \
           prune_heuristic.h \
+          mutex_pruning.h \
           int_packer.h \
           ipc_max_heuristic.h \
           iterated_search.h \
@@ -116,6 +118,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/ld_simulation.h \
            merge_and_shrink/variable_partition_finder.h \
            merge_and_shrink/opt_order.h \
+	   merge_and_shrink/abstraction_builder.h \
            merge_and_shrink/simulation_complex_nold.h 
 
 
@@ -158,40 +161,46 @@ HEADERS += pdbs/canonical_pdbs_heuristic.h \
 HEADERS += sym/sym_controller.h \
 	   sym/sym_engine.h \
            sym/symba.h \
+           sym/symba_unsat.h \
            sym/sym_variables.h \
            sym/sym_manager.h \
            sym/sym_util.h \
            sym/sym_enums.h \
            sym/sym_abstraction.h \
            sym/sym_pdb.h \
+           sym/sym_ph_minimization.h \
+           sym/sym_abs_minimization.h \
            sym/sym_transition.h \
            sym/sym_params.h \
            sym/sym_heuristic.h \
-           sym/sym_closed.h \
+           sym/sym_bucket.h \
            sym/sym_exploration.h \
+	   sym/sym_astar.h \
+           sym/sym_astar_closed.h \
+           sym/sym_astar_open.h \
+	   sym/sym_breadth_first_search.h \
            sym/sym_hnode.h \
            sym/sym_bdexp.h \
            sym/sym_ph.h \
+           sym/sym_ph_pdbs.h \
            sym/sym_estimate.h \
            sym/sym_estimate_linear.h \
            sym/sym_solution.h \
-           sym/sym_prune_heuristic.h \
-
-	# sym/sym_ph_pdbs.h \
-	   #sym/sym_ph_smas.h \
-           # sym/smas_shrink_bisimulation.h \
-           # sym/smas_shrink_bucket_based.h \
-           # sym/smas_shrink_fh.h \
-           # sym/smas_shrink_random.h \
-           # sym/smas_shrink_all.h \
-           # sym/smas_shrink_strategy.h \
-           # sym/smas_variable_order_finder.h \
-           # sym/smas_abs_state.h \
-           # sym/smas_shrink_state.h \
-           # sym/sym_smas.h \
-           # sym/spmas_heuristic.h \
-	   # sym/test/sym_test.h \
-	   # sym/test/sym_test_mutex.h \
+           sym/spmas_heuristic.h \
+	   sym/test/sym_test.h \
+	   sym/test/sym_test_mutex.h \
+	   sym/sym_prune_heuristic.h \
+	   sym/sym_uct_pdbs.h \
+           #sym/sym_ph_smas.h \
+           sym/smas_shrink_bisimulation.h \
+           sym/smas_shrink_bucket_based.h \
+           sym/smas_shrink_fh.h \
+           sym/smas_shrink_random.h \
+           sym/smas_shrink_all.h \
+           sym/smas_shrink_strategy.h \
+           sym/smas_abs_state.h \
+           sym/smas_shrink_state.h \
+           sym/sym_smas.h \
 
 SHELL = /bin/bash
 
@@ -470,7 +479,7 @@ distclean: clean
 ## subdirectory, it will strip the directory part in the output. Hence
 ## the for loop with the sed call.
 
-Makefile.depend: $(SOURCES) $(HEADERS)
+Makefile.depend: $(CUDD_ROOT) $(SOURCES) $(HEADERS)
 	rm -f Makefile.temp
 	for source in $(SOURCES) ; do \
 	    $(DEPEND) $(CXXFLAGS) $$source > Makefile.temp0; \

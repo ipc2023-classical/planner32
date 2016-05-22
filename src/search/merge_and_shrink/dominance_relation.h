@@ -20,7 +20,6 @@ class DominanceRelation {
 protected:
     std::vector<std::unique_ptr<SimulationRelation> > simulations;
 
-
     virtual std::unique_ptr<SimulationRelation> init_simulation (Abstraction * _abs) = 0;
 
     virtual std::unique_ptr<SimulationRelation> 
@@ -56,9 +55,9 @@ public:
 	 int src, int label_id, int target) const = 0;
     
     virtual int prune_subsumed_transitions(std::vector<Abstraction *> & abstractions, 
-				   const LabelMap & labelMap,
-				   const std::vector<LabelledTransitionSystem *> & ltss, 
-				   int lts_id) = 0;
+					   const LabelMap & labelMap,
+					   const std::vector<LabelledTransitionSystem *> & ltss, 
+					   int lts_id, bool preserve_all_optimal_plans ) = 0;
 
 
     virtual EquivalenceRelation* get_equivalent_labels_relation
@@ -69,7 +68,7 @@ public:
 
 
     //Statistics of the factored simulation 
-    void dump_statistics () const;
+    void dump_statistics (bool expensive_statistics) const;
     int num_equivalences() const;
     int num_simulations() const;   
     double num_st_pairs() const;
@@ -142,6 +141,7 @@ class DominanceRelationLR : public DominanceRelation {
 	void compute_ld_simulation_template(std::vector<LTS *> & _ltss,
 				   const LabelMap & labelMap, 
 				   bool incremental_step) {
+	assert(_ltss.size() == simulations.size());
 	Timer t;
 
 	/* if(!nold_simulation){ */
@@ -150,25 +150,27 @@ class DominanceRelationLR : public DominanceRelation {
 	/*   label_dominance.init_identity(_ltss.size(), labelMap); */
 	/* } */
 
+	
         label_dominance.init(_ltss, *this, labelMap);
-						
-	std::cout << "Label dominance initialized: " << _ltss.size() <<" " << t() << std::endl;
+	
+	std::cout << "Compute LDSim on " << _ltss.size() << " LTSs. Init in " << t() << "s: " << std::flush;
 	do{
-	    std::cout << "LDsimulation loop: ";
 	    //label_dominance.dump();
 	    if (incremental_step) {
 		// Should be enough to just update the last (i.e., the new) simulation here.
 		update(simulations.size() - 1, _ltss.back(), 
 		       label_dominance, *(simulations.back()));
+		
 	    } else {
 		for (int i = 0; i < simulations.size(); i++){
 		    update(i, _ltss[i], label_dominance, *(simulations[i]));
 		    //_dominance_relation[i]->dump(_ltss[i]->get_names());
 		}
 	    }
-	    std::cout << " took " << t() << "s" << std::endl;
+	    std::cout << " " << t() << "s" << std::flush;
 	    //return; //PIET-edit: remove this for actual runs; just here for debugging the complex stuff
 	}while(label_dominance.update(_ltss, *this));
+	std::cout << std::endl;
 	//for(int i = 0; i < _ltss.size(); i++){
 	//_ltss[i]->dump();
 	//	_dominance_relation[i]->dump(_ltss[i]->get_names());
@@ -209,18 +211,22 @@ DominanceRelationLR(Labels * labels) : label_dominance(labels)
     virtual int prune_subsumed_transitions(std::vector<Abstraction *> & abstractions, 
 					   const LabelMap & labelMap,
 					   const std::vector<LabelledTransitionSystem *> & ltss, 
-					   int lts_id){
+					   int lts_id, bool preserve_all_optimal_plans){
 	int num_pruned_transitions = 0;
 	    
 	//a) prune transitions of labels that are completely dominated by
 	//other in all LTS
-	std::vector <int> labels_id = label_dominance.get_labels_dominated_in_all();
-	for (auto abs : abstractions){
-	    for (int l : labels_id){
-		num_pruned_transitions += abs->prune_transitions_dominated_label_all(labelMap.get_old_id(l));
-		label_dominance.kill_label(l);
+	if(!preserve_all_optimal_plans) {
+	    std::vector <int> labels_id = label_dominance.get_labels_dominated_in_all();
+	    for (auto abs : abstractions){
+		for (int l : labels_id){
+		    num_pruned_transitions += abs->prune_transitions_dominated_label_all(labelMap.get_old_id(l));
+		    label_dominance.kill_label(l);
+		}
 	    }
 	}
+
+
 
 	//b) prune transitions dominated by noop in a transition system
 	for (int l = 0; l < label_dominance.get_num_labels(); l++){
@@ -237,44 +243,46 @@ DominanceRelationLR(Labels * labels) : label_dominance(labels)
 	    }
 	}
 
-	//c) prune transitions dominated by other transitions
-	for (int lts = 0; lts < abstractions.size(); lts++) {
-	    if(lts_id != -1 && lts != lts_id) continue; 
-	    Abstraction* abs = abstractions[lts];
-	    const auto & is_rel_label = abs->get_relevant_labels();
-	    //l : Iterate over relevant labels
-	    for (int l = 0; l < is_rel_label.size(); ++l){
-		if(!is_rel_label[l]) continue;
-		int label_l = labelMap.get_id(l);
-		for (int l2 = l; l2 < is_rel_label.size(); ++l2){
-		    if(!is_rel_label[l2]) continue;
-		    int label_l2 = labelMap.get_id(l2);
-		    //l2 : Iterate over relevant labels
-		    /* PIET-edit: after talking to Alvaro, it seems that the only critical case, i.e., having two labels l and l'
-		     * with l >= l' and l' >= l, and two transitions, s--l->t and s--l'->t' with t >= t' and t' >= t, cannot occur
-		     * if we first run simulation-shrinking. So, if we make sure that it is run before irrelevance pruning, we
-		     * should have no problems here.
-		     */
+	if(!preserve_all_optimal_plans) {
+
+	    //c) prune transitions dominated by other transitions
+	    for (int lts = 0; lts < abstractions.size(); lts++) {
+		if(lts_id != -1 && lts != lts_id) continue; 
+		Abstraction* abs = abstractions[lts];
+		const auto & is_rel_label = abs->get_relevant_labels();
+		//l : Iterate over relevant labels
+		for (int l = 0; l < is_rel_label.size(); ++l){
+		    if(!is_rel_label[l]) continue;
+		    int label_l = labelMap.get_id(l);
+		    for (int l2 = l; l2 < is_rel_label.size(); ++l2){
+			if(!is_rel_label[l2]) continue;
+			int label_l2 = labelMap.get_id(l2);
+			//l2 : Iterate over relevant labels
+			/* PIET-edit: after talking to Alvaro, it seems that the only critical case, i.e., having two labels l and l'
+			 * with l >= l' and l' >= l, and two transitions, s--l->t and s--l'->t' with t >= t' and t' >= t, cannot occur
+			 * if we first run simulation-shrinking. So, if we make sure that it is run before irrelevance pruning, we
+			 * should have no problems here.
+			 */
 //                if (l != l2 && label_dominance.dominates(label_l, label_l2, lts) && label_dominance.dominates(label_l2, label_l, lts)) {
 //                    cerr << "Error: two labels dominating each other in all but one LTS; this CANNOT happen!" << endl;
 //                    cerr << l << "; " << l2 << "; " << label_l << "; " << label_l2 << endl;
 //                    exit(1);
 //                }
-		    if (label_dominance.dominates(label_l2, label_l, lts)
-			&& label_dominance.dominates(label_l, label_l2, lts)) {
-			num_pruned_transitions +=
-			    abs->prune_transitions_dominated_label_equiv(lts, ltss, *this, labelMap, l, l2);
-		    } else if (label_dominance.dominates(label_l2, label_l, lts)) {
-			num_pruned_transitions +=
-			    abs->prune_transitions_dominated_label(lts, ltss, *this, labelMap, l, l2);
-		    } else if (label_dominance.dominates(label_l, label_l2, lts)) {
-			num_pruned_transitions +=
-			    abs->prune_transitions_dominated_label(lts, ltss, *this, labelMap,l2, l);
+			if (label_dominance.dominates(label_l2, label_l, lts)
+			    && label_dominance.dominates(label_l, label_l2, lts)) {
+			    num_pruned_transitions +=
+				abs->prune_transitions_dominated_label_equiv(lts, ltss, *this, labelMap, l, l2);
+			} else if (label_dominance.dominates(label_l2, label_l, lts)) {
+			    num_pruned_transitions +=
+				abs->prune_transitions_dominated_label(lts, ltss, *this, labelMap, l, l2);
+			} else if (label_dominance.dominates(label_l, label_l2, lts)) {
+			    num_pruned_transitions +=
+				abs->prune_transitions_dominated_label(lts, ltss, *this, labelMap,l2, l);
+			}
 		    }
 		}
 	    }
 	}
-
 	return num_pruned_transitions;
     }
    

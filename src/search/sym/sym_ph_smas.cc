@@ -10,11 +10,12 @@
 
 #include "smas_shrink_fh.h"
 #include "smas_shrink_bisimulation.h"
+#include "../merge_and_shrink/variable_order_finder.h"
 
 
 SymPHSMAS::SymPHSMAS(const Options &opts) : 
   SymPH(opts),
-  merge_strategy(MergeStrategy(opts.get_enum("merge_strategy"))),
+  merge_strategy(VariableOrderType(opts.get_enum("merge_strategy"))),
   shrink_strategy(opts.get<SMASShrinkStrategy *>("shrink_strategy")),
   use_label_reduction(opts.get<bool>("reduce_labels")),
   use_expensive_statistics(opts.get<bool>("expensive_statistics")),
@@ -115,7 +116,7 @@ bool SymPHSMAS::init() {
   cout << "Initializing symbolic merge-and-shrink heuristic..." << endl;
   dump_options();
   //warn_on_unusual_options();
- if(domain_has_axioms() || domain_has_cond_effects()){
+ if(has_axioms() || has_conditional_effects()){
     return false;
   }
 
@@ -286,26 +287,22 @@ void SymPHSMAS::dump_options() const {
   SymPH::dump_options();
   cout << "Merge strategy: ";
   switch (merge_strategy) {
-  case MERGE_LINEAR_CG_GOAL_LEVEL:
+  case CG_GOAL_LEVEL:
     cout << "linear CG/GOAL, tie breaking on level (main)";
     break;
-  case MERGE_LINEAR_CG_GOAL_RANDOM:
+  case CG_GOAL_RANDOM:
     cout << "linear CG/GOAL, tie breaking random";
     break;
-  case MERGE_LINEAR_GOAL_CG_LEVEL:
+  case GOAL_CG_LEVEL:
     cout << "linear GOAL/CG, tie breaking on level";
     break;
-  case MERGE_LINEAR_RANDOM:
+  case RANDOM:
     cout << "linear random";
     break;
-  case MERGE_DFP:
-    cout << "Draeger/Finkbeiner/Podelski" << endl;
-    cerr << "DFP merge strategy not implemented." << endl;
-    exit(2);
-  case MERGE_LINEAR_LEVEL:
+  case LEVEL:
     cout << "linear by level";
     break;
-  case MERGE_LINEAR_REVERSE_LEVEL:
+  case REVERSE_LEVEL:
     cout << "linear by reverse level";
     break;
   default:
@@ -331,26 +328,20 @@ static SymPH *_parse(OptionParser &parser) {
   // have to be specified exactly in the same order
   // as in the enum definition. Try to find a way around this,
   // or at least raise an error when the order is wrong.
-  merge_strategies.push_back("MERGE_LINEAR_CG_GOAL_LEVEL");
-  merge_strategies.push_back("MERGE_LINEAR_CG_GOAL_RANDOM");
-  merge_strategies.push_back("MERGE_LINEAR_GOAL_CG_LEVEL");
-  merge_strategies.push_back("MERGE_LINEAR_RANDOM");
-  merge_strategies.push_back("MERGE_DFP");
-  merge_strategies.push_back("MERGE_LINEAR_LEVEL");
-  merge_strategies.push_back("MERGE_LINEAR_REVERSE_LEVEL");
+  merge_strategies.push_back("CG_GOAL_LEVEL");
+  merge_strategies.push_back("CG_GOAL_RANDOM");
+  merge_strategies.push_back("GOAL_CG_LEVEL");
+  merge_strategies.push_back("RANDOM");
+  merge_strategies.push_back("LEVEL");
+  merge_strategies.push_back("REVERSE_LEVEL");
   parser.add_enum_option("merge_strategy", merge_strategies,
-			 "merge strategy", "MERGE_LINEAR_CG_GOAL_LEVEL");
+			 "merge strategy", "CG_GOAL_LEVEL");
 
+  parser.add_option<SMASShrinkStrategy *>("shrink_strategy",  "shrink strategy", "shrink_fh(max_states=50000, max_states_before_merge=50000)");
 
-  // TODO: Default shrink strategy should only be created
-  // when it's actually used.
-  SMASShrinkStrategy *def_shrink = SMASShrinkFH::create_default(50000);
-
-  parser.add_option<SMASShrinkStrategy *>("shrink_strategy", def_shrink, "shrink strategy");
-
-  parser.add_option<bool>("reduce_labels", true, "enable label reduction");
-  parser.add_option<bool>("expensive_statistics", false, "show statistics on \"unique unlabeled edges\" (WARNING: "
-			  "these are *very* slow -- check the warning in the output)");
+  parser.add_option<bool>("reduce_labels", "enable label reduction", "true");
+  parser.add_option<bool>("expensive_statistics", "show statistics on \"unique unlabeled edges\" (WARNING: "
+			  "these are *very* slow -- check the warning in the output)", "false");
 
   vector<string> cost_types;
   cost_types.push_back("NORMAL");
@@ -366,8 +357,7 @@ static SymPH *_parse(OptionParser &parser) {
   if (parser.help_mode())
     return 0;
 
-  MergeStrategy merge_strategy = MergeStrategy(
-					       opts.get_enum("merge_strategy"));
+  VariableOrderType merge_strategy (opts.get_enum("merge_strategy"));
   if (merge_strategy < 0 || merge_strategy >= MAX_MERGE_STRATEGY) {
     cerr << "error: unknown merge strategy: " << merge_strategy << endl;
     exit(2);

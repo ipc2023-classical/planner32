@@ -11,6 +11,8 @@ class ShrinkComposite : public ShrinkStrategy {
 
 public:
     ShrinkComposite(const Options &opts);
+    ShrinkComposite(const Options &opts, const std::vector<ShrinkStrategy *> & sts);
+
     virtual ~ShrinkComposite();
 
     virtual std::string name() const;
@@ -21,6 +23,9 @@ public:
     virtual void shrink(Abstraction &abs, int target, bool force = false);
     virtual void shrink_atomic(Abstraction &abs);
     virtual void shrink_before_merge(Abstraction &abs1, Abstraction &abs2);
+
+    static ShrinkComposite *create_default(const std::vector<ShrinkStrategy *> & sts);
+
 };
 
 #endif

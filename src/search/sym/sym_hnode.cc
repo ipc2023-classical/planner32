@@ -14,12 +14,12 @@ SymHNode::
 SymHNode(SymController * eng, const SymParamsMgr & params) : 
   engine(eng), ph(nullptr), abstraction(nullptr), 
   mgr(new SymManager(eng->getVars(), abstraction.get(),
-		     params)){
+		     params, OperatorCost::NORMAL)){
 }
 
 SymHNode::
 SymHNode(SymHNode * o, SymPH * ph_, 
-	 std:: unique_ptr<SymAbstraction> abs) : 
+	 unique_ptr<SymAbstraction> abs) : 
   engine(o->engine), ph(ph_),  abstraction(std::move(abs)), 
   mgr(new SymManager(o->getManager(), abstraction.get(),
 		     ph_->getMgrParams())){
@@ -45,8 +45,8 @@ void SymHNode::notuseful_exploration(SymBDExp * newExp){
 
 void SymHNode::add_exploration(unique_ptr<SymBDExp> && newExp){
   //  if(res->init(this, searchDir, parent, maxTime, maxNodes)){
-  exps.push_back(move(newExp));
-    // parent->setHeuristic(*res, true);
+    exp = move(newExp);
+    //parent->setHeuristic(*res, true);
     // cout << "I relaxed the exploration!!" << endl;
     // return true;
     //}else{
@@ -58,18 +58,9 @@ void SymHNode::add_exploration(unique_ptr<SymBDExp> && newExp){
 }
 
 bool SymHNode::hasExpFor(SymBDExp * bdExp) const{
-  for(auto & exp : exps){
-    if(exp->isExpFor(bdExp)){
-      return true;
-    }
-  }
-  if(failedForExps.count(bdExp)){
-    return true;
-  }
-  if(notUsefulForExps.count(bdExp)){
-    return true;
-  }
-  return false;
+    return (exp && exp->isExpFor(bdExp)) || 
+	failedForExps.count(bdExp) ||
+	notUsefulForExps.count(bdExp);
 }
 
 bool SymHNode::isUsefulFor(SymBDExp * bdExp) const {
@@ -98,23 +89,20 @@ void SymHNode::addParent(SymHNode * n){
 
 std::ostream & operator<<(std::ostream &os, const SymHNode & n){
   if(n.abstraction){
-    os << *(n.abstraction) << "{" << n.exps.size() << "}";
+      os << *(n.abstraction);
   }else{
-    os << "original {" << n.exps.size() << "}";
+      os << "original";
   }
 
-/*os << " with explorations: ";
-  for(auto & exp : n.exps){
-    os << *(exp.get());
-    }*/
+/*os << " with exploration: " <<  *(exp.get()); */
   return os;
 }
 
 
-SymBDExp * SymHNode::relax(SymBDExp * exp) const {
+SymBDExp * SymHNode::relax(SymBDExp * _exp) const {
     if(ph){
-      return ph->relax(exp);
+      return ph->relax(_exp);
     }else{
-      return engine->relax(exp);
+      return engine->relax(_exp);
     }
   }

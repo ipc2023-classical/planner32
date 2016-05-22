@@ -38,6 +38,32 @@ MergeLinearCriteria::MergeLinearCriteria(const Options &opts) :
   }
 }
 
+void MergeLinearCriteria::init_strategy (const std::vector <Abstraction * > & abstractions){
+    remaining_vars.clear();
+    for (auto abs : abstractions) {
+	if (abs) {
+	    assert(abs->get_varset().size() == 1 || abs == abstractions.back()); 
+	    if (abs->get_varset().size() == 1) remaining_vars.push_back(*(abs->get_varset().begin()));
+	} 
+
+    }
+
+    if (order == REVERSE_LEVEL) {
+	std::sort(begin(remaining_vars), end(remaining_vars));
+    } else if (order == RANDOM){
+	random_shuffle(remaining_vars.begin(),
+		       remaining_vars.end());
+    } else {
+	std::sort(begin(remaining_vars), end(remaining_vars), std::greater<int>());
+    }
+
+
+    for(int i = 0; i < criteria.size(); ++i){
+	criteria[i]->init();
+    }
+}
+
+
 MergeLinearCriteria::~MergeLinearCriteria() {
 }
 
@@ -48,11 +74,13 @@ pair<int, int> MergeLinearCriteria::get_next(const std::vector<Abstraction *> &a
     assert(!done());
 
     int first;
-    if (remaining_vars.size() == g_variable_domain.size()) {
+    if (all_abstractions.back()->is_atomic()) {
         first = next(all_abstractions);
+	
         cout << "First variable: #" << first;
 		for(int i = 0; i < g_fact_names[first].size(); ++i) 
 	    	cout << " " << g_fact_names[first][i]; 
+	assert(all_abstractions[first]);
 	cout << endl;
     } else {
         // The most recent composite abstraction is appended at the end of
@@ -167,6 +195,15 @@ int MergeLinearCriteria::next(const std::vector<Abstraction *> &all_abstractions
   return var;
 }
 
+void MergeLinearCriteria::remove_useless_vars (const std::vector<int> & useless_vars) {
+    for (int v : useless_vars) cout << "Remove var from merge consideration: " << v << endl;
+    remaining_vars.erase(std::remove_if(begin(remaining_vars), end(remaining_vars), 
+					[&](int i) {
+					    return std::find (begin(useless_vars), 
+							      end(useless_vars), 
+							      i) != std::end(useless_vars);
+					}), end(remaining_vars));
+} 
 // bool MergeLinearCriteria::reduce_labels_before_merge () const{
 //     for (int i = 0; i < criteria.size(); ++i){
 // 	if(criteria[i0.]->reduce_labels_before_merge()){
@@ -183,6 +220,7 @@ static MergeStrategy *_parse(OptionParser &parser) {
     variable_orders.push_back("reverse_level");
     variable_orders.push_back("random");
     parser.add_enum_option("var_order", variable_orders,
+
 			   "merge variable order for tie breaking", 
 			    "RANDOM");
 

@@ -21,8 +21,8 @@ class SMASAbsState;
  */
 
 class SymSMAS : public SymAbstraction {
-  static const int PRUNED_STATE = -1;
-  static const int DISTANCE_UNKNOWN = -2;
+  static const int PRUNED_STATE;
+  static const int DISTANCE_UNKNOWN;
 
   const bool is_unit_cost; //If the abstraction labels are unit cost
   const OperatorCost cost_type; // OperatorCost considered in the abstraction

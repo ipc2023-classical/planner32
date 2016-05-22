@@ -6,6 +6,7 @@
 #include "../plugin.h"
 #include "../globals.h"
 #include "../operator.h"
+#include "../debug.h"
 #include "../scc.h"
 #include "../equivalence_relation.h"
 
@@ -156,7 +157,7 @@ void ShrinkOwnLabels::shrink(Abstraction &abs, int target, bool /*force*/) {
 	//vector<int> ().swap(state_to_group);
 	EquivalenceRelation ().swap(equivalence_relation);
     } else {
-	cout << "Own-label shrinking does not reduce states" << endl;
+	DEBUG_MAS(cout << "Own-label shrinking does not reduce states" << endl;);
     }
     return;
 }
@@ -177,6 +178,8 @@ ShrinkOwnLabels *ShrinkOwnLabels::create_default() {
     Options opts;
     opts.set("max_states", infinity);
     opts.set("max_states_before_merge", infinity);
+    opts.set<bool>("goal_shrinking", true);
+
     return new ShrinkOwnLabels(opts);
 }
 

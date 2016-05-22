@@ -10,14 +10,15 @@
 using namespace std;
 
 SymPruneHeuristic::SymPruneHeuristic(const Options &opts) :
+    cost_type(OperatorCost(opts.get_enum("cost_type"))),
     prune_irrelevant(opts.get<bool>("prune_irrelevant")), 
     dominance_pruning(opts.get<bool>("dominance_pruning")), 
-    ldSimulation(new LDSimulation(opts)){
+    abstractionBuilder(opts.get<AbstractionBuilder *>("abs")) {
     
-    ldSimulation->initialize();
+    abstractionBuilder->build_abstraction(cost_type == OperatorCost::ZERO || is_unit_cost_task(cost_type), 
+					  cost_type, 
+					  ldSimulation, abstractions);
 }
-
-SymPruneHeuristic::~SymPruneHeuristic(){}
 
 void SymPruneHeuristic::initialize(SymManager * mgr) {
     cout << "Initialize sym prune heuristic" << endl;
@@ -54,7 +55,12 @@ static SymPruneHeuristic *_parse(OptionParser &parser) {
             "Activate dominance pruning",
             "false");
 
-    LDSimulation::add_options_to_parser(parser);
+
+    parser.add_option<AbstractionBuilder *>(
+	"abs",
+	"abstraction builder",
+	"");
+
 
     Options opts = parser.parse();
 

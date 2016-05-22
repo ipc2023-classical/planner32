@@ -6,8 +6,10 @@
 #include "../sym/sym_params.h"
 
 class LDSimulation;
+class AbstractionBuilder;
 class SymVariables;
 class SymManager;
+class Abstraction;
 
 enum class PruningDD {BDD_MAP, ADD, BDD, BDD_MAP_DISJ, SKYLINE_BDD_MAP, SKYLINE_BDD};
 std::ostream & operator<<(std::ostream &os, const PruningDD & m);
@@ -41,7 +43,9 @@ class DominancePruningSimulation : public PruneHeuristic {
   std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
   std::unique_ptr<SymManager> mgr;    //The symbolic manager to handle mutex BDDs
 
+  std::unique_ptr<AbstractionBuilder> abstractionBuilder;
   std::unique_ptr<LDSimulation> ldSimulation;
+  std::vector<std::unique_ptr<Abstraction> > abstractions;
 
   bool all_desactivated;
   bool activation_checked;
@@ -114,6 +118,10 @@ class DominancePruningSimulation : public PruneHeuristic {
   virtual ~DominancePruningSimulation();
 
   virtual void print_statistics();
+
+  virtual bool proves_task_unsolvable() const {
+      return true;
+  }
 };
 
 class DominancePruningSimulationBDDMap : public DominancePruningSimulation {

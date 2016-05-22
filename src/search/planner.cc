@@ -49,6 +49,10 @@ int main(int argc, const char **argv) {
     if (engine->found_solution()) {
         exit_with(EXIT_PLAN_FOUND);
     } else {
-        exit_with(EXIT_UNSOLVED_INCOMPLETE);
+	if (engine->proves_task_unsolvable()){
+	    exit_with(EXIT_UNSOLVABLE);
+	} else {
+	    exit_with(EXIT_UNSOLVED_INCOMPLETE);
+	}
     }
 }

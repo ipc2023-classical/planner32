@@ -401,15 +401,16 @@ void ShrinkBisimulation::compute_abstraction(
     }
 }
 
-ShrinkStrategy *ShrinkBisimulation::create_default() {
+ShrinkStrategy *ShrinkBisimulation::create_default(bool aggregate_goals, int limit_states) {
     Options opts;
-    opts.set("max_states", infinity);
-    opts.set("max_states_before_merge", infinity);
+    opts.set("max_states", limit_states);
+    opts.set("max_states_before_merge", limit_states);
     opts.set<bool>("greedy", false);
-    opts.set("threshold", 1);
-    opts.set("group_by_h", false);
+    opts.set("threshold", (limit_states == infinity) ? 1 : limit_states);
+    
+    opts.set("group_by_h", limit_states != infinity);
     opts.set<int>("at_limit", RETURN);
-    opts.set<bool>("aggregate_goals", false);
+    opts.set<bool>("aggregate_goals", aggregate_goals);
 
     return new ShrinkBisimulation(opts);
 }

@@ -9,14 +9,15 @@ using namespace std;
 class Variable;
 
 class State {
-    map<const Variable *, int> values;
+    map<Variable *, int> values;
 public:
     State() {} // TODO: Entfernen (erfordert kleines Redesign)
     State(istream &in, const vector<Variable *> &variables);
 
-    int operator[](const Variable *var) const;
+    int operator[](Variable *var) const;
     void dump() const;
-    void remove_unreachable_facts();
+    // Returns true, if the state contains an unreachable fact
+    bool remove_unreachable_facts();
 };
 
 #endif

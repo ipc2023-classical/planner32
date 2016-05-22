@@ -8,6 +8,8 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <iostream>
+
 
 class Operator;
 class State;
@@ -59,6 +61,10 @@ public:
 
     static void add_options_to_parser(OptionParser &parser);
     static Options default_options();
+
+    virtual bool proves_task_unsolvable() const {
+	return dead_ends_are_reliable();
+    }
 };
 
 #endif

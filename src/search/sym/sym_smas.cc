@@ -16,6 +16,11 @@
 
 using namespace std;
 
+using namespace __gnu_cxx;
+
+const int SymSMAS::PRUNED_STATE = -1;
+const int SymSMAS::DISTANCE_UNKNOWN = -2;
+
 //  TODO: We define infinity in more than a few places right now (=>
 //        grep for it). It should only be defined once.
 static const int infinity = numeric_limits<int>::max();
@@ -170,6 +175,7 @@ SymSMAS::SymSMAS(SymSMAS *abs1, SymSMAS *abs2, AbsTRsStrategy absTRsStrategy,
 	  auto ssptr = make_shared <SMASShrinkState> (ss1, ss2);
 	  shrinkStates.push_back(ssptr);
 	  table[pairSS] = ssptr;
+	  shrinkState = ssptr;
 	}else{
 	  shrinkState = table[pairSS];
 	}
@@ -1055,7 +1061,7 @@ BDD SymSMAS::shrinkForall(const BDD & from, int maxNodes) const{
 
 
 BDD SymSMAS::getInitialState() const{
-  return shrinkExists(vars->getStateBDD(*g_initial_state), infinity);
+    return shrinkExists(vars->getStateBDD(g_initial_state()), infinity);
 }
 
 BDD SymSMAS::getGoal() const{

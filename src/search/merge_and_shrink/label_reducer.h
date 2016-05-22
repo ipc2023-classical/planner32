@@ -45,6 +45,8 @@ class LabelReducer {
     LabelReductionSystemOrder label_reduction_system_order;
     std::vector<std::size_t> system_order;
 
+    const int max_time;
+
     // old label reduction
     LabelSignature build_label_signature(const Label &label,
         const std::vector<bool> &var_is_used) const;

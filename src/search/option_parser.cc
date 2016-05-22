@@ -146,7 +146,8 @@ static void predefine_heuristic(std::string s, bool dry_run) {
     }
 }
 
-static void predefine_lmgraph(std::string s, bool dry_run) {
+template <typename T> 
+static void predefine(std::string s, bool dry_run) {
     //remove newlines so they don't mess anything up:
     s.erase(std::remove(s.begin(), s.end(), '\n'), s.end());
 
@@ -156,8 +157,8 @@ static void predefine_lmgraph(std::string s, bool dry_run) {
     std::string rs = s.substr(split + 1);
     OptionParser op(rs, dry_run);
     if (definees.size() == 1) {
-        Predefinitions<LandmarkGraph *>::instance()->predefine(
-            definees[0], op.start_parsing<LandmarkGraph *>());
+        Predefinitions<T *>::instance()->predefine(
+            definees[0], op.start_parsing<T *>());
     } else {
         op.error("predefinition has invalid left side");
     }
@@ -178,7 +179,16 @@ SearchEngine *OptionParser::parse_cmd_line(
             predefine_heuristic(argv[i], dry_run);
         } else if (arg.compare("--landmarks") == 0) {
             ++i;
-            predefine_lmgraph(argv[i], dry_run);
+            predefine<LandmarkGraph>(argv[i], dry_run);
+        } else if (arg.compare("--shrink") == 0) {
+            ++i;
+            predefine<ShrinkStrategy>(argv[i], dry_run);
+        } else if (arg.compare("--merge") == 0) {
+            ++i;
+            predefine<MergeStrategy>(argv[i], dry_run);
+        } else if (arg.compare("--abs") == 0) {
+            ++i;
+            predefine<AbstractionBuilder>(argv[i], dry_run);
         } else if (arg.compare("--search") == 0) {
             ++i;
             OptionParser p(argv[i], dry_run);

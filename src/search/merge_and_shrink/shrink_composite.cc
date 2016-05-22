@@ -9,6 +9,10 @@ using namespace std;
 ShrinkComposite::ShrinkComposite(const Options &opts)
     : ShrinkStrategy(opts), strategies(opts.get_list<ShrinkStrategy *>("strategies")) {    
 }
+ShrinkComposite::ShrinkComposite(const Options &opts, 
+				 const std::vector<ShrinkStrategy *> & sts)
+    : ShrinkStrategy(opts), strategies(sts) {    
+}
 
 ShrinkComposite::~ShrinkComposite() {
 }
@@ -67,6 +71,20 @@ void ShrinkComposite::shrink_before_merge(
 	strategies[i]->shrink_before_merge(abs1, abs2);
     }
 }
+
+
+ShrinkComposite *ShrinkComposite::create_default(const std::vector<ShrinkStrategy *> & sts) {
+    const int infinity = numeric_limits<int>::max();
+    Options opts;
+    opts.set("max_states", infinity);
+    opts.set("max_states_before_merge", infinity);
+    
+    ShrinkComposite * res =  new ShrinkComposite(opts, sts);
+
+    return res;
+}
+
+
 
 static ShrinkStrategy *_parse(OptionParser &parser) {
     ShrinkStrategy::add_options_to_parser(parser);

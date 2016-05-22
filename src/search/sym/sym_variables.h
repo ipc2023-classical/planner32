@@ -76,6 +76,11 @@ class SymVariables{
   BDD getStateBDD(const State & state) const ;
   BDD getPartialStateBDD(const std::vector<std::pair<int, int> > & state) const;
   double numStates(const BDD & bdd) const; //Returns the number of states in a BDD
+  double numStates() const;
+
+  double percentageNumStates(const BDD & bdd) const {
+      return numStates(bdd)/numStates();
+  } 
   bool isIn(const State & state, const BDD & bdd) const;
 
 
@@ -159,6 +164,10 @@ class SymVariables{
   inline BDD oneBDD() const{
     return _manager->bddOne();
   }
+
+  inline BDD validStates() const {
+      return validBDD;
+  } 
 
   inline Cudd * mgr() const{
     return _manager.get();

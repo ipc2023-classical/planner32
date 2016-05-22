@@ -13,10 +13,13 @@ class SymPHPDBs : public SymPH {
  //state space and other when relaxing abstract state spaces.
  const LinearPDBStrategy strategy, strategy_abstract;
 
- MergeStrategy var_strategy; //Strategy to select vars
+ VariableOrderType var_strategy; //Strategy to select vars
+ const bool randomize_strategy; //Whether to randomize the variable selection procedure
 
   std::map<VarSet, SymHNode *> generatedSets;
   
+  //Statistics
+  double time_relax;
  public:
   SymPHPDBs(const Options & opts);
   virtual ~SymPHPDBs(){}
@@ -25,21 +28,22 @@ class SymPHPDBs : public SymPH {
   virtual SymBDExp * relax(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int num_relaxations);
 
   virtual void dump_options() const;
+  virtual void statistics() const;
 
   virtual bool relaxGetsHarder(){
-    return false;
+      return false;
   }
- private:
-  void getListAbstraction(SymHNode * hNode, std::vector<SymHNode *> & res);
+private:
+  void getListAbstraction(SymBDExp * bdExp, SymHNode * hNode, std::vector<SymHNode *> & res);
 
   std::unique_ptr <SymBDExp> 
-    select_binary_search(const std::vector <SymHNode *> & nodes, 
-			 SymBDExp * bdExp, Dir dir, int num_relaxations);
+      select_binary_search(const std::vector <SymHNode *> & nodes, 
+			   SymBDExp * bdExp, Dir dir, int num_relaxations);
   
   std::unique_ptr<SymBDExp> select_linear(const std::vector <SymHNode *> & nodes,
-				     SymBDExp * bdExp, Dir dir, int num_relaxations);
+					  SymBDExp * bdExp, Dir dir, int num_relaxations);
   
   std::unique_ptr<SymBDExp> select_reverse(const std::vector <SymHNode *> & nodes,
-				      SymBDExp * bdExp, Dir dir, int num_relaxations);
+					   SymBDExp * bdExp, Dir dir, int num_relaxations);
 };
 #endif

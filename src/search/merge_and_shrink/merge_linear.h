@@ -17,6 +17,9 @@ public:
     explicit MergeLinear(const Options &opts);
     virtual ~MergeLinear() {}
 
+    virtual void init_strategy (const std::vector <Abstraction * > & ) {}
+
+
     // Alvaro: Merge strategies have now a limit on the size of the
     // merge.  If specified (> 0), the pair returned should fit the
     // constraint: a1.size()*a2.size()<=limit

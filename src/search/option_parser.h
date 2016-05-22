@@ -47,10 +47,13 @@ class OpenList;
 class SearchEngine;
 class MergeStrategy;
 class ShrinkStrategy;
+class SMASShrinkStrategy;
 class MergeCriterion;
 class SymPH;
+class SymHeuristicGenerator;
 class PruneHeuristic;
 class SymPruneHeuristic;
+class AbstractionBuilder;
 
 /*
 The TokenParser<T> wraps functions to parse supported types T.
@@ -122,6 +125,12 @@ public:
     static inline Synergy *parse(OptionParser &p);
 };
 
+template <>
+class TokenParser<AbstractionBuilder *> {
+public:
+    static inline AbstractionBuilder *parse(OptionParser &p);
+};
+
 
 template <>
 class TokenParser<ParseTree> {
@@ -142,6 +151,13 @@ public:
 };
 
 template <>
+class TokenParser<SMASShrinkStrategy *> {
+public:
+    static inline SMASShrinkStrategy *parse(OptionParser &p);
+};
+
+
+template <>
 class TokenParser<MergeCriterion *> {
 public:
     static inline MergeCriterion *parse(OptionParser &p);
@@ -152,6 +168,13 @@ class TokenParser<SymPH *> {
 public:
     static inline SymPH *parse(OptionParser &p);
 };
+
+template <>
+class TokenParser<SymHeuristicGenerator *> {
+public:
+    static inline SymHeuristicGenerator *parse(OptionParser &p);
+};
+
 
 template <class T>
 class TokenParser<std::vector<T > > {
@@ -410,11 +433,23 @@ SearchEngine *TokenParser<SearchEngine *>::parse(OptionParser &p) {
 }
 
 MergeStrategy *TokenParser<MergeStrategy *>::parse(OptionParser &p) {
+    bool predefined;
+    MergeStrategy *result = lookup_in_predefinitions<MergeStrategy>(p, predefined);
+    if (predefined)
+        return result;
     return lookup_in_registry<MergeStrategy>(p);
 }
 
 ShrinkStrategy *TokenParser<ShrinkStrategy *>::parse(OptionParser &p) {
+    bool predefined;
+    ShrinkStrategy *result = lookup_in_predefinitions<ShrinkStrategy>(p, predefined);
+    if (predefined)
+        return result;
     return lookup_in_registry<ShrinkStrategy>(p);
+}
+
+SMASShrinkStrategy *TokenParser<SMASShrinkStrategy *>::parse(OptionParser &p) {
+    return lookup_in_registry<SMASShrinkStrategy>(p);
 }
 
 MergeCriterion *TokenParser<MergeCriterion *>::parse(OptionParser &p) {
@@ -425,9 +460,20 @@ SymPH *TokenParser<SymPH *>::parse(OptionParser &p) {
 return lookup_in_registry<SymPH>(p);
 }
 
+SymHeuristicGenerator *TokenParser<SymHeuristicGenerator *>::parse(OptionParser &p) {
+return lookup_in_registry<SymHeuristicGenerator>(p);
+}
 
 Synergy *TokenParser<Synergy *>::parse(OptionParser &p) {
     return lookup_in_registry<Synergy>(p);
+}
+
+AbstractionBuilder *TokenParser<AbstractionBuilder *>::parse(OptionParser &p) {
+    bool predefined;
+    AbstractionBuilder *result = lookup_in_predefinitions<AbstractionBuilder>(p, predefined);
+    if (predefined)
+        return result;
+    return lookup_in_registry<AbstractionBuilder>(p);
 }
 
 ParseTree TokenParser<ParseTree>::parse(OptionParser &p) {

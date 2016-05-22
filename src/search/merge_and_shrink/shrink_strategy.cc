@@ -3,6 +3,8 @@
 #include "abstraction.h"
 
 #include "../option_parser.h"
+#include "../plugin.h"
+#include "../debug.h"
 
 #include <cassert>
 #include <cmath>
@@ -39,13 +41,12 @@ bool ShrinkStrategy::must_shrink(
     assert(threshold >= 1);
     assert(abs.is_solvable());
     if (abs.size() > threshold) {
-        cout << abs.tag() << "shrink from size " << abs.size()
-             << " (threshold: " << threshold << ")" << endl;
+	DEBUG_MAS(cout << abs.tag() << "shrink from size " << abs.size()
+		  << " (threshold: " << threshold << ")" << endl;);
         return true;
     }
     if (force) {
-        cout << abs.tag()
-             << "shrink forced to prune unreachable/irrelevant states" << endl;
+        DEBUG_MAS(cout << abs.tag() << "shrink forced to prune unreachable/irrelevant states" << endl;);
         return true;
     }
     return false;
@@ -96,7 +97,6 @@ void ShrinkStrategy::shrink_before_merge(Abstraction &abs1, Abstraction &abs2) {
     pair<int, int> new_sizes = compute_shrink_sizes(abs1.size(), abs2.size());
     int new_size1 = new_sizes.first;
     int new_size2 = new_sizes.second;
-
     if (new_size2 != abs2.size()) {
         shrink(abs2, new_size2);
     }
@@ -175,3 +175,10 @@ void ShrinkStrategy::handle_option_defaults(Options &opts) {
     opts.set<int>("max_states", max_states);
     opts.set<int>("max_states_before_merge", max_states_before_merge);
 }
+
+
+static ShrinkStrategy *_parse(OptionParser & /*parser*/) {
+    return nullptr;
+}
+
+static Plugin<ShrinkStrategy> _plugin("none", _parse);

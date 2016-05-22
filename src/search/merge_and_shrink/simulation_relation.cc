@@ -19,7 +19,8 @@ void SimulationRelation::init_goal_respecting() {
     int num_states = abs->size();
     const std::vector <bool> & goal_states = abs->get_goal_states();
     if (!abs->are_distances_computed()) {
-        cerr << "Error: Distances must have been computed before creating the simulation relation!" << endl;
+        cerr << "Error (init_goal_respecting): Distances must have been computed before creating the simulation relation!" << endl;
+	exit(-1);
     }
     const std::vector <int> & goal_distances = abs->get_goal_distances();
     relation.resize(num_states);
@@ -62,24 +63,12 @@ void SimulationRelation::init_identity () {
 void SimulationRelation::init_incremental(CompositeAbstraction * _abs, 
 				       const SimulationRelation & simrel_one, 
 				       const SimulationRelation & simrel_two) {
+    
+    assert(abs == _abs);
+
     int num_states = abs->size();
-    const std::vector <bool> & goal_states = abs->get_goal_states();
-    if (!abs->are_distances_computed()) {
-        cerr << "Error: Distances must have been computed before creating the simulation relation!" << endl;
-	exit(-1);
-    }
-    const std::vector <int> & goal_distances = abs->get_goal_distances();
-    relation.resize(num_states);
-    for(int i = 0; i < num_states; i++){
-        relation[i].resize(num_states, true);
-        if(!goal_states[i]){
-            for (int j = 0; j < num_states; j++){
-                if (goal_states[j] || goal_distances[i] > goal_distances[j]){
-                    relation[i][j] = false;
-                }
-            }
-        }
-    }
+    assert(abs->are_distances_computed());
+    init_goal_respecting();
 
     fixed_relation.resize(num_states);
     for (int i = 0; i < num_states; i++) {
@@ -90,7 +79,7 @@ void SimulationRelation::init_incremental(CompositeAbstraction * _abs,
     int num_two = simrel_two.num_states();
 
     for (int i = 0; i < num_one; i++) {
-	for (int j = i + 1; j < num_one; j++) {
+	for (int j = 0 ; j < num_one; j++) {
 	    if (simrel_one.simulates(i, j)) {
 		for (int x = 0; x < num_two; x++) {
 		    int ip = _abs->get_abstract_state(i, x);
@@ -98,27 +87,13 @@ void SimulationRelation::init_incremental(CompositeAbstraction * _abs,
 		    for (int y = 0; y < num_two; y++) {
 			if (simrel_two.simulates(x, y)) {
 			    int jp = _abs->get_abstract_state(j, y);
-			    if (jp == Abstraction::PRUNED_STATE) continue;
+			    if (ip == jp || jp == Abstraction::PRUNED_STATE) continue;
+			    assert(!abs->is_goal_state(jp) || abs->is_goal_state(ip));
 			    relation[ip][jp] = true;
 			    fixed_relation[ip][jp] = true;
 			}
 		    }
-		}
-	    }
-	    if (simrel_one.simulates(j, i)) {
-		for (int x = 0; x < num_two; x++) {
-		    int ip = _abs->get_abstract_state(i, x);		    
-		    if (ip == Abstraction::PRUNED_STATE) continue;
-
-		    for (int y = 0; y < num_two; y++) {
-			if (simrel_two.simulates(x, y)) {
-			    int jp = _abs->get_abstract_state(j, y);
-			    if (jp == Abstraction::PRUNED_STATE) continue;
-
-			    relation[jp][ip] = true;
-			    fixed_relation[jp][ip] = true;
-			}
-		    }
+	
 		}
 	    }
 	}
@@ -185,6 +160,25 @@ void SimulationRelation::dump(const vector<string> & names) const{
         }
     }
 }
+
+
+void SimulationRelation::dump() const{ 
+    cout << "SIMREL:" << endl;
+    for(int j = 0; j < relation.size(); ++j){
+        for(int i = 0; i < relation.size(); ++i){
+            if(simulates(j, i) && i != j){
+                if(simulates(i, j)){
+                    if (j < i){
+                        cout << i << " <=> " << j << endl;
+                    }
+                }else{
+                    cout << i << " <= " << j << endl;
+                }
+            }
+        }
+    }
+}
+
 
 BDD SimulationRelation::getSimulatedBDD(const State & state) const{
     assert(!dominated_bdds.empty());

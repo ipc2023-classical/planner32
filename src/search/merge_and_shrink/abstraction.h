@@ -4,8 +4,6 @@
 #include "shrink_strategy.h"
 #include "../utilities.h"
 #include "../sym/sym_variables.h"
-//#include <boost/any.hpp>
-//#include <boost/dynamic_bitset.hpp>
 #include <boost/dynamic_bitset.hpp>
 
 #include <ext/slist>
@@ -27,7 +25,7 @@ typedef int AbstractStateRef;
 struct AbstractTransition {
     AbstractStateRef src;
     AbstractStateRef target;
-    boost::dynamic_bitset<> based_on_operators;
+    //boost::dynamic_bitset<> based_on_operators;
 
     AbstractTransition(AbstractStateRef src_, AbstractStateRef target_)
         : src(src_), target(target_) {
@@ -58,6 +56,9 @@ class Abstraction {
     friend class ShrinkStrategy; // for apply() -- TODO: refactor!
     friend class SimulationRelation; // for apply() -- TODO: refactor!
     friend class LDSimulation; // for setting store_original_operators -- TODO: refactor!
+    friend class AbsBuilderMasSimulation; // for setting store_original_operators -- TODO: refactor!
+    friend class AbsBuilderMAS; // for setting store_original_operators -- TODO: refactor!
+    friend class AbsBuilderDefault; // for setting store_original_operators -- TODO: refactor!
 
     static const int PRUNED_STATE;
     static const int DISTANCE_UNKNOWN;
@@ -81,6 +82,8 @@ class Abstraction {
        at most n - 1 fresh labels can be generated in addition to the n
        original labels. */
     std::vector<std::vector<AbstractTransition> > transitions_by_label;
+    std::vector<std::vector<boost::dynamic_bitset<>> > transitions_by_label_based_on_operators;
+    
     std::vector<bool> relevant_labels;
 
     //TODO: Unify with transitions by label??
@@ -142,6 +145,9 @@ protected:
     virtual int memory_estimate() const;
 public:
     Abstraction(Labels *labels);
+
+    Abstraction(const Abstraction & o);
+
     virtual ~Abstraction();
 
     int total_transitions() const;
@@ -212,6 +218,7 @@ public:
     // These methods should be private but is public for shrink_bisimulation
     int get_label_cost_by_index(int label_no) const;
     const std::vector<AbstractTransition> &get_transitions_for_label(int label_no) const;
+    const std::vector<boost::dynamic_bitset<>> &get_transition_ops_for_label(int label_no) const;
     // This method is shrink_bisimulation-exclusive
     int get_num_labels() const;
     int get_num_nonreduced_labels() const;
@@ -226,6 +233,10 @@ public:
     // This is used by the "old label reduction" method
     const std::vector<int> &get_varset() const {
         return varset;
+    }
+
+    bool is_atomic () const {
+	return varset.size() == 1;
     }
 
     const std::vector <bool> & get_relevant_labels() const {
@@ -286,6 +297,10 @@ public:
 
     int estimate_transitions(const Abstraction * other) const;
 
+    bool is_dead_end (const State &state) const {
+	return get_abstract_state(state) == -1;
+    }
+
     void get_dead_labels(std::vector<bool> & dead_labels, 
 			 std::vector<int> & new_dead_labels);
 
@@ -298,6 +313,8 @@ public:
     const SimulationRelation & get_simulation_relation() const {
         return *simulation_relation;
     }
+
+    virtual Abstraction * clone() const = 0;
 };
 
 class AtomicAbstraction : public Abstraction {
@@ -310,6 +327,7 @@ protected:
         const std::vector<AbstractStateRef> &abstraction_mapping);
     virtual int memory_estimate() const;
 public:
+    AtomicAbstraction(const AtomicAbstraction &) = default;
     AtomicAbstraction(Labels *labels, int variable);
     virtual ~AtomicAbstraction();
 
@@ -317,6 +335,7 @@ public:
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
 
+    virtual Abstraction * clone() const;
 };
 
 class CompositeAbstraction : public Abstraction {
@@ -329,6 +348,7 @@ protected:
         const std::vector<AbstractStateRef> &abstraction_mapping);
     virtual int memory_estimate() const;
 public:
+    CompositeAbstraction(const CompositeAbstraction &);
     CompositeAbstraction(Labels *labels, Abstraction *abs1, Abstraction *abs2);
     virtual ~CompositeAbstraction();
 
@@ -342,6 +362,7 @@ public:
     int get_abstract_state(int i, int j) const {
         return lookup_table[i][j];
     }
+    virtual Abstraction * clone() const;
 };
 
 class PDBAbstraction : public Abstraction {
@@ -349,7 +370,7 @@ class PDBAbstraction : public Abstraction {
     std::vector<int> pattern; 
     std::vector<AbstractStateRef> lookup_table;
  private: 
-
+    PDBAbstraction(const PDBAbstraction & ) = default;
     template <typename T>
 	int rank(const T &state) const {
 	int res = 0;
@@ -382,6 +403,9 @@ public:
     virtual AbstractStateRef get_abstract_state(const State &state) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
+
+    virtual Abstraction * clone() const;
+
 };
 
 #endif

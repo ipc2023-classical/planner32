@@ -3,8 +3,8 @@
 #include <fstream>
 #include "../../globals.h"
 #include "../sym_abstraction.h"
-#include "../sym_exploration.h"
-
+#include "../sym_astar.h"
+#include "../state_registry.h"
 #include <sstream>
 using namespace std;
 
@@ -16,7 +16,7 @@ void GSTPlan::checkHeuristicValue(BDD states, int h, int f){
   }
 }
 
-void GSTPlan::checkHeuristicValue(BDD states, int h, int f, SymExploration * exp){
+void GSTPlan::checkHeuristicValue(BDD states, int h, int f, SymAstar * exp){
   //cout << "# Check heuristic value: " << h << " in " << *exp << endl;
   for (auto & step : plan){
     step.checkHeuristicValue(states, h, f, exp);
@@ -30,7 +30,7 @@ void GSTPlanStep::checkHeuristicValue(BDD states, int h, int f){
     }
 }
 
-void GSTPlanStep::checkHeuristicValue(BDD states, int h, int /*f*/, SymExploration * exp){
+void GSTPlanStep::checkHeuristicValue(BDD states, int h, int /*f*/, SymAstar * exp){
   BDD c = bdd*states;
   if(!c.IsZero()){
     if(g_values.count(exp)){
@@ -47,14 +47,14 @@ void GSTPlanStep::checkHeuristicValue(BDD states, int h, int /*f*/, SymExplorati
   }
 }
 
-void GSTPlanStep::checkExploration(SymExploration * exp){
-  for(auto aux : exp->getOpen()){
+void GSTPlanStep::checkExploration(SymAstar * exp){
+    for(auto aux : exp->getOpen().getOpen()){
     stringstream ss;
     ss << "open[" << aux.first << "]";
     checkBucket(aux.second, ss.str());
   }
 
-  for(auto aux : exp->getReopen()){
+    for(auto aux : exp->getOpen().getReopen()){
     stringstream ss;
     ss << "reopen[" << aux.first << "]";
     checkBucket(aux.second, ss.str());
@@ -76,7 +76,7 @@ void GSTPlanStep::checkBucket(const vector<BDD> & bucket, string name){
 }
 
 
-void GSTPlanStep::checkOpen (BDD openStates, int g_val, SymExploration * exp){
+void GSTPlanStep::checkOpen (BDD openStates, int g_val, SymAstar * exp){
   BDD coincidence = bdd*openStates;
   if(!coincidence.IsZero()){
     cout << "#Abstract state " << id << " opened by " << *exp << " with g= " << g_val << endl;
@@ -85,7 +85,7 @@ void GSTPlanStep::checkOpen (BDD openStates, int g_val, SymExploration * exp){
 
 
 bool GSTPlanStep::checkClose (BDD closedStates, int g_val,
-			 bool fw, SymExploration * exp){
+			 bool fw, SymAstar * exp){
 
  BDD coincidence = bdd*closedStates;
  //  cout << id << " " << coincidence.nodeCount() << endl;
@@ -111,7 +111,7 @@ bool GSTPlanStep::checkClose (BDD closedStates, int g_val,
       }
     }else{
       int parentValue = -1;
-      SymExploration * parent = exp->getParent();
+      SymAstar * parent = exp->getParent();
       while(parent){
 	if(g_values.count(parent)){
 	  parentValue = g_values[parent];
@@ -151,7 +151,7 @@ bool GSTPlanStep::checkClose (BDD closedStates, int g_val,
 }
 
 
-void GSTPlan::checkOpen (BDD openStates, int g, SymExploration * exp){
+void GSTPlan::checkOpen (BDD openStates, int g, SymAstar * exp){
   bool fw = exp->isFW();
   int g_val = fw ? g : f - g;
   
@@ -161,7 +161,7 @@ void GSTPlan::checkOpen (BDD openStates, int g, SymExploration * exp){
 
 }
 
-void GSTPlan::checkExploration(SymExploration * exp){
+void GSTPlan::checkExploration(SymAstar * exp){
   cout << "#Check " << *exp << " ";
   for (auto & step : plan){
     step.checkExploration(exp);
@@ -170,9 +170,9 @@ void GSTPlan::checkExploration(SymExploration * exp){
 }
 
 
-void GSTPlan::checkClose (BDD closedStates, SymExploration * exp){
+void GSTPlan::checkClose (BDD closedStates, int gVal, SymAstar * exp){
   bool fw = exp->isFW();
-  int g = fw ? exp->getG() : f - exp->getG();
+  int g = fw ? gVal : f - gVal;
   for (auto & step : plan){
     if(!step.checkClose(closedStates, g, fw, exp)){
       checkExploration(exp);
@@ -191,7 +191,7 @@ void GSTPlan::loadPlan(string filename, const SymVariables & vars){
     }
     //cout << "#Total plan cost: " << f << endl;
 
-    State s (*g_initial_state);
+    State s (g_initial_state());
     int id = 0;
     int g = 0;  
     int h = f;
@@ -204,7 +204,7 @@ void GSTPlan::loadPlan(string filename, const SymVariables & vars){
 	cout << "#ERROR: bad plan reconstruction" << endl;
 	exit(-1);	
       }
-      s = State(s, *op);
+      s = g_state_registry->get_successor_state(s, *op);
       g += op->get_cost();
       h -= op->get_cost();
       bdd = vars.getStateBDD(s);
@@ -244,7 +244,7 @@ void GSTPlan::loadPlan(string filename,
   }else{
     cout << "Test plan not found" << endl;
   }
-  //cout << "Test plan loaded: " << plan.size() << endl;
+  cout << "Test plan loaded: " << plan.size() << endl;
 }
 
 

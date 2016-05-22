@@ -12,6 +12,7 @@
 #include "sym_ph.h"
 #include "test/sym_test.h"
 #include "sym_prune_heuristic.h"
+#include "sym_heuristic_generator.h"
 
 #include <set>
 using namespace std;
@@ -19,6 +20,7 @@ using namespace std;
 SymEngine::SymEngine(const Options &opts)
   : SearchEngine(opts), SymController(opts),
     searchDir(Dir(opts.get_enum("search_dir"))),
+    heuristic_generators(opts.get_list<SymHeuristicGenerator *> ("heuristic")),
     lower_bound(0), originalStateSpace(nullptr), originalSearch (nullptr){
       
   if (opts.contains("ph")) {
@@ -73,11 +75,28 @@ void SymEngine::initialize() {
     }
     //hierarchy->init(this, policyHierarchy);
     //hierarchy->init_exploration(searchDir);
+    //Call heuristic generators to set heuristic
+    for(auto hgen : heuristic_generators){
+	hgen->getSymHeuristic(vars.get(), heuristics);
+    }
+    cout << "Adding heuristics to the exploration" << endl;
+    for (auto h : heuristics){
+	originalSearch->getFw()->addHeuristic(h);
+    }   
 }
 
 void SymEngine::statistics() const {
-    search_progress.print_statistics();
-    search_space.statistics();
+    //Statistics regarding total BDD nodes
+    cout << endl << "Total BDD Nodes: " << vars->totalNodes() << endl;
+    
+    originalSearch->statistics();
+
+    for (auto ph : phs) {
+	ph->statistics();
+    }
+    
+    //search_progress.print_statistics();
+    //search_space.statistics();
 }
 
 int SymEngine::stepReturn() const{
@@ -112,6 +131,8 @@ void SymEngine::add_options_to_parser(OptionParser &parser) {
 			 "search direction", "BIDIR");
   parser.add_list_option<SymPH *>("ph", "policies to generate abstractions. None by default.", "[]");  
   parser.add_option<SymPruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
+
+  parser.add_list_option<SymHeuristicGenerator *>("heuristic",  "heuristics for fw search. None by default.", "[]");  
 }
 
 void SymEngine::set_default_options(Options & opts){

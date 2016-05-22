@@ -1,7 +1,7 @@
 #include "symba.h"
 
 #include "sym_ph.h" 
-#include "sym_exploration.h"
+#include "sym_astar.h"
 #include "sym_bdexp.h"
 #include "sym_hnode.h" 
 #include "../debug.h"
@@ -11,28 +11,37 @@
 SymBA::SymBA(const Options &opts) : 
   SymEngine(opts),
   t_orig (opts.get<double>("t_orig")), 
-  currentPH(0) {  
+  currentPH(0), time_step_abstract(0), time_step_original(0), time_select_exploration(0) {  
 }
 
 void SymBA::initialize(){
-  print_options();
-  SymEngine::initialize();
+    print_options();
+    SymEngine::initialize();
 }
 
 int SymBA::step(){
-  SymExploration * currentSearch = selectExploration();
-  if(currentSearch){
-    currentSearch->stepImage();
-    if(!currentSearch->isAbstracted()){
-      for(auto ph : phs){
-	ph->operate(originalSearch);
-      }
+    Timer timer; 
+    SymAstar * currentSearch = selectExploration();
+    time_select_exploration += timer.reset(); 
+    if(currentSearch){
+	currentSearch->step();
+    
+	if(!currentSearch->isAbstracted()){
+	    time_step_original += timer();
+	    for(auto ph : phs){
+		ph->operate(originalSearch);
+	    }
+	}else{
+	    time_step_abstract += timer();	
+	}
     }
-  }
   return stepReturn();
 }
 
-SymExploration * SymBA::selectExploration() {
+bool SymBA::forceOriginal() const {
+    return g_timer() > t_orig || originalSearch->isSearchable();
+}
+SymAstar * SymBA::selectExploration() {
   if(forceOriginal()){ 
     // We are forced to search in the original state space because no
     // more time should be spent on abstractions
@@ -41,26 +50,36 @@ SymExploration * SymBA::selectExploration() {
 
   //I cannot explore the original state space. I must select a
   // relaxed search that is useful and explorable.
-  vector<SymExploration *> potentialExplorations;
-  potentialExplorations.push_back(originalSearch->getFw());
-  potentialExplorations.push_back(originalSearch->getBw());
+  vector<SymAstar *> potentialExplorations;
+  //potentialExplorations.push_back(originalSearch->getFw());
+  //potentialExplorations.push_back(originalSearch->getBw());
   originalSearch->getFw()->getPossiblyUsefulExplorations(potentialExplorations);
   originalSearch->getBw()->getPossiblyUsefulExplorations(potentialExplorations);
 
+  DEBUG_PHPDBS(cout << "We have " << potentialExplorations.size() << " potential explorations" << endl;);
   //1) Look in already generated explorations => get the easiest one
   //(gives preference to shouldSearch abstractions)
   std::sort(begin(potentialExplorations), end(potentialExplorations),
-	    [this] (const SymExploration * e1, const SymExploration * e2){
+	    [this] (const SymAstar * e1, const SymAstar * e2){
 	      return e1->isBetter (*e2); 
 	    });
+  // DEBUG_PHPDBS(cout << "Potential explorations sorted" << endl;);
   for(auto exp : potentialExplorations){
-    if(exp->isSearchable() && exp->isUseful()){
+      bool searchable = exp->isSearchable();
+    if(searchable && exp->isUseful()){
       return exp;
+    }else {
+	DEBUG_PHPDBS(
+	    if (!searchable){
+	cout << "Skip potential exp because it is not searchable"  << endl;
+    }else{
+	cout << "Skip potential exp because it is not useful" << endl;
+	    });
     }
   }
 
   //2) Select a hierarchy policy and generate a new exploration
-  // for(SymExploration * exp : potentialExplorations){
+  // for(SymAstar * exp : potentialExplorations){
   //   //Check if it is useful (because if the other direction was deemed
   //   //as no useful), then we should not try to relax it again
   //   if(!exp->isAbstracted() || !exp->getBDExp()->isRelaxable() || !exp->isUseful()) continue;
@@ -83,6 +102,7 @@ SymExploration * SymBA::selectExploration() {
     if(currentPH >= phs.size()){
       currentPH = 0;
     }
+    //We did something so repeat the process to try to select a potential exploration.
     if(didSomething) return nullptr;
   }
 
@@ -93,19 +113,20 @@ SymExploration * SymBA::selectExploration() {
 
 void SymBA::print_options() const{
   cout << "SymBA* " << endl;
-  cout << "   Search dir: ";
-  switch(searchDir){
-  case Dir::FW:
-    cout << "fw";
-  case Dir::BW:
-    cout << "bw";
-  case Dir::BIDIR:
-    cout << "bd";
-  }
-  cout << endl;
+  cout << "   Search dir: " << searchDir <<   cout << endl;
   cout << "   Time force original: " << t_orig << " seconds" <<endl;
+  for(auto ph : phs){
+      ph->dump_options();
+  }
 }
 
+void SymBA::statistics() const{
+    SymEngine::statistics();
+    
+    cout << "Total time spent in original search: " << time_step_original << endl;
+    cout << "Total time spent in abstract searches: " << time_step_abstract<<  endl;
+    cout << "Total time spent relaxing: " << time_select_exploration << endl;
+}
 
 static SearchEngine *_parse(OptionParser &parser) {
   SymEngine::add_options_to_parser(parser);

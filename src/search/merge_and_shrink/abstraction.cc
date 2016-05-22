@@ -11,6 +11,7 @@
 #include "simulation_relation.h"
 #include "../equivalence_relation.h"
 #include "../globals.h"
+#include "../debug.h"
 #include "../priority_queue.h"
 #include "../timer.h"
 #include "../utilities.h"
@@ -34,29 +35,33 @@ const int Abstraction::DISTANCE_UNKNOWN = -2;
 bool Abstraction::store_original_operators = false;
 
 /* Implementation note: Transitions are grouped by their labels,
- not by source state or any such thing. Such a grouping is beneficial
- for fast generation of products because we can iterate operator by
- operator, and it also allows applying abstraction mappings very
- efficiently.
+   not by source state or any such thing. Such a grouping is beneficial
+   for fast generation of products because we can iterate operator by
+   operator, and it also allows applying abstraction mappings very
+   efficiently.
 
- We rarely need to be able to efficiently query the successors of a
- given state; actually, only the distance computation requires that,
- and it simply generates such a graph representation of the
- transitions itself. Various experiments have shown that maintaining
- a graph representation permanently for the benefit of distance
- computation is not worth the overhead.
- */
+   We rarely need to be able to efficiently query the successors of a
+   given state; actually, only the distance computation requires that,
+   and it simply generates such a graph representation of the
+   transitions itself. Various experiments have shown that maintaining
+   a graph representation permanently for the benefit of distance
+   computation is not worth the overhead.
+*/
 
 //  TODO: We define infinity in more than a few places right now (=>
 //        grep for it). It should only be defined once.
 static const int infinity = numeric_limits<int>::max();
 
 Abstraction::Abstraction(Labels *labels_)
-: labels(labels_), num_labels(labels->get_size()),
-  transitions_by_label(g_operators.empty() ? 0 : g_operators.size() * 2 - 1),
-  relevant_labels(transitions_by_label.size(), false),
-  transitions_sorted_unique(true), peak_memory(0),
-  simulation_relation(0) {
+    : labels(labels_), num_labels(labels->get_size()),
+      transitions_by_label(g_operators.empty() ? 0 : g_operators.size() * 2 - 1),
+      relevant_labels(transitions_by_label.size(), false),
+      transitions_sorted_unique(true), peak_memory(0),
+      simulation_relation(0) {
+
+    if(store_original_operators)
+	transitions_by_label_based_on_operators.resize(g_operators.empty() ? 0 : g_operators.size() * 2 - 1);
+
     clear_distances();
 }
 
@@ -100,6 +105,11 @@ int Abstraction::get_label_cost_by_index(int label_no) const {
 
 const vector<AbstractTransition> &Abstraction::get_transitions_for_label(int label_no) const {
     return transitions_by_label[label_no];
+}
+
+const std::vector<boost::dynamic_bitset<>> &Abstraction::get_transition_ops_for_label(int label_no) const{
+    assert (label_no < transitions_by_label_based_on_operators.size());
+    return transitions_by_label_based_on_operators[label_no];
 }
 
 int Abstraction::get_num_labels() const {
@@ -157,9 +167,9 @@ bool Abstraction::are_distances_computed() const {
 }
 
 void Abstraction::compute_distances() {
-    cout << tag() << flush;
+    DEBUG_MAS(cout << tag() << flush;);
     if (are_distances_computed()) {
-        cout << "distances already known" << endl;
+        DEBUG_MAS(cout << "distances already known" << endl;);
         return;
     }
 
@@ -176,11 +186,11 @@ void Abstraction::compute_distances() {
     init_distances.resize(num_states, infinity);
     goal_distances.resize(num_states, infinity);
     if (labels->is_unit_cost()) {
-        cout << "computing distances using unit-cost algorithm" << endl;
+        DEBUG_MAS(cout << "computing distances using unit-cost algorithm" << endl;);
         compute_init_distances_unit_cost();
         compute_goal_distances_unit_cost();
     } else {
-        cout << "computing distances using general-cost algorithm" << endl;
+        DEBUG_MAS(cout << "computing distances using general-cost algorithm" << endl;);
         compute_init_distances_general_cost();
         compute_goal_distances_general_cost();
     }
@@ -208,8 +218,8 @@ void Abstraction::compute_distances() {
     }
     if (unreachable_count || irrelevant_count) {
         cout << tag()
-                                     << "unreachable: " << unreachable_count << " states, "
-                                     << "irrelevant: " << irrelevant_count << " states" << endl;
+	     << "unreachable: " << unreachable_count << " states, "
+	     << "irrelevant: " << irrelevant_count << " states" << endl;
         /* Call shrink to discard unreachable and irrelevant states.
            The strategy must be one that prunes unreachable/irrelevant
            notes, but beyond that the details don't matter, as there
@@ -230,8 +240,8 @@ void Abstraction::compute_distances() {
 }
 
 static void breadth_first_search(
-        const vector<vector<int> > &graph, deque<int> &queue,
-        vector<int> &distances) {
+    const vector<vector<int> > &graph, deque<int> &queue,
+    vector<int> &distances) {
     while (!queue.empty()) {
         int state = queue.front();
         queue.pop_front();
@@ -286,9 +296,9 @@ void Abstraction::compute_goal_distances_unit_cost() {
 }
 
 static void dijkstra_search(
-        const vector<vector<pair<int, int> > > &graph,
-        AdaptiveQueue<int> &queue,
-        vector<int> &distances) {
+    const vector<vector<pair<int, int> > > &graph,
+    AdaptiveQueue<int> &queue,
+    vector<int> &distances) {
     while (!queue.empty()) {
         pair<int, int> top_pair = queue.pop();
         int distance = top_pair.first;
@@ -318,7 +328,7 @@ void Abstraction::compute_init_distances_general_cost() {
         for (int j = 0; j < transitions.size(); j++) {
             const AbstractTransition &trans = transitions[j];
             forward_graph[trans.src].push_back(
-                    make_pair(trans.target, label_cost));
+		make_pair(trans.target, label_cost));
         }
     }
 
@@ -342,7 +352,7 @@ void Abstraction::compute_goal_distances_general_cost() {
         for (int j = 0; j < transitions.size(); j++) {
             const AbstractTransition &trans = transitions[j];
             backward_graph[trans.target].push_back(
-                    make_pair(trans.src, label_cost));
+		make_pair(trans.src, label_cost));
         }
     }
 
@@ -359,8 +369,8 @@ void Abstraction::compute_goal_distances_general_cost() {
 }
 
 void AtomicAbstraction::apply_abstraction_to_lookup_table(
-        const vector<AbstractStateRef> &abstraction_mapping) {
-    cout << tag() << "applying abstraction to lookup table" << endl;
+    const vector<AbstractStateRef> &abstraction_mapping) {
+    DEBUG_MAS(cout << tag() << "applying abstraction to lookup table" << endl;);
     for (int i = 0; i < lookup_table.size(); i++) {
         AbstractStateRef old_state = lookup_table[i];
         if (old_state != PRUNED_STATE)
@@ -372,8 +382,8 @@ void AtomicAbstraction::apply_abstraction_to_lookup_table(
 }
 
 void CompositeAbstraction::apply_abstraction_to_lookup_table(
-        const vector<AbstractStateRef> &abstraction_mapping) {
-    cout << tag() << "applying abstraction to lookup table" << endl;
+    const vector<AbstractStateRef> &abstraction_mapping) {
+    DEBUG_MAS(cout << tag() << "applying abstraction to lookup table" << endl;);
     for (int i = 0; i < components[0]->size(); i++) {
         for (int j = 0; j < components[1]->size(); j++) {
             AbstractStateRef old_state = lookup_table[i][j];
@@ -440,7 +450,7 @@ void Abstraction::normalize() {
         for (int i = 0; i < transitions.size(); i++) {
             const AbstractTransition &t = transitions[i];
             target_buckets[t.target].push_back(
-                    make_pair(t.src, label_no));
+		make_pair(t.src, label_no));
         }
         vector<AbstractTransition> ().swap(transitions);
     }
@@ -459,15 +469,15 @@ void Abstraction::normalize() {
        Note that currently we do not detect the case where a label
        becomes irrelevant due to shrinking. This could be a future
        optimization.
-     */
+    */
 
     /* labels_made_irrelevant stores labels for which we collect
        transitions that later turn out to be unnecessary because the
        label becomes irrelevant.
-     */
+    */
     hash_set<int> labels_made_irrelevant;
     for (int reduced_label_no = num_labels; reduced_label_no < labels->get_size();
-            ++reduced_label_no) {
+	 ++reduced_label_no) {
         const Label *reduced_label = labels->get_label_by_index(reduced_label_no);
         const vector<Label *> &parents = reduced_label->get_parents();
         bool some_parent_is_irrelevant = false;
@@ -481,13 +491,13 @@ void Abstraction::normalize() {
             // on...
             assert(parent_id < num_labels);
             vector<AbstractTransition> &transitions =
-                    transitions_by_label[parent_id];
+		transitions_by_label[parent_id];
 
             if (relevant_labels[parent_id]) {
                 for (int i = 0; i < transitions.size(); i++) {
                     const AbstractTransition &t = transitions[i];
                     target_buckets[t.target].push_back(
-                            make_pair(t.src, reduced_label_no));
+			make_pair(t.src, reduced_label_no));
                     if (t.target != t.src) {
                         all_transitions_are_self_loops = false;
                     }
@@ -516,7 +526,7 @@ void Abstraction::normalize() {
                 // make self loops explicit
                 for (int i = 0; i < num_states; ++i) {
                     target_buckets[i].push_back(
-                            make_pair(i, reduced_label_no));
+			make_pair(i, reduced_label_no));
                 }
             }
         } else {
@@ -597,9 +607,11 @@ void Abstraction::normalize2() {
         for (int i = 0; i < transitions.size(); i++) {
             const AbstractTransition &t = transitions[i];
             target_buckets[t.target].push_back(
-                    make_pair(t.src, make_pair(label_no, t.based_on_operators)));
+		make_pair(t.src, make_pair(label_no, 
+					   transitions_by_label_based_on_operators[label_no][i])));
         }
         vector<AbstractTransition> ().swap(transitions);
+	vector<boost::dynamic_bitset<>> ().swap(transitions_by_label_based_on_operators[label_no]);
     }
 
     /* Now we handle "new" labels. We iterate over the fresh labels and
@@ -616,15 +628,15 @@ void Abstraction::normalize2() {
        Note that currently we do not detect the case where a label
        becomes irrelevant due to shrinking. This could be a future
        optimization.
-     */
+    */
 
     /* labels_made_irrelevant stores labels for which we collect
        transitions that later turn out to be unnecessary because the
        label becomes irrelevant.
-     */
+    */
     hash_set<int> labels_made_irrelevant;
     for (int reduced_label_no = num_labels; reduced_label_no < labels->get_size();
-            ++reduced_label_no) {
+	 ++reduced_label_no) {
         const Label *reduced_label = labels->get_label_by_index(reduced_label_no);
         const vector<Label *> &parents = reduced_label->get_parents();
         bool some_parent_is_irrelevant = false;
@@ -638,18 +650,19 @@ void Abstraction::normalize2() {
             // on...
             assert(parent_id < num_labels);
             vector<AbstractTransition> &transitions =
-                    transitions_by_label[parent_id];
+		transitions_by_label[parent_id];
 
             if (relevant_labels[parent_id]) {
                 for (int i = 0; i < transitions.size(); i++) {
                     const AbstractTransition &t = transitions[i];
                     target_buckets[t.target].push_back(
-                            make_pair(t.src, make_pair(reduced_label_no, t.based_on_operators)));
+			make_pair(t.src, make_pair(reduced_label_no, transitions_by_label_based_on_operators[parent_id][i])));
                     if (t.target != t.src) {
                         all_transitions_are_self_loops = false;
                     }
                 }
                 vector<AbstractTransition> ().swap(transitions);
+		vector<boost::dynamic_bitset<>> ().swap(transitions_by_label_based_on_operators[parent_id]);
 
                 // mark parent as irrelevant (unused labels should not be
                 // marked as relevant in order to avoid confusions when
@@ -680,7 +693,7 @@ void Abstraction::normalize2() {
                         original_operators[id] = true;
                     }
                     target_buckets[i].push_back(
-                            make_pair(i, make_pair(reduced_label_no, original_operators)));
+			make_pair(i, make_pair(reduced_label_no, original_operators)));
                 }
             }
         } else {
@@ -702,7 +715,7 @@ void Abstraction::normalize2() {
                 assert(transitions_by_label[label_no].empty());
             } else {
                 src_buckets[src].push_back(
-                        make_pair(target, make_pair(label_no, bucket[i].second.second)));
+		    make_pair(target, make_pair(label_no, bucket[i].second.second)));
             }
         }
     }
@@ -718,10 +731,11 @@ void Abstraction::normalize2() {
             vector<AbstractTransition> &op_bucket = transitions_by_label[label_no];
             AbstractTransition trans(src, target);
             if (op_bucket.empty() || op_bucket.back() != trans) {
-                trans.based_on_operators = bucket[i].second.second;
+		transitions_by_label_based_on_operators[label_no].push_back(bucket[i].second.second);
                 op_bucket.push_back(trans);
             } else {
-                op_bucket.back().based_on_operators |= bucket[i].second.second;
+		transitions_by_label_based_on_operators[label_no].back() |= bucket[i].second.second;
+                //op_bucket.back().based_on_operators |= bucket[i].second.second;
             }
         }
     }
@@ -768,7 +782,7 @@ EquivalenceRelation *Abstraction::compute_local_equivalence_relation() const {
             }
             const vector<AbstractTransition> &other_transitions = transitions_by_label[other_label_no];
             if ((transitions.empty() && other_transitions.empty())
-                    || (transitions == other_transitions)) {
+		|| (transitions == other_transitions)) {
                 considered_labels[other_label_no] = true;
                 annotated_labels.push_back(make_pair(annotation, other_label_no));
             }
@@ -779,7 +793,7 @@ EquivalenceRelation *Abstraction::compute_local_equivalence_relation() const {
 }
 
 void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
-        Labels *labels) {
+					    Labels *labels) {
     assert(result.empty());
     cout << "Building atomic abstractions... " << endl;
     int var_count = g_variable_domain.size();
@@ -792,6 +806,7 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
     // Note that when building atomic abstractions, no other labels than the
     // original operators have been added yet.
     for (int label_no = 0; label_no < labels->get_size(); label_no++) {
+	if(g_operators[label_no].is_dead()) continue;
         const Label *label = labels->get_label_by_index(label_no);
         const vector<Prevail> &prev = label->get_prevail();
         for (int i = 0; i < prev.size(); i++) {
@@ -803,10 +818,11 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
                 /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                  * only to the operators as relevant for this label.
                  */
-                boost::dynamic_bitset<> empty_bitset(g_operators.size());
-                trans.based_on_operators = empty_bitset;
-                trans.based_on_operators[label_no] = true;
+		boost::dynamic_bitset<> empty_bitset(g_operators.size());
+		empty_bitset[label_no] = true;
+		abs->transitions_by_label_based_on_operators[label_no].push_back(empty_bitset);
             }
+
             abs->transitions_by_label[label_no].push_back(trans);
             abs->relevant_labels[label_no] = true;
             labels->set_relevant_for(label_no, abs);
@@ -857,8 +873,8 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
                          * only to the operators as relevant for this label.
                          */
                         boost::dynamic_bitset<> empty_bitset(g_operators.size());
-                        trans.based_on_operators = empty_bitset;
-                        trans.based_on_operators[label_no] = true;
+			empty_bitset[label_no] = true;
+			abs->transitions_by_label_based_on_operators[label_no].push_back(empty_bitset);
                     }
                     abs->transitions_by_label[label_no].push_back(trans);
                 }
@@ -878,9 +894,10 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
                             /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                              * only to the operators as relevant for this label.
                              */
-                            boost::dynamic_bitset<> empty_bitset(g_operators.size());
-                            loop.based_on_operators = empty_bitset;
-                            loop.based_on_operators[label_no] = true;
+			    boost::dynamic_bitset<> empty_bitset(g_operators.size());
+			    empty_bitset[label_no] = true;
+			    abs->transitions_by_label_based_on_operators[label_no].push_back(empty_bitset);
+			
                         }
                         abs->transitions_by_label[label_no].push_back(loop);
                     }
@@ -899,13 +916,13 @@ void Abstraction::build_atomic_abstractions(vector<Abstraction *> &result,
 }
 
 AtomicAbstraction::AtomicAbstraction(Labels *labels, int variable_)
-: Abstraction(labels), variable(variable_) {
+    : Abstraction(labels), variable(variable_) {
     varset.push_back(variable);
     /*
       This generates the states of the atomic abstraction, but not the
       arcs: It is more efficient to generate all arcs of all atomic
       abstractions simultaneously.
-     */
+    */
     int range = g_variable_domain[variable];
 
     int init_value = g_initial_state()[variable];
@@ -937,11 +954,11 @@ AtomicAbstraction::~AtomicAbstraction() {
 }
 
 CompositeAbstraction::CompositeAbstraction(Labels *labels,
-        Abstraction *abs1,
-        Abstraction *abs2)
-: Abstraction(labels) {
-    cout << "Merging " << abs1->description() << " and "
-            << abs2->description() << endl;
+					   Abstraction *abs1,
+					   Abstraction *abs2)
+    : Abstraction(labels) {
+    DEBUG_MAS(cout << "Merging " << abs1->description() << " and "
+	      << abs2->description() << endl;);
 
     assert(abs1->is_solvable() && abs2->is_solvable());
     assert(abs1->is_normalized() && abs2->is_normalized());
@@ -950,7 +967,7 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
     components[1] = abs2;
 
     ::set_union(abs1->varset.begin(), abs1->varset.end(), abs2->varset.begin(),
-            abs2->varset.end(), back_inserter(varset));
+		abs2->varset.end(), back_inserter(varset));
 
     num_states = abs1->size() * abs2->size();
     goal_states.resize(num_states, false);
@@ -980,7 +997,7 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
        abstraction has only self-lopos, by looking at each transition of the
        first abstraction and multiplying in out with the transitions of the
        second transition, we obtain the desired order (a,c,d).
-     */
+    */
     int multiplier = abs2->size();
     for (int label_no = 0; label_no < num_labels; label_no++) {
         bool relevant1 = abs1->relevant_labels[label_no];
@@ -990,9 +1007,9 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
             labels->set_relevant_for(label_no, this);
             vector<AbstractTransition> &transitions = transitions_by_label[label_no];
             const vector<AbstractTransition> &bucket1 =
-                    abs1->transitions_by_label[label_no];
+		abs1->transitions_by_label[label_no];
             const vector<AbstractTransition> &bucket2 =
-                    abs2->transitions_by_label[label_no];
+		abs2->transitions_by_label[label_no];
             if (relevant1 && relevant2) {
                 transitions.reserve(bucket1.size() * bucket2.size());
                 for (int i = 0; i < bucket1.size(); i++) {
@@ -1003,16 +1020,18 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                         int target2 = bucket2[j].target;
                         int src = src1 * multiplier + src2;
                         int target = target1 * multiplier + target2;
+
+			transitions.push_back(AbstractTransition(src, target));
                         if (store_original_operators) {
                             /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                              * only to the operators as relevant for this label.
                              */
-                            AbstractTransition new_trans(src, target);
-                            new_trans.based_on_operators = bucket1[i].based_on_operators & bucket2[j].based_on_operators;
-                            transitions.push_back(new_trans);
-                        } else {
-                            transitions.push_back(AbstractTransition(src, target));
-                        }
+			    
+			    transitions_by_label_based_on_operators[label_no].push_back(
+				abs1->transitions_by_label_based_on_operators[label_no][i] & 
+				abs2->transitions_by_label_based_on_operators[label_no][j]);
+			    assert(transitions_by_label_based_on_operators[label_no].back().count());
+                        } 
                     }
                 }
             } else if (relevant1) {
@@ -1028,12 +1047,11 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                             /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                              * only to the operators as relevant for this label.
                              */
-                            AbstractTransition new_trans(src, target);
-                            new_trans.based_on_operators = bucket1[i].based_on_operators;
-                            transitions.push_back(new_trans);
-                        } else {
-                            transitions.push_back(AbstractTransition(src, target));
-                        }
+
+			    transitions_by_label_based_on_operators[label_no].push_back(abs1->transitions_by_label_based_on_operators[label_no][i]);
+                        } 
+				transitions.push_back(AbstractTransition(src, target));
+                            
                     }
                 }
             } else if (relevant2) {
@@ -1045,16 +1063,18 @@ CompositeAbstraction::CompositeAbstraction(Labels *labels,
                         int target2 = bucket2[i].target;
                         int src = s1 * multiplier + src2;
                         int target = s1 * multiplier + target2;
+
+
                         if (store_original_operators) {
                             /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                              * only to the operators as relevant for this label.
                              */
-                            AbstractTransition new_trans(src, target);
-                            new_trans.based_on_operators = bucket2[i].based_on_operators;
-                            transitions.push_back(new_trans);
-                        } else {
-                            transitions.push_back(AbstractTransition(src, target));
-                        }
+			    transitions_by_label_based_on_operators[label_no].push_back(abs2->transitions_by_label_based_on_operators[label_no][i]);
+                        } 
+                            
+			transitions.push_back(AbstractTransition(src, target));
+                        
+			
                     }
                 }
                 assert(is_sorted_unique(transitions));
@@ -1094,7 +1114,7 @@ string AtomicAbstraction::description(int s) const{
 string CompositeAbstraction::description() const {
     ostringstream s;
     s << "abstraction (" << varset.size() << "/"
-            << g_variable_domain.size() << " vars)";
+      << g_variable_domain.size() << " vars)";
     return s.str();
 }
 
@@ -1125,7 +1145,7 @@ AbstractStateRef CompositeAbstraction::get_abstract_state(const State &state) co
 }
 
 void Abstraction::apply_abstraction(
-        vector<slist<AbstractStateRef> > &collapsed_groups) {
+    vector<slist<AbstractStateRef> > &collapsed_groups) {
     /* Note on how this method interacts with the distance information
        (init_distances and goal_distances): if no two states with
        different g or h values are combined by the abstraction (i.e.,
@@ -1149,7 +1169,7 @@ void Abstraction::apply_abstraction(
        code. It would probably also a good idea to do the
        unreachability/relevance pruning as early as possible, e.g.
        right after construction.
-     */
+    */
 
     // abstraction must have been normalized if any labels have been reduced
     // before. Note that we do *not* require transitions to be sorted (thus
@@ -1166,8 +1186,8 @@ void Abstraction::apply_abstraction(
     if(size() == collapsed_groups.size()) return;
 
 
-    cout << tag() << "applying abstraction (" << size()
-                                 << " to " << collapsed_groups.size() << " states)" << endl;
+    DEBUG_MAS(cout << tag() << "applying abstraction (" << size()
+	      << " to " << collapsed_groups.size() << " states)" << endl;);
 
     typedef slist<AbstractStateRef> Group;
 
@@ -1243,37 +1263,40 @@ void Abstraction::apply_abstraction(
     }
 
     vector<vector<AbstractTransition> > new_transitions_by_label(
-            transitions_by_label.size());
+	transitions_by_label.size());
+
+    vector<vector<boost::dynamic_bitset<>>> new_transitions_by_label_based_on_operators(transitions_by_label_based_on_operators.size());
     for (int label_no = 0; label_no < num_labels; label_no++) {
         if (labels->is_label_reduced(label_no)) {
             // do not consider non-leaf labels
             continue;
         }
         const vector<AbstractTransition> &transitions =
-                transitions_by_label[label_no];
+	    transitions_by_label[label_no];
         vector<AbstractTransition> &new_transitions =
-                new_transitions_by_label[label_no];
+	    new_transitions_by_label[label_no];
         new_transitions.reserve(transitions.size());
         for (int i = 0; i < transitions.size(); i++) {
             const AbstractTransition &trans = transitions[i];
             int src = abstraction_mapping[trans.src];
             int target = abstraction_mapping[trans.target];
             if (src != PRUNED_STATE && target != PRUNED_STATE) {
+		new_transitions.push_back(AbstractTransition(src, target));
                 if (store_original_operators) {
                     /* PIET-edit: We should at some point change here from the full size to the subset corresponding
                      * only to the operators as relevant for this label.
                      */
-                    AbstractTransition new_trans(src, target);
-                    new_trans.based_on_operators = trans.based_on_operators;
-                    new_transitions.push_back(new_trans);
-                } else {
-                    new_transitions.push_back(AbstractTransition(src, target));
+		    new_transitions_by_label_based_on_operators[label_no].push_back(transitions_by_label_based_on_operators[label_no][i]);
                 }
             }
         }
     }
     vector<vector<AbstractTransition> > ().swap(transitions_by_label);
 
+    if (store_original_operators) {
+	transitions_by_label_based_on_operators.swap(new_transitions_by_label_based_on_operators);
+    }
+    
     num_states = new_num_states;
     transitions_by_label.swap(new_transitions_by_label);
     init_distances.swap(new_init_distances);
@@ -1281,13 +1304,15 @@ void Abstraction::apply_abstraction(
 
     goal_states.swap(new_goal_states);
     init_state = abstraction_mapping[init_state];
-    if (init_state == PRUNED_STATE)
+    if (init_state == PRUNED_STATE) {
         cout << tag() << "initial state pruned; task unsolvable" << endl;
+	exit_with(EXIT_UNSOLVABLE);
+    }
 
     apply_abstraction_to_lookup_table(abstraction_mapping);
 
     if (must_clear_distances) {
-        cout << tag() << "simplification was not f-preserving!" << endl;
+        DEBUG_MAS(cout << tag() << "simplification was not f-preserving!" << endl;);
         clear_distances();
     }
 
@@ -1314,7 +1339,7 @@ int Abstraction::memory_estimate() const {
     int result = sizeof(Abstraction);
     result += sizeof(Label *) * relevant_labels.capacity();
     result += sizeof(vector<AbstractTransition> )
-                                      * transitions_by_label.capacity();
+	* transitions_by_label.capacity();
     for (int i = 0; i < transitions_by_label.size(); i++)
         result += sizeof(AbstractTransition) * transitions_by_label[i].capacity();
     result += sizeof(int) * init_distances.capacity();
@@ -1336,12 +1361,15 @@ int CompositeAbstraction::memory_estimate() const {
     result += sizeof(vector<AbstractStateRef> ) * lookup_table.capacity();
     for (int i = 0; i < lookup_table.size(); i++)
         result += sizeof(AbstractStateRef) * lookup_table[i].capacity();
+
+    result += components[0]->memory_estimate() + components[1]->memory_estimate(); 
     return result;
 }
 
 void Abstraction::release_memory() {
     vector<bool>().swap(relevant_labels);
     vector<vector<AbstractTransition> >().swap(transitions_by_label);
+    vector<vector<boost::dynamic_bitset<>> >().swap(transitions_by_label_based_on_operators);
     lts.reset();
 }
 
@@ -1354,9 +1382,9 @@ int Abstraction::total_transitions() const {
 
 int Abstraction::total_transition_operators() const {
     int total = 0;
-    for (auto transitions : transitions_by_label) {
-        for (auto trans : transitions) {
-            total += trans.based_on_operators.count();
+    for (const auto & transitions : transitions_by_label_based_on_operators) {
+        for (const auto & trans : transitions) {
+            total += trans.count();
         }
     }
     return total;
@@ -1367,11 +1395,11 @@ int Abstraction::unique_unlabeled_transitions() const {
     for (int i = 0; i < transitions_by_label.size(); i++) {
         const vector<AbstractTransition> &trans = transitions_by_label[i];
         unique_transitions.insert(unique_transitions.end(), trans.begin(),
-                trans.end());
+				  trans.end());
     }
     ::sort(unique_transitions.begin(), unique_transitions.end());
     return unique(unique_transitions.begin(), unique_transitions.end())
-            - unique_transitions.begin();
+	- unique_transitions.begin();
 }
 
 void Abstraction::statistics(bool include_expensive_statistics) const {
@@ -1379,25 +1407,26 @@ void Abstraction::statistics(bool include_expensive_statistics) const {
     peak_memory = max(peak_memory, memory);
     cout << tag() << size() << " states, ";
     if (include_expensive_statistics)
-        cout << unique_unlabeled_transitions();
-    else
-        cout << "???";
-    cout << "/" << total_transitions() << " arcs, " << memory << " bytes"
-            << endl;
+        cout << unique_unlabeled_transitions()  << "/";
+    //else
+    //    cout << "???";
+    cout << total_transitions() << " arcs" /* << memory  << " bytes <<  << " [t=" << g_timer << "]" */<< endl;
+
     if (store_original_operators && include_expensive_statistics) {
         cout << tag();
         cout << total_transition_operators() << " stored operators in transitions" << endl;
     }
-    cout << tag();
-    if (!are_distances_computed()) {
-        cout << "distances not computed";
-    } else if (is_solvable()) {
-        cout << "init h=" << goal_distances[init_state] << ", max f=" << max_f
-                << ", max g=" << max_g << ", max h=" << max_h;
-    } else {
-        cout << "abstraction is unsolvable";
-    }
-    cout << " [t=" << g_timer << "]" << endl;
+    DEBUG_MSG(cout << tag();
+	      if (!are_distances_computed()) {
+		  cout << "distances not computed";
+	      } else if (is_solvable()) {
+		  cout << "init h=" << goal_distances[init_state] << ", max f=" << max_f
+		       << ", max g=" << max_g << ", max h=" << max_h;
+	      } else {
+		  cout << "abstraction is unsolvable";
+	      } 
+	      cout << endl;
+	);
 }
 
 int Abstraction::get_peak_memory_estimate() const {
@@ -1423,7 +1452,7 @@ void Abstraction::dump() const {
         bool is_init = (i == init_state);
         bool is_goal = (goal_states[i] == true);
         cout << "    node [shape = " << (is_goal ? "doublecircle" : "circle")
-                                     << "] node" << i << ";" << endl;
+	     << "] node" << i << ";" << endl;
         if (is_init)
             cout << "    start -> node" << i << ";" << endl;
     }
@@ -1435,17 +1464,15 @@ void Abstraction::dump() const {
             int src = trans[i].src;
             int target = trans[i].target;
             cout << "    node" << src << " -> node" << target << " [label = o_"
-                    << label_no << "];" << endl;
+		 << label_no << "];" << endl;
         }
     }
     cout << "}" << endl;
 }
 
 bool Abstraction::is_own_label(int label_no){
-    const set<Abstraction *> & relevant_abstractions =
-            labels->get_relevant_for(label_no);
-    assert(relevant_abstractions.count(this));
-    return relevant_abstractions.size() == 1;
+    const set<Abstraction *> & relevant_abstractions = labels->get_relevant_for(label_no);
+    return relevant_abstractions.size() == 1 && *(relevant_abstractions.begin()) == this;
 }
 
 void Abstraction::count_transitions_by_label() {
@@ -1468,22 +1495,22 @@ void Abstraction::count_transitions_by_label() {
 
 void Abstraction::count_transitions
 (const vector<Abstraction *> &all_abstractions, 
-        const vector<int> & remaining, bool only_empty,
-        bool only_goal, vector<int> & result){
+ const vector<int> & remaining, bool only_empty,
+ bool only_goal, vector<int> & result){
     result.resize(g_variable_name.size(), 0);
     if (num_transitions_by_label.empty()){
         count_transitions_by_label();
     }
     for (size_t label_no = 0; label_no < num_labels; ++label_no) {
         int num_tr_label = only_goal ? num_goal_transitions_by_label[label_no] :
-                num_transitions_by_label[label_no];
+	    num_transitions_by_label[label_no];
         if(num_tr_label){
             for(int i = 0; i < remaining.size(); ++i){
                 int var = remaining[i];
                 const Label *l = labels->get_label_by_index(label_no);
-                assert(l->get_relevant_for().size() > 1);
+                //assert(l->get_relevant_for().size() > 1);
                 if((!only_empty || l->get_relevant_for().size() == 2) &&
-                        l->is_relevant_for(all_abstractions[var])){
+		   l->is_relevant_for(all_abstractions[var])){
                     result[var] += num_tr_label;
                 }
             }
@@ -1492,7 +1519,7 @@ void Abstraction::count_transitions
 }
 
 void CompositeAbstraction::getAbsStateBDDs(SymVariables * vars,
-        std::vector<BDD> & abs_bdds) const{
+					   std::vector<BDD> & abs_bdds) const{
     vector<BDD> bdds1, bdds2;
     components[0]->getAbsStateBDDs(vars, bdds1);
     components[1]->getAbsStateBDDs(vars, bdds2);
@@ -1510,7 +1537,7 @@ void CompositeAbstraction::getAbsStateBDDs(SymVariables * vars,
 }
 
 void AtomicAbstraction::getAbsStateBDDs(SymVariables * vars, 
-        std::vector<BDD> & abs_bdds) const{
+					std::vector<BDD> & abs_bdds) const{
     for (int i = 0; i < num_states; i++){
         abs_bdds.push_back(vars->zeroBDD());
     }
@@ -1582,8 +1609,9 @@ int Abstraction::prune_transitions_dominated_label_all(int label_no/*, const Lab
     int num = transitions_by_label[label_no].size();
     if (num > 0){    
 	vector<AbstractTransition> ().swap(transitions_by_label[label_no]);
+	if(store_original_operators) vector<boost::dynamic_bitset<>> ().swap(transitions_by_label_based_on_operators[label_no]);
         clear_distances();
-	 //->kill_label(label_map.get_id(label_no));
+	//->kill_label(label_map.get_id(label_no));
     }
     return num;
 }
@@ -1595,21 +1623,39 @@ int Abstraction::prune_transitions_dominated_label(int lts_id,
 						   const DominanceRelation & domrel,
 						   const LabelMap & labelMap,
 						   int label_no, int label_no_by) {
+    int count = 0, count_good = 0;
     int label_id = labelMap.get_id(label_no);
     const SimulationRelation & rel = domrel[lts_id];
     int num = transitions_by_label[label_no].size();
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
-            end(transitions_by_label[label_no]),
-            [&](AbstractTransition & t){
-        return std::find_if(begin(transitions_by_label[label_no_by]),
-                end(transitions_by_label[label_no_by]),
-                [&](AbstractTransition & t2){
-            return t2.src == t.src && rel.simulates(t2.target, t.target);
-        }) != end(transitions_by_label[label_no_by]) && 
-	    domrel.propagate_transition_pruning(lts_id, ltss, t.src, 
-							 label_id, t.target);
-    }),
-    transitions_by_label[label_no].end());
+							end(transitions_by_label[label_no]),
+							[&](AbstractTransition & t){
+							    bool res = std::find_if(begin(transitions_by_label[label_no_by]),
+										    end(transitions_by_label[label_no_by]),
+										    [&](AbstractTransition & t2){
+											return t2.src == t.src && rel.simulates(t2.target, t.target);
+										    }) != end(transitions_by_label[label_no_by]) && 
+								domrel.propagate_transition_pruning(lts_id, ltss, t.src, 
+												    label_id, t.target);
+
+							    if(store_original_operators){
+								if(!res) {
+								    if(count != count_good) 
+									transitions_by_label_based_on_operators[label_no] [count_good] = transitions_by_label_based_on_operators[label_no][count];
+								    count_good++;
+								}
+								count ++;
+							    }
+
+							    return res;
+							}),
+					 transitions_by_label[label_no].end());
+
+    if(store_original_operators && count_good < count){
+	transitions_by_label_based_on_operators[label_no].erase(begin(transitions_by_label_based_on_operators[label_no]) + count_good, 
+								end(transitions_by_label_based_on_operators[label_no]));
+    }
+
     if (transitions_by_label[label_no].size() != num)
         clear_distances();
     return num - transitions_by_label[label_no].size();
@@ -1627,57 +1673,119 @@ prune_transitions_dominated_label_equiv(int lts_id,
     int label_id2 = labelMap.get_id(label_no2);
     const SimulationRelation & rel = domrel[lts_id];
     int num = transitions_by_label[label_no].size() + transitions_by_label[label_no2].size();
-    
+    int count = 0, count_good = 0;
+
     if(label_no == label_no2){
 	//Added special case when the labels are the same. This one
 	//uses remove_copy_if instead of remove_if because its
 	//safer. remove_if still works but may depend on the compiler
 	//or the class definition of the transitions.
-    transitions_by_label[label_no].erase(std::remove_copy_if(begin(transitions_by_label[label_no]),
-            end(transitions_by_label[label_no]), begin(transitions_by_label[label_no]),
-            [&](AbstractTransition & t){
-        return std::find_if(begin(transitions_by_label[label_no2]),
-                end(transitions_by_label[label_no2]),
-                [&](AbstractTransition & t2){
-            /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-				return (t2.src == t.src && rel.simulates(t2.target, t.target) && 
-					(!rel.simulates(t.target, t2.target) ||  
-					 t.target > t2.target));
-			    }) != end(transitions_by_label[label_no2])
-	    && domrel.propagate_transition_pruning(lts_id, ltss, t.src, label_id, t.target);
-							     }),
-					 transitions_by_label[label_no].end());
+
+	transitions_by_label[label_no].erase(std::remove_copy_if(begin(transitions_by_label[label_no]),
+								 end(transitions_by_label[label_no]), begin(transitions_by_label[label_no]),
+								 [&](AbstractTransition & t){
+								     bool res = std::find_if(begin(transitions_by_label[label_no2]),
+											     end(transitions_by_label[label_no2]),
+											     [&](AbstractTransition & t2){
+												 /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
+												 return (t2.src == t.src && rel.simulates(t2.target, t.target) && 
+													 (!rel.simulates(t.target, t2.target) ||  
+													  t.target > t2.target));
+											     }) != end(transitions_by_label[label_no2])
+									 && domrel.propagate_transition_pruning(lts_id, ltss, t.src, label_id, t.target);
+
+								     if(store_original_operators){
+									 if(!res) {
+									     if(count != count_good) 
+										 transitions_by_label_based_on_operators[label_no] [count_good] = transitions_by_label_based_on_operators[label_no][count];
+									     count_good++;
+									 }
+									 count ++;
+								     }
+
+								     return res;
+								 }),
+					     transitions_by_label[label_no].end());
+
+	if(store_original_operators && count_good < count){
+	    transitions_by_label_based_on_operators[label_no].erase(begin(transitions_by_label_based_on_operators[label_no]) + count_good, 
+								    end(transitions_by_label_based_on_operators[label_no]));
+	}
+
     } else {
-    transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
-            end(transitions_by_label[label_no]),
-            [&](AbstractTransition & t){
-        return std::find_if(begin(transitions_by_label[label_no2]),
-                end(transitions_by_label[label_no2]),
-                [&](AbstractTransition & t2){
-            /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-				return (t2.src == t.src && rel.simulates(t2.target, t.target) && 
-				    (!rel.simulates(t.target, t2.target) ||  
-				     label_no > label_no2/* || (label_no==label_no2 && t.target > t2.target)*/));
+	transitions_by_label[label_no].erase(
+	    std::remove_if(begin(transitions_by_label[label_no]),
+			   end(transitions_by_label[label_no]),
+			   [&](AbstractTransition & t){
+			       bool res = std::find_if(begin(transitions_by_label[label_no2]),
+						       end(transitions_by_label[label_no2]),
+						       [&](AbstractTransition & t2){
+							   /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
+							   return (t2.src == t.src && rel.simulates(t2.target, t.target) && 
+								   (!rel.simulates(t.target, t2.target) ||  
+								    label_no > label_no2/* || (label_no==label_no2 && t.target > t2.target)*/));
+							   
+						       }) != end(transitions_by_label[label_no2])  &&
+				   domrel.propagate_transition_pruning(lts_id, ltss, t.src, label_id, t.target);
+			       
+			       if(store_original_operators){
+				   if(!res) {
+				       if(count != count_good) 
+					   transitions_by_label_based_on_operators[label_no] [count_good] = transitions_by_label_based_on_operators[label_no][count];
+				       count_good++;
+				   }
+				   count ++;
+			       }
+			       
+			       return res;		       
+			   }),
+	    transitions_by_label[label_no].end());
+	
+	if(store_original_operators && count_good < count){
+	    transitions_by_label_based_on_operators[label_no].erase(begin(transitions_by_label_based_on_operators[label_no]) + count_good, 
+								    end(transitions_by_label_based_on_operators[label_no]));
+	}
 
-        }) != end(transitions_by_label[label_no2])  &&
-	    domrel.propagate_transition_pruning(lts_id, ltss, t.src, label_id, t.target);
-    }),
-    transitions_by_label[label_no].end());
+	count_good = 0;
+	count = 0;
 
-    transitions_by_label[label_no2].erase(std::remove_if(begin(transitions_by_label[label_no2]),
-                end(transitions_by_label[label_no2]),
-                [&](AbstractTransition & t){
-            return std::find_if(begin(transitions_by_label[label_no]),
-                    end(transitions_by_label[label_no]),
-                    [&](AbstractTransition & t2){
-                /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
-		return (t2.src == t.src && rel.simulates(t2.target, t.target) &&
-			(!rel.simulates(t.target, t2.target) || label_no2 > label_no));
-            }) != end(transitions_by_label[label_no]) && 
-		    domrel.propagate_transition_pruning(lts_id, ltss, t.src, label_id2, t.target);
-        }),
-        transitions_by_label[label_no2].end());
+	transitions_by_label[label_no2].erase(
+	    std::remove_if(begin(transitions_by_label[label_no2]),
+			   end(transitions_by_label[label_no2]),
+			   [&](AbstractTransition & t){
+			       bool res = std::find_if(begin(transitions_by_label[label_no]),
+						       end(transitions_by_label[label_no]),
+						       [&](AbstractTransition & t2){
+							   /* PIET-edit: Make sure that not both, the target states and the labels, are the same */
+							   return (t2.src == t.src && rel.simulates(t2.target, t.target) &&
+								   (!rel.simulates(t.target, t2.target) || label_no2 > label_no));
+						       }) != end(transitions_by_label[label_no]) && 
+				   domrel.propagate_transition_pruning(lts_id, ltss, t.src, label_id2, t.target);
+			       
+			       
+			       if(store_original_operators){
+				   if(!res) {
+				       if(count != count_good) 
+					   transitions_by_label_based_on_operators[label_no2] [count_good] = 
+					       transitions_by_label_based_on_operators[label_no2][count];
+				       count_good++;
+				   }
+				   count ++;
+			       }
+			       return res;
+			   }),
+	    transitions_by_label[label_no2].end());
+	
+	
+	if(store_original_operators && count_good < count){
+	    transitions_by_label_based_on_operators[label_no2].erase(begin(transitions_by_label_based_on_operators[label_no2]) + count_good, 
+								     end(transitions_by_label_based_on_operators[label_no2]));
+	}
+
     }
+
+
+
 
     if (transitions_by_label[label_no].size() + transitions_by_label[label_no2].size() != num)
         clear_distances();
@@ -1686,8 +1794,8 @@ prune_transitions_dominated_label_equiv(int lts_id,
 
 //Prune all the transitions dominated by noop
 int Abstraction::prune_transitions_dominated_label_noop(int lts_id, 
-					const vector<LabelledTransitionSystem *> & ltss,
-					const DominanceRelation & domrel,
+							const vector<LabelledTransitionSystem *> & ltss,
+							const DominanceRelation & domrel,
 							const LabelMap & labelMap, 
 							int label_no){
     //Timer t;
@@ -1695,14 +1803,28 @@ int Abstraction::prune_transitions_dominated_label_noop(int lts_id,
     const SimulationRelation & rel = domrel[lts_id];
     int num = transitions_by_label[label_no].size();
 
+    int count = 0, count_good = 0;
     transitions_by_label[label_no].erase(std::remove_if(begin(transitions_by_label[label_no]),
-            end(transitions_by_label[label_no]),
-            [&](AbstractTransition & t){
-        return rel.simulates(t.src, t.target) && 
-	    domrel.propagate_transition_pruning(lts_id, ltss, 
-							 t.src, label_id, t.target);
-    }),
-    transitions_by_label[label_no].end());
+							end(transitions_by_label[label_no]),
+							[&](AbstractTransition & t){
+							    bool res = rel.simulates(t.src, t.target) && 
+								domrel.propagate_transition_pruning(lts_id, ltss, 
+												    t.src, label_id, t.target);
+							    if(store_original_operators){
+								if(!res) {
+								    if(count != count_good) 
+									transitions_by_label_based_on_operators [label_no][count_good] = transitions_by_label_based_on_operators[label_no][count];
+								    count_good++;
+								}
+								count ++;
+							    }
+							    return res;
+							}),
+					 transitions_by_label[label_no].end());
+    if(store_original_operators && count_good < count){
+	transitions_by_label_based_on_operators[label_no].erase(begin(transitions_by_label_based_on_operators[label_no]) + count_good, 
+								end(transitions_by_label_based_on_operators[label_no]));
+    }
     if (transitions_by_label[label_no].size() != num)
         clear_distances();
     //cout << "Calling prune transitions dominated by noop with " << label_no  << " in LTS " << lts_id << " has " << num << " transitions" << " and took " << t() << endl;
@@ -1711,8 +1833,8 @@ int Abstraction::prune_transitions_dominated_label_noop(int lts_id,
 
 
 void PDBAbstraction::apply_abstraction_to_lookup_table(
-        const vector<AbstractStateRef> &abstraction_mapping) {
-    cout << tag() << "applying abstraction to lookup table" << endl;
+    const vector<AbstractStateRef> &abstraction_mapping) {
+    DEBUG_MAS(cout << tag() << "applying abstraction to lookup table" << endl;);
     for (int i = 0; i < lookup_table.size(); i++) {
         AbstractStateRef old_state = lookup_table[i];
         if (old_state != PRUNED_STATE)
@@ -1721,7 +1843,7 @@ void PDBAbstraction::apply_abstraction_to_lookup_table(
 }
 
 PDBAbstraction::PDBAbstraction(Labels *labels, const vector<int> & pattern_)
-: Abstraction(labels), pattern(pattern_) {
+    : Abstraction(labels), pattern(pattern_) {
     varset.insert(varset.end(), pattern.begin(), pattern.end());
 
     goal_relevant_vars = 0;
@@ -1786,7 +1908,7 @@ PDBAbstraction::PDBAbstraction(Labels *labels, const vector<int> & pattern_)
 
 
 void PDBAbstraction::insert_transitions(vector <int> & pre_vals, vector <int> & eff_vals,
-        int label_no, int pos){
+					int label_no, int pos){
     if(pos == pattern.size()){
         //cout << rank(pre_vals) << " ----" << label_no << "---> " << rank(eff_vals) << endl;
         AbstractTransition trans(rank(pre_vals), rank(eff_vals));
@@ -1862,7 +1984,7 @@ AbstractStateRef PDBAbstraction::get_abstract_state(const State &state) const {
 
 
 void PDBAbstraction::getAbsStateBDDs(SymVariables * vars, 
-        std::vector<BDD> & abs_bdds) const{
+				     std::vector<BDD> & abs_bdds) const{
     for (int i = 0; i < num_states; i++){
         abs_bdds.push_back(vars->zeroBDD());
     }
@@ -1911,7 +2033,7 @@ BDD PDBAbstraction::unrankBDD(SymVariables * vars, int id) const {
 LabelledTransitionSystem * Abstraction::get_lts(const LabelMap & labelMap){
     if(!lts){
         lts = std::unique_ptr<LabelledTransitionSystem>
-        (new LabelledTransitionSystem(this, labelMap));
+	    (new LabelledTransitionSystem(this, labelMap));
     }
     return lts.get();
 }
@@ -1919,7 +2041,7 @@ LabelledTransitionSystem * Abstraction::get_lts(const LabelMap & labelMap){
 LTSComplex * Abstraction::get_lts_complex(const LabelMap & labelMap){
     if(!lts_complex){
         lts_complex = std::unique_ptr<LTSComplex>
-        (new LTSComplex(this, labelMap));
+	    (new LTSComplex(this, labelMap));
     }
     return lts_complex.get();
 }
@@ -1930,10 +2052,10 @@ int Abstraction::estimate_transitions(const Abstraction * other) const{
     for (size_t label_no = 0; label_no < transitions_by_label.size(); ++label_no) {
         if(relevant_labels[label_no] || other->relevant_labels[label_no]){
             int num_mine = (relevant_labels[label_no]? transitions_by_label[label_no].size() :
-                    num_states);
+			    num_states);
             int num_other = (other->relevant_labels[label_no]?
-                    other->transitions_by_label[label_no].size() :
-                    other->num_states);
+			     other->transitions_by_label[label_no].size() :
+			     other->num_states);
             num_total += num_mine*num_other;
         }
     }
@@ -1942,7 +2064,7 @@ int Abstraction::estimate_transitions(const Abstraction * other) const{
 
 
 void Abstraction::get_dead_labels(vector<bool> & dead_labels, 
-				      vector<int> & new_dead_labels) {
+				  vector<int> & new_dead_labels) {
     for (int i = 0; i < labels->get_size(); i++) {
         if (dead_labels[i])
             continue; // corresponding operators must already have been extracted somewhere else
@@ -1984,3 +2106,54 @@ bool Abstraction::check_dead_operators(vector<bool> & dead_labels, vector<bool> 
 void Abstraction::reset_lts() {
     lts.reset();
 }
+
+
+Abstraction::Abstraction(const Abstraction & o) : 
+    labels (o.labels), num_labels (o.num_labels), 
+    transitions_by_label(o.transitions_by_label), 
+    transitions_by_label_based_on_operators(o.transitions_by_label_based_on_operators), 
+    relevant_labels (o.relevant_labels),
+    num_transitions_by_label(o.num_transitions_by_label),
+    num_goal_transitions_by_label(o.num_goal_transitions_by_label), 
+    num_states(o.num_states), 
+    init_distances (o.init_distances),
+    goal_distances (o.goal_distances),
+    goal_states (o.goal_states),
+    init_state (o.init_state), 
+    max_f (o.max_f),
+    max_g (o.max_g),
+    max_h (o.max_h),
+    transitions_sorted_unique (o.transitions_sorted_unique),
+    goal_relevant_vars (o.goal_relevant_vars), 
+    all_goals_relevant (o.all_goals_relevant), 
+    simulation_relation(nullptr), varset(o.varset) {
+}
+
+
+Abstraction * AtomicAbstraction::clone() const{
+    return new AtomicAbstraction(*this);
+}
+
+Abstraction * CompositeAbstraction::clone() const{
+    return new CompositeAbstraction(*this);
+}
+
+Abstraction * PDBAbstraction::clone() const{
+    return new PDBAbstraction(*this);
+}
+
+
+CompositeAbstraction::CompositeAbstraction(const CompositeAbstraction & o)  : 
+    Abstraction(o), lookup_table(o.lookup_table) {
+
+    components[0] = o.components[0];
+    components[1] = o.components[1];
+}
+
+
+
+
+
+
+
+

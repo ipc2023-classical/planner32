@@ -30,7 +30,7 @@ fi
 
 TIME="$TIME --output=elapsed.time --format=%S\n%U\n"
 
-if [[ "$#" -lt 2 ]]; then
+if [[ "$#" < 2 ]]; then
     usage
 fi
 
@@ -47,7 +47,7 @@ fi
 echo
 
 echo "2. Running preprocessor"
-$TIME --append "$PREPROCESS" --no_h2 < output.sas
+$TIME --append "$PREPROCESS" < output.sas
 echo
 
 echo "3. Running search"

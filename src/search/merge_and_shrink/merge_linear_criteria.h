@@ -28,9 +28,13 @@ class MergeLinearCriteria : public MergeStrategy {
 		   int limit_transitions_merge = 0);
 protected:
     virtual void dump_strategy_specific_options() const;
+
+    virtual void init_strategy (const std::vector <Abstraction * > & abstractions);
  public:
   explicit MergeLinearCriteria(const Options &opts);
   virtual ~MergeLinearCriteria();
+
+  virtual void remove_useless_vars (const std::vector<int> & useless_vars);
 
   virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions, 
 				       int limit_abstract_states_merge, 

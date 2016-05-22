@@ -17,6 +17,8 @@ public:
     MergeDFP();
     virtual ~MergeDFP() {}
 
+    virtual void init_strategy (const std::vector <Abstraction * > & abstractions);
+    
     // Note: all_abstractions should be a vector of const Abstaction*, but
     // for the moment, compute_label_ranks is a non-const method because it
     // possibly needs to normalize and/or compute distances of some

@@ -2,12 +2,15 @@
 
 #include "../operator.h"
 #include "../globals.h"
+#include "../timer.h"
+
 #include "../option_parser.h"
 
 #include <vector>
 using namespace std;
 
 SymParamsMgr::SymParamsMgr(const Options & opts) : 
+  variable_ordering(VariableOrderType(opts.get_enum("var_order"))), 
   cudd_init_nodes(opts.get<long>("cudd_init_nodes")), 
   cudd_init_cache_size(opts.get<long>("cudd_init_cache_size")), 
   cudd_init_available_memory(opts.get<long>("cudd_init_available_memory")), 
@@ -15,12 +18,32 @@ SymParamsMgr::SymParamsMgr(const Options & opts) :
   max_tr_time(opts.get<int>("max_tr_time")),
   mutex_type(MutexType(opts.get_enum("mutex_type"))),
   max_mutex_size(opts.get<int>("max_mutex_size")),
-  max_mutex_time(opts.get<int>("max_mutex_time")) {
+  max_mutex_time(opts.get<int>("max_mutex_time")),
+  max_pop_nodes(opts.get<int>("max_pop_nodes")),
+  max_pop_time (opts.get<int>("max_pop_time")) {
+
     //Don't use edeletion with conditional effects
   if(mutex_type == MutexType::MUTEX_EDELETION && has_conditional_effects()){
     cout << "Mutex type changed to mutex_and because the domain has conditional effects" << endl;
     mutex_type = MutexType::MUTEX_AND;
   }
+}
+
+SymParamsMgr::SymParamsMgr() : 
+    variable_ordering(REVERSE_LEVEL), 
+    cudd_init_nodes(16000000L), 
+    cudd_init_cache_size(16000000L), 
+    cudd_init_available_memory(0L),
+    max_tr_size(100000),
+    max_tr_time(60000),
+    mutex_type(MutexType::MUTEX_EDELETION),
+    max_mutex_size(100000),
+    max_mutex_time(60000) {
+    //Don't use edeletion with conditional effects
+    if(mutex_type == MutexType::MUTEX_EDELETION && has_conditional_effects()){
+	cout << "Mutex type changed to mutex_and because the domain has conditional effects" << endl;
+	mutex_type = MutexType::MUTEX_AND;
+    }
 }
 
 void SymParamsMgr::print_options() const{
@@ -29,9 +52,20 @@ void SymParamsMgr::print_options() const{
     " max_memory=" << cudd_init_available_memory << endl;
   cout << "TR(time=" << max_tr_time << ", nodes=" << max_tr_size << ")" << endl;
   cout << "Mutex(time=" << max_mutex_time << ", nodes=" << max_mutex_size << ", type=" << mutex_type << ")" << endl;
+  cout << "Pop(time=" << max_pop_time << ", nodes=" << max_pop_nodes << ")" << endl;
 }
 
 void SymParamsMgr::add_options_to_parser(OptionParser &parser){
+
+const std::vector<std::string> VariableOrderValues {
+    "CG_GOAL_LEVEL", "CG_GOAL_RANDOM",
+	"GOAL_CG_LEVEL", "RANDOM",
+	"LEVEL", "REVERSE_LEVEL"};
+
+  parser.add_enum_option("var_order", VariableOrderValues,
+			 "variable ordering for the symbolic manager", "REVERSE_LEVEL");
+
+
   parser.add_option<long> ("cudd_init_nodes", "Initial number of nodes in the cudd manager.",
 			   "16000000L");
 
@@ -54,6 +88,10 @@ void SymParamsMgr::add_options_to_parser(OptionParser &parser){
 
   parser.add_option<int> ("max_mutex_time",
 			  "maximum time (ms) to generate mutex BDDs", "60000");
+
+  parser.add_option<int> ("max_pop_nodes", "maximum size in pop operations", "1000000");
+  parser.add_option<int> ("max_pop_time", "maximum time (ms) in pop operations", "2000");
+
 }
 
 
@@ -80,11 +118,20 @@ void SymParamsMgr::add_options_to_parser_simulation(OptionParser &parser){
 
   parser.add_option<int> ("max_mutex_time",
 			  "maximum time (ms) to generate mutex BDDs", "10000");
+
+  parser.add_option<int> ("max_pop_nodes", "maximum size in pop operations", "1000000");
+  parser.add_option<int> ("max_pop_time", "maximum time (ms) in pop operations", "2000");
+
+const std::vector<std::string> VariableOrderValues {
+    "CG_GOAL_LEVEL", "CG_GOAL_RANDOM",
+	"GOAL_CG_LEVEL", "RANDOM",
+	"LEVEL", "REVERSE_LEVEL"};
+
+  parser.add_enum_option("var_order", VariableOrderValues,
+			 "variable ordering for the symbolic manager", "REVERSE_LEVEL");
+
+
 }
-
-
-
-
 
 
 
@@ -97,10 +144,11 @@ SymParamsSearch::SymParamsSearch(const Options & opts) :
   penalty_time_estimation_mult (opts.get<double>("penalty_time_estimation_mult")),
   penalty_nodes_estimation_sum (opts.get<double>("penalty_time_estimation_sum")), 
   penalty_nodes_estimation_mult(opts.get<double>("penalty_nodes_estimation_mult")), 
-  max_pop_nodes(opts.get<int>("max_pop_nodes")),
-  max_pop_time (opts.get<int>("max_pop_time")), 
   maxStepTime  (opts.get<int> ("max_step_time")), 
-  maxStepNodes (opts.get<int> ("max_step_nodes")),   
+  maxStepNodes (opts.get<int> ("max_step_nodes")),
+  maxStepNodesPerPlanningSecond (opts.get<int> ("max_step_nodes_per_planning_second")),   
+  maxStepNodesMin (opts.get<int> ("max_step_nodes_min")),
+  maxStepNodesTimeStartIncrement (opts.get<int> ("max_step_nodes_time_start_increment")),
   ratioUseful  (opts.get<double> ("ratio_useful")), 
   minAllotedTime  (opts.get<int>   ("min_alloted_time")),  
   minAllotedNodes (opts.get<int>   ("min_alloted_nodes")), 
@@ -108,7 +156,9 @@ SymParamsSearch::SymParamsSearch(const Options & opts) :
   maxAllotedNodes (opts.get<int>   ("max_alloted_nodes")),
   ratioAllotedTime  (opts.get<double>("ratio_alloted_time")),
   ratioAllotedNodes (opts.get<double>("ratio_alloted_nodes")), 
- ratioAfterRelax (opts.get<double>("ratio_after_relax")){
+  ratioAfterRelax (opts.get<double>("ratio_after_relax")),
+  non_stop (opts.get<bool>("non_stop")), 
+  debug (opts.get<bool>("debug")) {
 }
 
 void SymParamsSearch::print_options() const{
@@ -118,8 +168,7 @@ void SymParamsSearch::print_options() const{
     "*("  << penalty_time_estimation_mult << ")" <<
     " nodes_penalty +(" << penalty_nodes_estimation_sum << ")" <<
     "*("  << penalty_nodes_estimation_mult << ")" << endl;
-  cout << "Pop(time=" << max_pop_time << ", nodes=" << max_pop_nodes << ")" << endl;
-  cout << "MaxStep(time=" << maxStepTime << ", nodes=" << maxStepNodes << ")" << endl;
+  cout << "MaxStep(time=" << maxStepTime << ", nodes=" << maxStepNodes<< ", nodes_per_planning_second=" << maxStepNodesPerPlanningSecond  << ")" << endl;
   cout << "Ratio useful: " << ratioUseful << endl;
   cout << "   Min alloted time: " << minAllotedTime << " nodes: " << minAllotedNodes << endl;
   cout << "   Max alloted time: " << maxAllotedTime << " nodes: " << maxAllotedNodes << endl;
@@ -145,13 +194,20 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
   parser.add_option<double> ("penalty_nodes_estimation_mult",
 			     "multiplication factor when violated alloted nodes", "2");
 
-  parser.add_option<int> ("max_pop_nodes", "maximum size in pop operations", "1000000");
-  parser.add_option<int> ("max_pop_time", "maximum time (ms) in pop operations", "2000");
-
   parser.add_option<int>("max_step_time", "allowed time to perform a step in the search", 
 			 std::to_string(maxStepTime));
   parser.add_option<int>("max_step_nodes", "allowed nodes to perform a step in the search", 
 			 std::to_string(maxStepNodes));
+
+  parser.add_option<int>("max_step_nodes_per_planning_second", "allowed nodes to perform a step in the search. Starts at 0 and increases by x per second.", 
+			 "100");
+
+  parser.add_option<int>("max_step_nodes_min", "allowed nodes to perform a step in the search. minimum value.", 
+			 "10000");
+
+  parser.add_option<int>("max_step_nodes_time_start_increment", "max_step_nodes_min until this time", 
+			 "300");
+
 
   parser.add_option<double>("ratio_useful",
 			    "Percentage of nodes that can potentially prune in the frontier for an heuristic to be useful",
@@ -174,4 +230,19 @@ void SymParamsSearch::add_options_to_parser(OptionParser &parser, int maxStepTim
 			    "multiplier to decide alloted nodes for a step", "2.0");
   parser.add_option<double> ("ratio_after_relax", 
 			    "multiplier to decide alloted nodes for a step", "0.8");
+  
+  parser.add_option<bool>("non_stop",
+			  "Removes initial state from closed to avoid backward search to stop.",
+			  "false");
+
+  parser.add_option<bool>("debug",
+			  "print debug trace",
+			  "false");
+}
+
+int SymParamsSearch::getMaxStepNodes() const{
+    if(g_timer() < maxStepNodesTimeStartIncrement) return maxStepNodesMin;
+    else return std::min<double>(maxStepNodes,
+				 maxStepNodesMin + maxStepNodesPerPlanningSecond*
+				 (g_timer() - maxStepNodesTimeStartIncrement));
 }

@@ -6,6 +6,7 @@
 #include "../option_parser.h"
 #include "../plugin.h"
 #include "../utilities.h"
+#include "../debug.h"
 
 #include <algorithm>
 #include <cassert>
@@ -25,6 +26,10 @@ MergeDFP::MergeDFP()
     // and thus the number of atomic abstractions. These will be stored at
     // indices 0 to n-1 and thus n is the index at which the first composite
     // abstraction will be stored at.
+}
+
+
+void MergeDFP::init_strategy (const std::vector <Abstraction * > & /*abstractions*/) {
 }
 
 size_t MergeDFP::get_corrected_index(int index) const {
@@ -142,7 +147,7 @@ pair<int, int> MergeDFP::get_next(const std::vector<Abstraction *> &all_abstract
     }
     //assert(first != -1);
     //assert(second != -1);
-    cout << "Next pair of indices: (" << first << ", " << second << ")" << endl;
+    DEBUG_MAS(cout << "Next pair of indices: (" << first << ", " << second << ")" << endl;);
 //    if (remaining_merges > 1 && minimum_weight != infinity) {
 //        // in the case we do not make a trivial choice of a next pair
 //        cout << "Computed weight: " << minimum_weight << endl;

@@ -1,8 +1,10 @@
+//WARNING: This is outdated and does not even use the right causal graph!!!
+// Definetively not recommended to use it
 #ifndef SMAS_VARIABLE_ORDER_FINDER_H
 #define SMAS_VARIABLE_ORDER_FINDER_H
 
 #include <vector>
-enum MergeStrategy {
+enum VarOrder {
     MERGE_LINEAR_CG_GOAL_LEVEL,
     MERGE_LINEAR_CG_GOAL_RANDOM,
     MERGE_LINEAR_GOAL_CG_LEVEL,
@@ -14,7 +16,7 @@ enum MergeStrategy {
 };
 
 class SMASVariableOrderFinder {
-    const MergeStrategy merge_strategy;
+    const VarOrder merge_strategy;
     std::vector<int> selected_vars;
     std::vector<int> remaining_vars;
     std::vector<bool> is_goal_variable;
@@ -22,7 +24,7 @@ class SMASVariableOrderFinder {
 
     void select_next(int position, int var_no);
 public:
-    SMASVariableOrderFinder(MergeStrategy merge_strategy, bool is_first = true);
+    SMASVariableOrderFinder(VarOrder merge_strategy, bool is_first = true);
     ~SMASVariableOrderFinder();
     bool done() const;
     int next();

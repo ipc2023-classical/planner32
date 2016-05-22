@@ -7,6 +7,8 @@
 #include "simulation_relation.h"
 #include "labelled_transition_system.h"
 #include "ld_simulation.h"
+#include "abstraction_builder.h"
+
 #include "shrink_bisimulation.h"
 
 #include "../globals.h"
@@ -32,7 +34,7 @@ DominancePruningSimulation::DominancePruningSimulation(const Options &opts)
   pruning_type(PruningType(opts.get_enum("pruning_type"))),
   min_insertions_desactivation(opts.get<int>("min_insertions")),
   min_desactivation_ratio(opts.get<double>("min_desactivation_ratio")),
-  vars(new SymVariables()), ldSimulation(new LDSimulation(opts)),
+  vars(new SymVariables()), abstractionBuilder(opts.get<AbstractionBuilder *>("abs")),
   all_desactivated(false), activation_checked(false), 
   states_inserted(0), states_checked(0), states_pruned(0), deadends_pruned(0) {
 }
@@ -47,39 +49,59 @@ void DominancePruningSimulation::dump_options() const {
 void DominancePruningSimulation::initialize() {
     if(!initialized){
         initialized = true;
-        ldSimulation->initialize();
+	abstractionBuilder->build_abstraction(is_unit_cost_problem() || cost_type == OperatorCost::ZERO, cost_type, ldSimulation, abstractions);
+	cout << "LDSimulation finished" << endl;
 
-        vector <int> var_order;
-        ldSimulation->getVariableOrdering(var_order);
+	ldSimulation->release_memory();
 
-        vars->init(var_order, mgrParams);
-        if(remove_spurious_dominated_states){
-            mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams));
-            mgr->init();
-        }
-        mgrParams.print_options();
+	if(pruning_type != PruningType::None) {
+	    vector <int> var_order;
+	    ldSimulation->getVariableOrdering(var_order);
 
-        if(insert_dominated){
-            ldSimulation->get_dominance_relation().precompute_dominated_bdds(vars.get());
-        }else{
-            ldSimulation->get_dominance_relation().precompute_dominating_bdds(vars.get());
-        }
+	    vars->init(var_order, mgrParams);
+	    if(remove_spurious_dominated_states){
+		mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams, cost_type));
+		mgr->init();
+	    }
+	    mgrParams.print_options();
+
+	    if(insert_dominated){
+		ldSimulation->get_dominance_relation().precompute_dominated_bdds(vars.get());
+	    }else{
+		ldSimulation->get_dominance_relation().precompute_dominating_bdds(vars.get());
+	    }
+	}
         cout << "Completed preprocessing: " << g_timer() << endl;
     }
 }
 
 bool DominancePruningSimulation::is_dead_end(const State &state) {
-    if(is_activated() && ldSimulation->get_dominance_relation().pruned_state(state)){
+    if(ldSimulation && ldSimulation->has_dominance_relation() && /*is_activated() && */ldSimulation->get_dominance_relation().pruned_state(state)){
         deadends_pruned ++;
         return true;
     }
+    
+    for (auto & abs : abstractions) {
+	if(abs->is_dead_end(state)) {
+	    return true;
+	}
+    } 
     return false;
 }
 
 int DominancePruningSimulation::compute_heuristic(const State &state) {
-    int cost = ldSimulation->get_dominance_relation().get_cost(state);
+    int cost = (ldSimulation && ldSimulation->has_dominance_relation()) ? 
+	ldSimulation->get_dominance_relation().get_cost(state) : 0;
     if (cost == -1)
         return DEAD_END;
+
+    for (auto & abs : abstractions) {
+	if(abs->is_dead_end(state)) {
+	    return DEAD_END;
+	}
+	cost = max (cost, abs->get_cost(state));
+    }
+
     return cost;
 }
 
@@ -102,7 +124,8 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g) {
 
     if(ldSimulation->get_dominance_relation().pruned_state(state)){
         return true;
-    }
+    } 
+
     //a) Check if state is in a BDD with g.closed <= g
     states_checked ++;
     if (check(state, g)){
@@ -179,7 +202,12 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
     Heuristic::add_options_to_parser(parser);
     SymParamsMgr::add_options_to_parser_simulation(parser);
-    LDSimulation::add_options_to_parser(parser);
+
+    parser.add_option<AbstractionBuilder *>(
+            "abs",
+            "abstraction builder",
+            "");
+    //LDSimulation::add_options_to_parser(parser);
 
     parser.add_enum_option
     ("pruning_type", PruningTypeValues,
@@ -586,6 +614,8 @@ bool DominancePruningSimulationSkylineBDD::check (const State & state, int /*g*/
 
 void DominancePruningSimulation::print_statistics()
  {
-     cout << "Dominance BDD nodes: " << mgr->totalNodes() << endl;
-     cout << "Dominance BDD memory: " << mgr->totalMemory() << endl;
+     if(mgr){
+	 cout << "Dominance BDD nodes: " << mgr->totalNodes() << endl;
+	 cout << "Dominance BDD memory: " << mgr->totalMemory() << endl;
+     }
  }

@@ -16,29 +16,34 @@ using namespace std;
 
 SymManager::SymManager(SymVariables * v,
 		       SymAbstraction * abs,
-		       const SymParamsMgr & params) : vars(v), abstraction(abs), p(params), parentMgr(nullptr),
+		       const SymParamsMgr & params, 
+		       OperatorCost cost_type_) : vars(v), abstraction(abs), p(params),
+    cost_type(cost_type_), parentMgr(nullptr),
 						      initialState(v->zeroBDD()), 
 						      goal(v->zeroBDD()), 
 						      min_transition_cost(0), hasTR0(false), 
 						      mutexInitialized(false), 
 						      mutexByFluentInitialized(false), 
-						      prune_heuristic(nullptr)  {
+						  prune_heuristic(nullptr)  {
 
-  for(const auto & op : g_operators){
-      if (op.is_dead()) continue;       
+    for(const auto & op : g_operators){
+	if (op.is_dead()) continue;       
       
-      if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
-	  min_transition_cost = op.get_cost();      
-      }
-      if(op.get_cost() == 0){
-	  hasTR0 = true;
-      }
-  }
-						      }
+	if(min_transition_cost == 0 || min_transition_cost > get_adjusted_action_cost(op, cost_type)){
+	    min_transition_cost = get_adjusted_action_cost(op, cost_type);      
+	}
+	if(get_adjusted_action_cost(op, cost_type) == 0){
+	    hasTR0 = true;
+	}
+    }
+						   
+
+}
 
 SymManager::SymManager(SymManager * mgr,
 		       SymAbstraction * abs,
-		       const SymParamsMgr & params) : vars(mgr->getVars()), abstraction(abs), p(params), parentMgr(mgr),
+		       const SymParamsMgr & params) : vars(mgr->getVars()), abstraction(abs), p(params), 
+						      cost_type(mgr->cost_type), parentMgr(mgr),
 						      initialState(mgr->zeroBDD()), 
 						      goal(mgr->zeroBDD()), 
 						      min_transition_cost(0), hasTR0(false), 
@@ -51,10 +56,10 @@ SymManager::SymManager(SymManager * mgr,
     for(const auto & op : g_operators){
       if (op.is_dead()) continue; 
 
-      if(min_transition_cost == 0 || min_transition_cost > op.get_cost()){
-	min_transition_cost = op.get_cost();      
+      if(min_transition_cost == 0 || min_transition_cost >  get_adjusted_action_cost(op, cost_type)){
+	min_transition_cost = get_adjusted_action_cost(op, cost_type);      
       }
-      if(op.get_cost() == 0){
+      if(get_adjusted_action_cost(op, cost_type) == 0){
 	hasTR0 = true;
       }
     }
@@ -67,8 +72,8 @@ void SymManager::init_states(){
     DEBUG_MSG(cout << "INIT STATES ABS" << endl;);
     initialState = abstraction->getInitialState();
     goal = abstraction->getGoal();
-    initialState.print(0, 1);
-    goal.print(0,1);
+    //initialState.print(0, 1);
+    //goal.print(0,1);
   }else{
     DEBUG_MSG(cout << "INIT STATES NO ABS" << endl;);
     initialState = vars->getStateBDD(g_initial_state());
@@ -269,6 +274,59 @@ void SymManager::init_mutex(const std::vector<MutexGroup> & mutex_groups,
   //gst_mutex.check_mutexes(*this);
 }
 
+void SymManager::addDeadEndStates(bool fw, BDD bdd) {
+      //There are several options here, we could follow with edeletion
+      //and modify the TRs, so that the new spurious states are never
+      //generated. However, the TRs are already merged and the may get
+      //too large. Therefore we just keep this states in another vectors
+      //and spurious states are always removed. TODO: this could be
+      //improved.
+      if(fw || abstraction) {
+	  if (abstraction) bdd = shrinkForall(bdd);
+	  notDeadEndFw.push_back(!bdd);
+	  mergeBucketAnd(notDeadEndFw);
+      }else{
+	  notDeadEndBw.push_back(!bdd);
+	  mergeBucketAnd(notDeadEndBw);
+      }
+  }
+
+
+void SymManager::addDeadEndStates(const std::vector<BDD> & fw_dead_ends,
+			const std::vector<BDD> & bw_dead_ends) {
+      if(abstraction) {
+	  for (BDD bdd : fw_dead_ends){
+	      bdd = shrinkForall(bdd);
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+
+	  for (BDD bdd : bw_dead_ends){
+	      bdd = shrinkForall(bdd);
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucketAnd(notDeadEndFw);
+      } else {
+	  for (BDD bdd : fw_dead_ends){
+	      if(!bdd.IsZero()) {
+		  notDeadEndFw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucketAnd(notDeadEndFw);
+	  
+
+	  for (BDD bdd : bw_dead_ends){
+	      if(!bdd.IsZero()) {
+		  notDeadEndBw.push_back(!bdd);
+	      }
+	  }
+	  mergeBucketAnd(notDeadEndBw);
+      }
+  }
+
 
 void SymManager::dumpMutexBDDs(bool fw) const {
   if(fw){
@@ -380,7 +438,7 @@ const map<int, vector <SymTransition> > & SymManager::getIndividualTRs(){
 	if (op->is_dead()){ 
 	  continue;
 	}
-	int cost = op->get_cost(); 
+	int cost = get_adjusted_action_cost(*op, cost_type); 
 	DEBUG_MSG(cout << "Creating TR of op " << i << " of cost " << cost << endl;);
 	indTRs[cost].push_back(move(SymTransition(vars, op, cost)));
 	if(p.mutex_type ==MutexType::MUTEX_EDELETION){
@@ -431,11 +489,11 @@ void SymManager::init_transitions(){
     }
     // PIET-edit: commented out for (better) readability of the output
     cout << "TRs cost=" << it->first << " (" << it->second.size() << ")" << endl;
-    /*cout << "TRs cost=" << it->first << " (" << it->second.size() << "): ";
-    for(auto bdd : it->second){
-      cout <<" "<< bdd.nodeCount();      
-    }
-    cout << endl;*/
+    // cout << "TRs cost=" << it->first << " (" << it->second.size() << "): ";
+    // for(auto bdd : it->second){
+    //   cout <<" "<< bdd.nodeCount();      
+    // }
+    // cout << endl;
   }
 }
 
@@ -484,13 +542,18 @@ BDD SymManager::filter_mutex(const BDD & bdd, bool fw,
 			     int nodeLimit, bool initialization) {  
   BDD res = bdd;
   //if(fw) return bdd; //Only filter mutex in backward direction
-  const vector<BDD> & deadEndBDDs = (fw ? deadEndFw : deadEndBw);
-  for(const BDD & deadEnd : deadEndBDDs){
-    DEBUG_MSG(cout << "Filter: " << res.nodeCount()  << " and dead end " <<  deadEnd.nodeCount()  << flush;);
-    res = res.And(!deadEnd, nodeLimit);
+  const vector<BDD> & notDeadEndBDDs = ((fw || abstraction) ? notDeadEndFw : notDeadEndBw);
+  for(const BDD & notDeadEnd : notDeadEndBDDs){
+    DEBUG_MSG(cout << "Filter: " << res.nodeCount()  << " and dead end " <<  notDeadEnd.nodeCount()  << flush;);
+    //cout << "Filter: " << res.nodeCount()  << " and dead end " <<  notDeadEnd.nodeCount()  << flush;
+    res = res.And(notDeadEnd, nodeLimit);
+    //cout << ": " << res.nodeCount() << endl;
     DEBUG_MSG(cout << ": " << res.nodeCount() << endl;);
   }
+
   const vector<BDD> & notMutexBDDs = (fw ? notMutexBDDsFw : notMutexBDDsBw);
+
+
   switch (p.mutex_type){
   case MutexType::MUTEX_NOT:
     break;

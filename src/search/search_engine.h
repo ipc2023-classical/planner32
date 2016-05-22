@@ -44,6 +44,8 @@ public:
     void set_bound(int b) {bound = b; }
     int get_bound() {return bound; }
     static void add_options_to_parser(OptionParser &parser);
+
+    virtual bool proves_task_unsolvable() const = 0;
 };
 
 #endif

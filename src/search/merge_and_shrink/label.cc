@@ -46,6 +46,15 @@ void CompositeLabel::update_root(CompositeLabel *new_root) {
     root = new_root;
 }
 
+
+void Label::reset_relevant_for (const std::vector<Abstraction *> &  abstractions) {
+    relevant_for.clear();
+    for(auto a : abstractions) {
+	if (a && a->get_relevant_labels()[id]) relevant_for.insert(a);
+    }
+}
+
+
 const std::vector<Label *> &OperatorLabel::get_parents() const {
     exit_with(EXIT_CRITICAL_ERROR);
 }

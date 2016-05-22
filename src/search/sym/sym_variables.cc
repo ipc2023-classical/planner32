@@ -160,6 +160,10 @@ double SymVariables::numStates(const BDD & bdd) const{
   return bdd.CountMinterm(numBDDVars);
 }
 
+double SymVariables::numStates() const{
+    return numStates(validBDD);
+}
+
 void SymVariables::writeBucket(const string & fname,
 			       ofstream & filenames,
 			       const vector<BDD> & bucket) const{
@@ -286,9 +290,9 @@ BDD SymVariables::getCube(const set <int> & vars, const vector<vector<int>> & v_
 
 
 void
-exceptionError(string message)
+exceptionError(string /*message*/)
 {
-  cout << message << endl;
+  //cout << message << endl;
   throw BDDError();
 }
 

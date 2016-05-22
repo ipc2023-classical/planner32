@@ -11,8 +11,8 @@ SymBDExp::SymBDExp(SymController * engine,
 		   const SymParamsSearch & params, 
 		   Dir dir) :
   hnode(nullptr), parent(nullptr), 
-  fw(new SymExploration(engine, params)),
-  bw(new SymExploration(engine, params)),
+  fw(new SymAstar(engine, params)),
+  bw(new SymAstar(engine, params)),
   searchDir(dir), mayRelax(true), fMainDiagonal (-1){
 }
 
@@ -20,8 +20,8 @@ SymBDExp::SymBDExp(SymBDExp * other,
 		   const SymParamsSearch & params, 
 		   Dir dir) : 
   hnode(nullptr), parent(other), 
-  fw(new SymExploration(other->getFw()->getEngine(), params)),
-  bw(new SymExploration(other->getFw()->getEngine(), params)),
+  fw(new SymAstar(other->getFw()->getEngine(), params)),
+  bw(new SymAstar(other->getFw()->getEngine(), params)),
   searchDir(dir), mayRelax(true),  fMainDiagonal (-1) {  
   fw->init(this, other->fw.get());
   bw->init(this, other->bw.get());
@@ -120,8 +120,8 @@ bool SymBDExp::initFrontier(SymHNode * node,
 bool SymBDExp::initAll(int maxTime, int maxNodes){
   if(parent){
     //Relax all the search
-    if(!fw->relax(maxTime, maxNodes) ||
-       !bw->relax(maxTime, maxNodes)){
+    if(!fw->relax_open(maxTime, maxNodes) ||
+       !bw->relax_open(maxTime, maxNodes)){
       return false;
     }
 
@@ -229,7 +229,7 @@ void SymBDExp::setHeuristic(SymBDExp & other){
 
 
 
-SymExploration * SymBDExp::selectBestDirection(bool skipUseful) const{
+SymAstar * SymBDExp::selectBestDirection(bool skipUseful) const{
   if(searchDir == Dir::FW){
     return fw.get();
   }else if(searchDir == Dir::BW){
@@ -275,8 +275,8 @@ void SymBDExp::write(const string & filename) const {
 SymBDExp::SymBDExp(SymController * engine, const SymParamsSearch & params,
 		   Dir dir, const string & filename, SymHNode * node) : 
   hnode(nullptr), parent(nullptr), 
-  fw(new SymExploration(engine, params)),
-  bw(new SymExploration(engine, params)),
+  fw(new SymAstar(engine, params)),
+  bw(new SymAstar(engine, params)),
   searchDir(dir), mayRelax(true),  fMainDiagonal (-1)
 {
   hnode = node;
@@ -303,4 +303,36 @@ bool SymBDExp::finished() const{
 bool SymBDExp::finishedMainDiagonal() const{
   return finished() || ((searchDir == Dir::BW || fw->finished() || (fMainDiagonal != -1 && fw->getF() > fMainDiagonal))
 		      &&  (searchDir == Dir::FW || bw->finished()  || (fMainDiagonal != -1 && bw->getF() > fMainDiagonal)));
+}
+
+
+bool SymBDExp::isUsefulAfterRelax(double ratio) const{
+      if (parent->isAbstracted()){
+  	  return fw->getParent()->getClosed()->isUsefulAfterRelax(ratio, fw->getS())
+  	      || bw->getParent()->getClosed()->isUsefulAfterRelax(ratio, bw->getS()) ;
+      } else {
+	  vector<BDD> frontierFW, frontierBW, closedAbstractFW, closedAbstractBW;   
+	  fw->getFrontier(closedAbstractFW);
+	  closedAbstractFW.push_back(fw->getClosedTotal());
+	  bw->getFrontier(closedAbstractBW);
+	  closedAbstractBW.push_back(bw->getClosedTotal());
+
+	  fw->getParent()->getFrontier(frontierFW);
+	  bw->getParent()->getFrontier(frontierBW);
+	  
+	  return fw->getParent()->isUseful(frontierFW, closedAbstractBW, ratio) || 
+	      bw->getParent()->isUseful(frontierBW, closedAbstractFW, ratio);
+      }
+  }
+
+
+
+void SymBDExp::statistics () const {
+    cout << "Statistics of ";
+    if(hnode->isAbstracted())  cout <<  *(hnode->getAbstraction());
+    else cout << "original";
+    cout << " search: ";
+    if (fw) fw->statistics();
+    if (bw) bw->statistics();
+    cout << endl;
 }

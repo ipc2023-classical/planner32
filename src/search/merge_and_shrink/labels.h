@@ -28,7 +28,7 @@ public:
     Labels(bool unit_cost, const Options &options, OperatorCost cost_type);
     ~Labels();
     void reduce(std::pair<int, int> next_merge,
-            const std::vector<Abstraction *> &all_abstractions);
+		const std::vector<Abstraction *> &all_abstractions);
     void reduce_to_cost();
     void reduce(const LabelMap & labelMap, const DominanceRelation & dominance_relation, 
 		std::set<int> & dangerous_LTSs);
@@ -53,6 +53,8 @@ public:
     const std::set<Abstraction *> & get_relevant_for (int label_no) const;
 
     void prune_irrelevant_labels();
+
+    void reset_relevant_for (const std::vector<Abstraction *> &  abstractions); 
 
     bool applies_perfect_label_reduction() const;
 };

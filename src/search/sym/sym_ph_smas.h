@@ -2,14 +2,14 @@
 #define SYM_PH_SMAS_H
 
 #include "sym_ph.h"
-#include "smas_variable_order_finder.h" //Needed for MergeStrategy type
+#include "../merge_and_shrink/variable_order_finder.h" //Needed for VarOrder type
 #include <vector> 
 
 class SMASShrinkStrategy;
 class SymSMAS;
 
 class SymPHSMAS : public SymPH {
-  const MergeStrategy merge_strategy;
+  const VariableOrderType merge_strategy;
   SMASShrinkStrategy * const shrink_strategy;
   const bool use_label_reduction;
   const bool use_expensive_statistics;
@@ -38,7 +38,7 @@ class SymPHSMAS : public SymPH {
  private:
   std::unique_ptr<SymAbstraction> abstract(SymAbstraction * other, double allotedTime);
   std::unique_ptr<SymAbstraction> noneAbstraction();
-  unique_ptr<SymBDExp> relax_one_by_one(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int num_relaxations);
+  std::unique_ptr<SymBDExp> relax_one_by_one(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int num_relaxations);
 
   //Returns an abstraction that we are able to search explicitly
   virtual SymAbstraction * getExplicitAbstraction(){

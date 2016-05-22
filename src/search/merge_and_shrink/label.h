@@ -56,6 +56,10 @@ public:
     void set_irrelevant_for(Abstraction * abstraction);
     bool is_relevant_for(Abstraction * abstraction) const;
 
+
+    void reset_relevant_for (const std::vector<Abstraction *> &  abstractions); 
+
+
     const std::set<Abstraction *> & get_relevant_for () const{
 	return relevant_for;
     }

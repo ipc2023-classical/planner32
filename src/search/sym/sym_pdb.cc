@@ -74,7 +74,7 @@ BDD SymPDB::shrinkForall(const BDD & bdd, int maxNodes) const{
 BDD SymPDB::getInitialState() const{
   vector<pair<int, int> > abstract_ini;
   for(int var : fullVars){
-    abstract_ini.push_back(std::pair<int, int> (var, (g_initial_state())[var]));
+    abstract_ini.push_back(std::pair<int, int> (var, g_initial_state()[var]));
   }
   return vars->getPartialStateBDD(abstract_ini);
 }
@@ -94,7 +94,10 @@ std::string SymPDB::tag() const{
 }
 
 void SymPDB::print(std::ostream &os, bool fullInfo) const {
-  os << "PDB " << fullVars.size() << "," << nonRelVars.size();
+    os << "PDB (" << fullVars.size() << "/" << (nonRelVars.size()+fullVars.size()) << "): ";
+    for (int v : fullVars){
+	os << v << " ";
+    }
   if(fullInfo && !nonRelVars.empty()){
     os << " ["; for (int v : fullVars) os << v << " "; os << "]";
     os << endl << "Abstracted propositions: ";

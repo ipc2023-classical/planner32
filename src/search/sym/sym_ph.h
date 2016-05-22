@@ -7,7 +7,7 @@
 #include "sym_params.h"
 #include "sym_bdexp.h"
 
-class SymExploration;
+
 class SymVariables;
 class SymHierarchy;
 class SymHNode;
@@ -39,6 +39,9 @@ class SymPH{
  const bool perimeterPDBs;  //Initializes explorations with the one being relaxed.
  const RelaxDirStrategy relaxDir;
  const double ratioRelaxTime, ratioRelaxNodes; 
+
+ //Whether the ph should use mutexes
+ const bool use_mutex_in_abstraction;
 
  const double shouldAbstractRatio;
  const int maxNumAbstractions;
@@ -81,6 +84,7 @@ class SymPH{
   virtual SymBDExp * relax(SymBDExp * bdExp, SymHNode * iniHNode, Dir dir, int num_relaxations) = 0;
   virtual void dump_options() const;
 
+  virtual void statistics() const{}
 
   bool init(SymController * eng, SymVariables * v, SymManager * mgr);
 

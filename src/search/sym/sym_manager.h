@@ -1,10 +1,14 @@
 #ifndef SYM_MANAGER_H
 #define SYM_MANAGER_H
 
+#include "sym_bucket.h"
 #include "sym_abstraction.h"
 #include "sym_variables.h"
 #include "sym_transition.h"
 #include "sym_params.h"
+#include "sym_util.h"
+#include "../operator_cost.h"
+
 #include <vector>
 #include <map>
 #include <memory> 
@@ -22,6 +26,7 @@ class SymManager{
   SymVariables * vars;
   SymAbstraction *abstraction;
   SymParamsMgr p;
+  OperatorCost cost_type;
 
   //Useful for initialization of mutexes and TRs by relaxation
   SymManager * parentMgr; 
@@ -42,7 +47,7 @@ class SymManager{
   
   //Dead ends for fw and bw searches. They are always removed in
   //filter_mutex (it does not matter which mutex_type we are using).
-  std::vector<BDD> deadEndFw, deadEndBw; 
+  std::vector<BDD> notDeadEndFw, notDeadEndBw; 
 
   //notMutex relative for each fluent 
   std::vector<std::vector<BDD>> notMutexBDDsByFluentFw, notMutexBDDsByFluentBw;
@@ -60,7 +65,7 @@ class SymManager{
   
  public:
   SymManager(SymManager * mgr, SymAbstraction * abs, const SymParamsMgr & params);
-  SymManager(SymVariables * v, SymAbstraction * abs, const SymParamsMgr & params);
+  SymManager(SymVariables * v, SymAbstraction * abs, const SymParamsMgr & params, OperatorCost cost_type_);
 
   /* SymManager (const SymManager & o) = delete; */
   /* SymManager (SymManager && ) = default; */
@@ -88,21 +93,61 @@ class SymManager{
 
   const std::map<int, std::vector <SymTransition> > & getIndividualTRs();
 
-  void addDeadEndStates(bool fw, const BDD & bdd) {
-    //There are several options here, we could follow with edeletion
-    //and modify the TRs, so that the new spurious states are never
-    //generated. However, the TRs are already merged and the may get
-    //too large. Therefore we just keep this states in another vectors
-    //and spurious states are always removed. TODO: this could be
-    //improved.
-    if(fw) {
-      deadEndFw.push_back(bdd);
-    }else{
-      deadEndBw.push_back(bdd);
-    }
 
-    
+  void filterMutex (Bucket & bucket, bool fw, bool initialization) {
+      filterMutexBucket(bucket, fw, initialization, 
+			p.max_pop_time, p.max_pop_nodes);
   }
+
+  void mergeBucket(Bucket & bucket) {
+      mergeBucket(bucket, p.max_pop_time, p.max_pop_nodes);
+  }
+
+  void mergeBucketAnd(Bucket & bucket) {
+      mergeBucketAnd(bucket, p.max_pop_time, p.max_pop_nodes);
+  }
+
+  double stateCount(const Bucket & bucket) const {
+      double sum = 0;
+      for(const BDD & bdd : bucket){
+	  sum += vars->numStates(bdd);
+      }
+      return sum;
+  }
+
+
+  void shrinkBucket(Bucket & bucket, int maxNodes) {
+      for(int i = 0; i < bucket.size(); ++i){
+	  bucket[i] = shrinkExists(bucket[i], maxNodes);
+      }
+  }
+
+
+  bool mergeBucket(Bucket & bucket, int maxTime, int maxNodes){
+      auto mergeBDDs = [] (BDD bdd, BDD bdd2, int maxNodes){
+	  return bdd.Or(bdd2, maxNodes);
+      };
+      merge(vars, bucket, mergeBDDs, maxTime, maxNodes);
+      removeZero(bucket); //Be sure that we do not contain only the zero BDD
+    
+      return bucket.size() <= 1;
+  }
+
+  bool mergeBucketAnd(Bucket & bucket, int maxTime, int maxNodes){
+      auto mergeBDDs = [] (BDD bdd, BDD bdd2, int maxNodes){
+	  return bdd.And(bdd2, maxNodes);
+      };
+      merge(vars, bucket, mergeBDDs, maxTime, maxNodes);
+      removeZero(bucket); //Be sure that we do not contain only the zero BDD
+    
+      return bucket.size() <= 1;
+  }
+
+  void addDeadEndStates(bool fw, BDD bdd);
+
+  void addDeadEndStates(const std::vector<BDD> & fw_dead_ends,
+			const std::vector<BDD> & bw_dead_ends);
+
  
   inline BDD shrinkExists(const BDD & bdd, int maxNodes) const{
     return abstraction->shrinkExists(bdd, maxNodes);
@@ -111,6 +156,19 @@ class SymManager{
   inline BDD shrinkForall(const BDD & bdd, int maxNodes) const{
     return abstraction->shrinkForall(bdd, maxNodes);
   }
+
+  inline BDD shrinkForall(const BDD & bdd) {
+    setTimeLimit(p.max_pop_time);
+    try{
+      BDD res = abstraction->shrinkForall(bdd, p.max_pop_nodes); 
+      unsetTimeLimit();
+      return res;
+    }catch(BDDError e){
+      unsetTimeLimit();
+    }
+    return zeroBDD();
+  }
+
 
   inline long totalNodes() const{
     return vars->totalNodes();
