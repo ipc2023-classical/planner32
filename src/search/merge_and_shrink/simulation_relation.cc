@@ -50,6 +50,12 @@ void SimulationRelation::init_goal_respecting() {
     // }
 }
 
+bool SimulationRelation::simulates (const State & t, const State & s) const{
+    int tid = abs->get_abstract_state(t);
+    int sid = abs->get_abstract_state(s);
+    return relation[tid][sid];
+}
+
 
 void SimulationRelation::init_identity () {
     for(int i = 0; i < relation.size(); i++){

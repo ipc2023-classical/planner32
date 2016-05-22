@@ -54,7 +54,7 @@ void DominancePruningSimulation::initialize() {
 
 	ldSimulation->release_memory();
 
-	if(pruning_type != PruningType::None) {
+	if(pruning_type != PruningType::None && pruning_type != PruningType::Parent) {
 	    vector <int> var_order;
 	    ldSimulation->getVariableOrdering(var_order);
 
@@ -105,7 +105,7 @@ int DominancePruningSimulation::compute_heuristic(const State &state) {
     return cost;
 }
 
-bool DominancePruningSimulation::prune_generation(const State &state, int g) {
+bool DominancePruningSimulation::prune_generation(const State &state, int g, const State &parent ) {
     if(pruning_type == PruningType::None) return false;
     if(!is_activated()) return false;
     
@@ -126,6 +126,10 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g) {
         return true;
     } 
 
+    if(pruning_type == PruningType::Parent) {
+	return ldSimulation->dominates(parent, state);
+    }
+
     //a) Check if state is in a BDD with g.closed <= g
     states_checked ++;
     if (check(state, g)){
@@ -142,7 +146,7 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g) {
 }
 
 bool DominancePruningSimulation::prune_expansion (const State &state, int g){
-    if(pruning_type == PruningType::None) return false;
+    if(pruning_type == PruningType::None ||  pruning_type == PruningType::Parent) return false;
     if(!is_activated()) return false;
     
     //a) Check if state is in a BDD with g.closed <= g
@@ -288,6 +292,7 @@ std::ostream & operator<<(std::ostream &os, const PruningType & pt){
     switch(pt){
     case PruningType::Expansion: return os << "expansion";
     case PruningType::Generation: return os << "generation";
+    case PruningType::Parent: return os << "parent";
     case PruningType::None: return os << "none";
     default:
         std::cerr << "Name of PruningTypeStrategy not known";
@@ -301,7 +306,7 @@ const std::vector<std::string> PruningDDValues {
 };
 
 const std::vector<std::string> PruningTypeValues {
-    "expansion", "generation", "none"
+    "expansion", "generation", "parent", "none"
 };
 
 

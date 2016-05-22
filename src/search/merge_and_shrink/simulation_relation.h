@@ -52,6 +52,9 @@ public:
 
     void apply_shrinking_to_table(const std::vector<int> & abstraction_mapping);
 
+
+    bool simulates (const State & t, const State & s) const;
+
     inline bool simulates (int s, int t) const {
         return relation[s][t];
     }

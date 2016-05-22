@@ -113,17 +113,21 @@ BDD DominanceRelation::getIrrelevantStates(SymVariables * vars) const{
 }
 
 void DominanceRelation::precompute_dominated_bdds(SymVariables * vars){
+    Timer t;
     for(auto & sim : simulations){
         sim->precompute_absstate_bdds(vars);
         sim->precompute_dominated_bdds();
     }
+    cout << "Precomputed dominated BDDs: " << t() << endl;
 }
 
 void DominanceRelation::precompute_dominating_bdds(SymVariables * vars){
+    Timer t;
     for(auto & sim : simulations){
         sim->precompute_absstate_bdds(vars);
         sim->precompute_dominating_bdds();
     }
+    cout << "Precomputed dominating BDDs: " << t() << endl;
 }
 
 int DominanceRelation::num_equivalences() const {
@@ -201,6 +205,16 @@ int DominanceRelation::get_cost(const State &state) const{
 	cost = max (cost, new_cost);
     }
     return cost;
+}
+
+
+bool DominanceRelation::dominates(const State &t, const State & s) const {
+    for(auto & sim : simulations) {
+	if (!sim->simulates(t, s)) {
+	    return false;
+	}
+    }
+    return true;
 }
 
 
