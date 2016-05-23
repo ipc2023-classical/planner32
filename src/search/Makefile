@@ -1,8 +1,8 @@
 # By default, build in 32-bit mode. Use BITWIDTH=64 (on command
 # line or in environment) to build in 64-bit mode and BITWIDTH=native
 # to use the native bitness of the OS.
-#BITWIDTH ?= 32
-BITWIDTH ?= 64
+BITWIDTH ?= 32
+#BITWIDTH ?= 64
 
 ## Set USE_LP to 1 to enable linear programming stuff.
 USE_LP=0

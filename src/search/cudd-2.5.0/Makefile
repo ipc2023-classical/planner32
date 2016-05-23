@@ -68,7 +68,7 @@ ICFLAGS	= -O3 -DNDEBUG
 # Gcc 4.2.4 or higher on x86_64 (64-bit compilation)
 #XCFLAGS	= -mtune=native -DHAVE_IEEE_754 -DBSD -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8
 # Gcc 4.2.4 or higher on x86_64 (32-bit compilation)
-XCFLAGS	= -m64 -mtune=native -malign-double -DHAVE_IEEE_754 -DBSD
+XCFLAGS	= -mtune=native -malign-double -DHAVE_IEEE_754 -DBSD #-m64
 # Icc on i686 (older versions may not support -xHost).
 #XCFLAGS	= -ansi -xHost -align -ip -DHAVE_IEEE_754 -DBSD
 # Icc on x86_64 (64-bit compilation).

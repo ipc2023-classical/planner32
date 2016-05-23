@@ -821,7 +821,7 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
 	}
     }
 
-    printf("Dead operators due to dead labels: %d (new %d) / %lu (%.2lf%%)\n",
+    printf("Dead operators due to dead labels: %d (new %d) / %u (%.2lf%%)\n",
 	   were_dead + num_dead, num_dead,  g_operators.size(),
 	   ((double) (num_dead + were_dead) / g_operators.size()) * 100);
 
@@ -866,7 +866,7 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
             }
 	    if(!irrelevant_for_all_abstractions)  required_operators |= required_operators_for_label;
         }
-        printf("Dead operators detected by storing original operators: %lu / %lu (%.2lf%%)\n",
+        printf("Dead operators detected by storing original operators: %u / %u (%.2lf%%)\n",
 	       g_operators.size() - required_operators.count(),
 	       g_operators.size(),
 	       ((double) g_operators.size() - required_operators.count())
