@@ -24,7 +24,7 @@ type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig
             'dead_ops_by_stored' : int, 'perc_dead_ops_by_stored' : float, 
             'lts_num' : int, 'lts_total_size' : int,  'lts_max_size' : int, 'lts_total_trsize' : int, 'lts_max_trsize' : int, 
             'pruning_desactivated' : (lambda x : 1 if "desactivated" == x else 0 ), 
-            'pruned_desactivated' = int, 'checked_desactivated' = int, 'inserted_desactivated' : int, 'deadends_desactivated' : int
+            'pruned_desactivated' : int, 'checked_desactivated' : int, 'inserted_desactivated' : int, 'deadends_desactivated' : int
         }
 
 def parse_regexps (content, props):

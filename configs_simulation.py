@@ -1,5 +1,6 @@
 heuristics = {"lmcut" : "lmcut()", "blind" : "blind()"}
 pruning_dds = {"lmcut" : "bdd_map", "blind" : "bdd"}
+
 pruning_types = {"expbelt" : "expansion",
                  "genbelt" : "generation", 
                  "par" : "parent, min_desactivation_ratio=0, min_insertions=infinity", 
@@ -61,11 +62,15 @@ def get_simulation_config (s):
     optional_pr = get_optionals_prune(opt)
     
     builder_params = ", ".join([default, merge] + optional_sim  )
-    config_pruning = "prune=simulation(pruning_dd=%s, pruning_type=%s, abs=builder_massim(%s), %s)" % (pruning_dd, pruning_type, builder_params, optional_pr)
+    simulation_params = ", ".join(["pruning_dd=%s" % pruning_dd, "pruning_type=%s" %  pruning_type] + optional_pr  )
+    config_pruning = "prune=simulation(%s, abs=builder_massim(%s))" % (simulation_params, builder_params)
 
     config = "astar(%s, %s)" % (heuristic, config_pruning)
     return config
 
+
+def print_config(config): 
+    print "%s %s" % (config, get_simulation_config(config))
 
 # Experiment #1: simulation type and pruning types
 merge_strategies_exp1 = ["atomic", "dfp10k", "dfp50k", "dfp100k", "dfp200k"]
@@ -74,31 +79,15 @@ for h in heuristics:
         for mer in merge_strategies_exp1: 
             sh = "bissh"
             pr = "exp"
-            opt=None
-
             config = "%s-%s-%s-%s-%s" %  (h, sim, mer, sh, pr)
-            if opt: 
-                config = "-".join([config, opt])
-
-            print config, get_simulation_config(config)
-
-
+            print_config (config)
 
 for h in heuristics: 
     for sim in simulation_type:
         for pr in pruning_types: 
             mer = "dfp100k"
             sh = "bissh"
-            opt=None
-            opt_pr = "nobelt"
-
             config = "%s-%s-%s-%s-%s" %  (h, sim, mer, sh, pr)
-            if opt: 
-                config = "-".join([config, opt])
-            if opt_pr: 
-                config = "-".join([config, opt_pr])
 
-            print config, get_simulation_config(config)
-
-
+            print_config(config)
 
