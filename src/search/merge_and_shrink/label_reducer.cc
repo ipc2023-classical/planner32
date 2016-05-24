@@ -288,7 +288,7 @@ bool LabelReducer::reduce_old(const vector<int> &abs_vars,
 
     for (size_t i = 0; i < labels.size(); ++i) {
         Label *label = labels[i];
-        if (label->is_reduced()) {
+        if (label->is_reduced() || (i < g_operators.size() && g_operators[i].is_dead())) {
             // ignore already reduced labels
             continue;
         }
