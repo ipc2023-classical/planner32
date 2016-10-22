@@ -297,3 +297,14 @@ exceptionError(string /*message*/)
 }
 
 
+void SymVariables::print() {
+    ofstream file("variables.txt");
+    
+    for (int v : var_order) {
+	file << "vars: ";
+	for (int j : bdd_index_pre[v]) cout << j << " ";
+	file << endl;
+	for (auto fact : g_fact_names[v]) 
+	    file << fact << endl;
+    }
+}

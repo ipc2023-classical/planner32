@@ -75,6 +75,8 @@ class SymAstar : public SymExploration  {
 
   SymExpStatistics stats;
 
+  const bool storeBDDsToDisk; 
+
   bool bucketReady() const {
     /*cout << "bucket ready " << !(Szero.empty() && S.empty() && 
       Sfilter.empty() && Smerge.empty()) << std::endl;*/

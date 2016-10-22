@@ -96,8 +96,10 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
 }
 
 void LDSimulation::init_atomic_abstractions() {
+    cout << "Init atomic abstractions" << endl;
     Abstraction::build_atomic_abstractions(abstractions, labels.get());
     if(!useless_vars.empty()) remove_useless_atomic_abstractions(abstractions);
+    remove_dead_labels(abstractions);
 }
 
 void LDSimulation::init_factored_systems(const std::vector<std::vector<int> > & partition_vars) {
@@ -112,11 +114,19 @@ void LDSimulation::init_factored_systems(const std::vector<std::vector<int> > & 
 void LDSimulation::remove_dead_labels(vector<Abstraction *> & abstractions){
     vector<int> new_dead_labels; 
     dead_labels.resize(labels->get_size(), false);
+   
+    for (int label_no = 0; label_no < g_operators.size(); label_no++) {
+	if(!dead_labels[label_no] && g_operators[label_no].is_dead()) {
+	    new_dead_labels.push_back(label_no);
+	}
+    }
+
     for (auto abs : abstractions) {
 	if(abs) abs->get_dead_labels(dead_labels, new_dead_labels);
     }
     
     if(new_dead_labels.size() > 0){
+	cout << "Removing dead labels: " << new_dead_labels.size() << endl;
 	for(auto l : new_dead_labels){
 	    for (auto abs : abstractions) {
 		if(abs) abs->prune_transitions_dominated_label_all(l);
