@@ -76,6 +76,7 @@ public:
     double ratioAfterRelax;
 
     bool non_stop;
+    bool storeBDDsToDisk;
 
     bool debug; 
 
@@ -105,6 +106,11 @@ public:
 inline bool get_non_stop () const {
     return non_stop;
 }
+
+inline bool getStoreBDDsToDisk () const {
+    return storeBDDsToDisk;
+}
+
 };
 
 #endif

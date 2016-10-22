@@ -15,7 +15,7 @@ enum class PruningDD {BDD_MAP, ADD, BDD, BDD_MAP_DISJ, SKYLINE_BDD_MAP, SKYLINE_
 std::ostream & operator<<(std::ostream &os, const PruningDD & m);
 extern const std::vector<std::string> PruningDDValues;
 
-enum class PruningType {Expansion, Generation, None};
+enum class PruningType {Expansion, Generation, Parent, None};
 std::ostream & operator<<(std::ostream &os, const PruningType & m);
 extern const std::vector<std::string> PruningTypeValues;
 
@@ -108,7 +108,7 @@ class DominancePruningSimulation : public PruneHeuristic {
   virtual void initialize();
 
   //Methods for pruning explicit search
-  virtual bool prune_generation(const State &state, int g);
+  virtual bool prune_generation(const State &state, int g, const State &parent);
   virtual bool prune_expansion (const State &state, int g);
 
   virtual bool is_dead_end(const State &state);

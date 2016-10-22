@@ -24,7 +24,7 @@ public:
 
     virtual int compute_heuristic(const State &/*state*/){return 0;}
     //Methods for pruning explicit search
-    virtual bool prune_generation(const State &/*state*/, int /*g*/){return false;}
+    virtual bool prune_generation(const State &/*state*/, int /*g*/, const State & ){return false;}
     virtual bool prune_expansion (const State &/*state*/, int /*g*/){return false;}
     virtual bool is_dead_end(const State &state);
 

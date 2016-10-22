@@ -120,6 +120,9 @@ public:
     void prune_dead_ops (const std::vector<Abstraction*> & all_abstractions) const ;
     bool pruned_state(const State &state) const;
     int get_cost(const State &state) const;
+    bool dominates(const State &t, const State &s) const {
+	return dominance_relation->dominates(t, s);
+    }
 
     inline DominanceRelation & get_dominance_relation() {
         return *dominance_relation;

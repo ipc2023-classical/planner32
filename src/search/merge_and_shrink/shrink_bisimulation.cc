@@ -415,6 +415,13 @@ ShrinkStrategy *ShrinkBisimulation::create_default(bool aggregate_goals, int lim
     return new ShrinkBisimulation(opts);
 }
 
+static ShrinkStrategy * _parse_perfect (OptionParser &/*parser*/) {
+    return ShrinkBisimulation::create_default(false, infinity);
+}
+
+static Plugin<ShrinkStrategy> _plugin_perfect("shrink_bisimulation_perfect", _parse_perfect);
+
+
 static ShrinkStrategy *_parse(OptionParser &parser) {
     ShrinkStrategy::add_options_to_parser(parser);
     parser.add_option<bool>("greedy", "use greedy bisimulation", "false");

@@ -32,6 +32,7 @@ public:
     //Methods to use the simulation 
     bool pruned_state(const State &state) const;
     int get_cost(const State &state) const;
+    bool dominates(const State &t, const State & s) const;
 
 
 
@@ -150,10 +151,23 @@ class DominanceRelationLR : public DominanceRelation {
 	/*   label_dominance.init_identity(_ltss.size(), labelMap); */
 	/* } */
 
+	int total_size = 0, max_size = 0, total_trsize = 0, max_trsize = 0;
+	for (auto lts : _ltss) {
+	    max_size = std::max(max_size, lts->size());
+	    max_trsize = std::max(max_trsize, lts->num_transitions());
+	    total_size +=  lts->size();
+	    total_trsize += lts->num_transitions();
+	}
+	std::cout << "Compute LDSim on " << _ltss.size() << " LTSs."
+		  << " Total size: " << total_size  
+		  << " Total trsize: " << total_trsize  
+		  << " Max size: " << max_size
+		  << " Max trsize: " << max_trsize 
+		  << std::endl;
 	
         label_dominance.init(_ltss, *this, labelMap);
 	
-	std::cout << "Compute LDSim on " << _ltss.size() << " LTSs. Init in " << t() << "s: " << std::flush;
+	std::cout << "  Init LDSim in " << t() << "s: " << std::flush;
 	do{
 	    //label_dominance.dump();
 	    if (incremental_step) {
@@ -170,7 +184,7 @@ class DominanceRelationLR : public DominanceRelation {
 	    std::cout << " " << t() << "s" << std::flush;
 	    //return; //PIET-edit: remove this for actual runs; just here for debugging the complex stuff
 	}while(label_dominance.update(_ltss, *this));
-	std::cout << std::endl;
+	std::cout << std::endl << "LDSim computed " << t() << std::endl;
 	//for(int i = 0; i < _ltss.size(); i++){
 	//_ltss[i]->dump();
 	//	_dominance_relation[i]->dump(_ltss[i]->get_names());

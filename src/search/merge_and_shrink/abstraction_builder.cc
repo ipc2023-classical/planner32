@@ -397,7 +397,6 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 			   "By default: 0: no limit at all",
 			   "50000");
 
-
     parser.add_option<bool>("intermediate_simulations",
 			    "Compute intermediate simulations and use them for shrinking",
 			    "false");

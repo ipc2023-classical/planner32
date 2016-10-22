@@ -190,6 +190,8 @@ class SymVariables{
     _manager->UnsetTimeLimit();
   }
 
+  void print(); 
+
   inline int * getBinaryDescription(const State & state){
     int pos = 0;
     //  cout << "State " << endl;

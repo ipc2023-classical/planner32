@@ -24,7 +24,7 @@ SymAstar::SymAstar(SymController * eng,
     f(0), g(0), perfectHeuristic(nullptr), 
     estimationCost(params), estimationZero(params),
     //estimationDisjCost(params), estimationDisjZero(params),
-    lastStepCost(true), engine(eng) {}
+    lastStepCost(true), engine(eng), storeBDDsToDisk(params.getStoreBDDsToDisk()) {}
 
 bool SymAstar::init(SymBDExp * exp, SymManager * manager, bool forward){
     bdExp = exp;
@@ -48,6 +48,10 @@ bool SymAstar::init(SymBDExp * exp, SymManager * manager, bool forward){
 
     open_list.init(this, mgr);
     closed->init(this, mgr);
+
+    if(storeBDDsToDisk) {
+	mgr->getVars()->print();
+    }
 
     f = open_list.minNextG(g);
     cout << "Init f to " << f << endl;
@@ -476,6 +480,15 @@ bool SymAstar::expand_cost(int maxTime, int maxNodes){
     assert(expansionReady());
     assert(nodeCount(S) <= maxNodes);
     int nodesStep = nodeCount(S);
+
+    if(storeBDDsToDisk) {
+	stringstream ss;
+	for(int i = 0; i < S.size(); i++){
+	    ss << "hbdd" << g << "_" << i;
+	    S[i].write(ss.str());
+	}
+    }
+
     double statesStep = mgr->stateCount(S);
     Timer image_time;
     DEBUG_MSG(cout << "Setting maxTime: " << maxTime << endl;);
