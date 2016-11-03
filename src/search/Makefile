@@ -254,8 +254,8 @@ TARGET_DEBUG    = $(TARGET)$(TARGET_SUFFIX_DEBUG)
 OBJECTS_PROFILE = $(SOURCES:%.cc=.obj/%$(OBJECT_SUFFIX_PROFILE).o)
 TARGET_PROFILE  = $(TARGET)$(TARGET_SUFFIX_PROFILE)
 
-CXX     = g++-4.9
-DEPEND = g++-4.9 -MM
+CXX     = g++
+DEPEND = g++ -MM
 
 ## CXXFLAGS, LDFLAGS, POSTLINKOPT are options for compiler and linker
 ## that are used for all three targets (release, debug, and profile).
@@ -277,7 +277,7 @@ endif
 
 CXXFLAGS += -g
 CXXFLAGS += $(BITWIDTHOPT)
-CXXFLAGS += -Wall -W -Wno-sign-compare -Wno-deprecated -std=c++11 -pedantic -Werror
+CXXFLAGS += -Wall -W -Wno-sign-compare -Wno-deprecated -pedantic -Werror 
 
 ## The following lines contain workarounds for bugs when
 ## cross-compiling to 64 bit on 32-bit systems using gcc 4.4 or gcc

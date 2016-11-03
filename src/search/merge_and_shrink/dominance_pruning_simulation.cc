@@ -43,11 +43,12 @@ DominancePruningSimulation::~DominancePruningSimulation() {
 }
 
 void DominancePruningSimulation::dump_options() const {
-    cout << "Type pruning: " << pruning_type;
+    cout << "Type pruning: " << pruning_type << endl;
 }
 
 void DominancePruningSimulation::initialize() {
     if(!initialized){
+	dump_options();
         initialized = true;
 	abstractionBuilder->build_abstraction(is_unit_cost_problem() || cost_type == OperatorCost::ZERO, cost_type, ldSimulation, abstractions);
 	cout << "LDSimulation finished" << endl;
@@ -67,6 +68,7 @@ void DominancePruningSimulation::initialize() {
 
 	    if(insert_dominated){
 		ldSimulation->get_dominance_relation().precompute_dominated_bdds(vars.get());
+		
 	    }else{
 		ldSimulation->get_dominance_relation().precompute_dominating_bdds(vars.get());
 	    }
@@ -76,7 +78,8 @@ void DominancePruningSimulation::initialize() {
 }
 
 bool DominancePruningSimulation::is_dead_end(const State &state) {
-    if(ldSimulation && ldSimulation->has_dominance_relation() && /*is_activated() && */ldSimulation->get_dominance_relation().pruned_state(state)){
+    if(ldSimulation && ldSimulation->has_dominance_relation() &&
+       /*is_activated() && */ldSimulation->get_dominance_relation().pruned_state(state)){
         deadends_pruned ++;
         return true;
     }
@@ -85,7 +88,7 @@ bool DominancePruningSimulation::is_dead_end(const State &state) {
 	if(abs->is_dead_end(state)) {
 	    return true;
 	}
-    } 
+    }
     return false;
 }
 
@@ -136,6 +139,23 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g, con
         states_pruned ++;
         return true;
     }
+
+    if(ldSimulation->dominates(parent, state)) {
+	cerr << "Fatal error." << endl;
+	cout << "Parent: "; parent.dump_pddl();
+	cout << "State: "; state.dump_pddl();
+
+        insert(parent, g);
+
+	if (check(state, g)){
+	    return true;
+	}
+
+
+
+	exit(EXIT_CRITICAL_ERROR);
+    }
+
 
     //b) Insert state and other states dominated by it
     if(pruning_type == PruningType::Generation){

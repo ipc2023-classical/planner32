@@ -132,7 +132,7 @@ public:
 	removeSubsets(pat, fw, cache);
     }
 
-    bool isSubset (const std::set<int> & p1, const std::set<int> & p2);
+    static bool isSubset (const std::set<int> & p1, const std::set<int> & p2);
 
 
     friend std::ostream & operator<<(std::ostream &os, const UCTNode & node);

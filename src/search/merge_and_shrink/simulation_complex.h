@@ -462,7 +462,7 @@ class DominanceRelationComplex : public DominanceRelationLR<LR> {
 				     const SimulationRelation & /*simrel_two*/) {
 	std::cerr << "Error: ComputeSimulationRelationComplex::init_simulation_incremental not implemented yet" << std::endl;
 	std::exit(-1);
-	return false;
+	return nullptr;
     }
 
     virtual void update(int /*lts_id*/, const LabelledTransitionSystem * /*lts*/,
