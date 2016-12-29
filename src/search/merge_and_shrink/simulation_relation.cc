@@ -106,11 +106,6 @@ void SimulationRelation::init_incremental(CompositeAbstraction * _abs,
     }
 }
 
-SimulationRelation::~SimulationRelation() {
-    // make sure that the abstraction still works fine, even when this simulation relation is deleted
-    abs->set_simulation_relation(nullptr);
-}
-
 void SimulationRelation::apply_shrinking_to_table(const vector<int> & abstraction_mapping) {
     cout << "reducing simulation size from " << relation.size() << " to " << abs->size() << endl;
     int new_states = abs->size();
