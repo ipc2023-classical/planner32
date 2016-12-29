@@ -3,6 +3,9 @@
 #include "abstraction.h" 
 #include "numeric_label_relation.h" 
 #include "labelled_transition_system.h" 
+#include "../priority_queue.h"
+
+using namespace std;
 
 NumericSimulationRelation::NumericSimulationRelation(Abstraction * _abs) : abs(_abs) { 
 }
@@ -64,7 +67,8 @@ void  NumericSimulationRelation::update (int lts_id, const LabelledTransitionSys
 
 					return new_value >= previous_value; 
 					//break if we have found a transition that simulates with the best result possible
-				    }    
+				    }
+				    return false;
 				});
 
                             if(new_value < previous_value) {
@@ -81,6 +85,11 @@ void  NumericSimulationRelation::update (int lts_id, const LabelledTransitionSys
 }
 
 
+
+bool NumericSimulationRelation::pruned(const State & state) const {
+    return abs->get_abstract_state(state) == -1;
+}
+
 bool NumericSimulationRelation::simulates (const State & t, const State & s) const{
     int tid = abs->get_abstract_state(t);
     int sid = abs->get_abstract_state(s);
@@ -88,19 +97,44 @@ bool NumericSimulationRelation::simulates (const State & t, const State & s) con
 }
 
 
+//Copied from abstraction.cc (move somewhere else?)
+static void dijkstra_search(
+    const vector<vector<pair<int, int> > > &graph,
+    AdaptiveQueue<int> &queue,
+    vector<int> &distances) {
+    while (!queue.empty()) {
+        pair<int, int> top_pair = queue.pop();
+        int distance = top_pair.first;
+        int state = top_pair.second;
+        int state_distance = distances[state];
+        assert(state_distance <= distance);
+        if (state_distance < distance)
+            continue;
+        for (int i = 0; i < graph[state].size(); i++) {
+            const pair<int, int> &transition = graph[state][i];
+            int successor = transition.first;
+            int cost = transition.second;
+            int successor_cost = state_distance + cost;
+            if (distances[successor] > successor_cost) {
+                distances[successor] = successor_cost;
+                queue.push(successor_cost, successor);
+            }
+        }
+    }
+}
 
-void NumericSimulationRelation::precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts,  const vector<int> & tau_labels_){
+
+void NumericSimulationRelation::precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts,
+								  const vector<int> & tau_labels_){
     if(tau_labels_ == tau_labels) return;
     tau_labels = tau_labels_;
 
+    int num_states = lts->size();
     //Create copy of the graph only with tau transitions
     vector<vector<pair<int, int> > > tau_graph(num_states);
-    for (int label_no = 0; label_no < num_labels; label_no++) {
-	if (!tau_labels[label_no]) {
-	    continue;
-	}
+    for (int label_no : tau_labels) {
         int label_cost = abs->get_label_cost_by_index(label_no);
-        for (const auto & tr : lts->get_transitions_label(label_no)) {
+        for (const auto & trans : lts->get_transitions_label(label_no)) {
 	    if(trans.src != trans.target) {
 		tau_graph[trans.src].push_back(make_pair(trans.target, label_cost));
 	    }
@@ -108,10 +142,9 @@ void NumericSimulationRelation::precompute_shortest_path_with_tau(const Labelled
     }
 
     AdaptiveQueue<int> queue;
-
-    int num_states = lts->size();
     distances_with_tau.resize(num_states);
     for(int s = 0; s < num_states; ++s) {
+	//Perform Dijkstra search from s
 	auto & distances = distances_with_tau [s];
 	distances.resize(num_states);
 	std::fill(distances.begin(), distances.end(), std::numeric_limits<int>::max());
@@ -119,9 +152,5 @@ void NumericSimulationRelation::precompute_shortest_path_with_tau(const Labelled
         queue.clear();
 	queue.push(0, s);
 	dijkstra_search(tau_graph, queue, distances);
-    }
-
-    for (auto & dist : distances_with_tau) { 
-	distances_with_tau.resize(num_states, std::numeric_limits<int>::max()); // Fill vector with infty
     }
 }

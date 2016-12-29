@@ -105,9 +105,6 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/shrink_strategy.h \
            merge_and_shrink/variable_order_finder.h \
            merge_and_shrink/simulation_relation.h \
-           merge_and_shrink/numeric_simulation_relation.h \
-           merge_and_shrink/numeric_dominance_relation.h \
-           merge_and_shrink/numeric_label_relation.h \
            merge_and_shrink/dominance_relation.h \
            merge_and_shrink/dominance_pruning_simulation.h \
            merge_and_shrink/label_relation.h \
@@ -123,6 +120,10 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/opt_order.h \
 	   merge_and_shrink/abstraction_builder.h \
            merge_and_shrink/simulation_complex_nold.h 
+
+HEADERS += numeric_dominance/numeric_simulation_relation.h \
+           numeric_dominance/numeric_dominance_relation.h \
+           numeric_dominance/numeric_label_relation.h \
 
 
 HEADERS += landmarks/exploration.h \

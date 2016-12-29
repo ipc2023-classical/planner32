@@ -29,6 +29,8 @@ public:
 			const NumericLabelRelation & label_dominance);
 
 
+    bool pruned(const State & state) const;
+	
     bool simulates (const State & t, const State & s) const;
 
     inline bool simulates (int s, int t) const {

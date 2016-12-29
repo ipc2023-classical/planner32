@@ -28,10 +28,6 @@ protected:
     void update(int lts_id, const LabelledTransitionSystem * lts, 
 		const NumericLabelRelation & label_dominance, NumericSimulationRelation & simrel);
 
-    bool propagate_label_domination(int lts_id, 
-				    const LabelledTransitionSystem * lts,
-				    int l, int l2, NumericSimulationRelation & simrel) const;
-
     template<typename LTS>
 	void compute_ld_simulation_template(std::vector<LTS *> & _ltss, const LabelMap & labelMap) {
 	assert(_ltss.size() == simulations.size());
@@ -68,7 +64,7 @@ public:
  
     //Methods to use the dominance relation 
     bool pruned_state(const State &state) const;
-    int get_cost(const State &state) const;
+    //int get_cost(const State &state) const;
     bool dominates(const State &t, const State & s) const;
 
     void init (const std::vector<Abstraction *> & abstractions);
