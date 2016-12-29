@@ -108,7 +108,7 @@ int DominancePruningSimulation::compute_heuristic(const State &state) {
     return cost;
 }
 
-bool DominancePruningSimulation::prune_generation(const State &state, int g, const State &parent, int /*action_cost*/ ) {
+bool DominancePruningSimulation::prune_generation(const State &state, int g, const State &parent ) {
     if(pruning_type == PruningType::None) return false;
     if(!is_activated()) return false;
     

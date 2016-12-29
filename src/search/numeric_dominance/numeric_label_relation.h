@@ -1,19 +1,18 @@
-#ifndef MERGE_AND_SHRINK_NUMERIC_LABEL_RELATION_H
-#define MERGE_AND_SHRINK_NUMERIC_LABEL_RELATION_H
+#ifndef NUMERIC_DOMINANCE_NUMERIC_LABEL_RELATION_H
+#define NUMERIC_DOMINANCE_NUMERIC_LABEL_RELATION_H
+
+#include "../merge_and_shrink/label_relation.h"
 
 #include "numeric_label_relation.h"
 
 #include <iostream>
 #include <vector>
-#include "labels.h"
-#include "label.h"
+#include "../merge_and_shrink/labels.h"
+#include "../merge_and_shrink/label.h"
 
 class LabelledTransitionSystem;
 class NumericSimulationRelation;
 class NumericDominanceRelation;
-
-const int DOMINATES_IN_ALL = -2;
-const int DOMINATES_IN_NONE = -1;
 
 /* 
  * Label relation represents the preorder relations on labels that
@@ -94,7 +93,7 @@ class NumericLabelRelation {
         return false;
     }
 
-    int mix_numbers(std::vector<int> values, int lts) const; 
+    int mix_numbers(const std::vector<int> & values, int lts) const; 
 
 public:
     NumericLabelRelation(Labels * labels);

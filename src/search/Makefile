@@ -124,6 +124,7 @@ HEADERS += merge_and_shrink/abstraction.h \
 HEADERS += numeric_dominance/numeric_simulation_relation.h \
            numeric_dominance/numeric_dominance_relation.h \
            numeric_dominance/numeric_label_relation.h \
+           numeric_dominance/numeric_dominance_pruning.h \
 
 
 HEADERS += landmarks/exploration.h \

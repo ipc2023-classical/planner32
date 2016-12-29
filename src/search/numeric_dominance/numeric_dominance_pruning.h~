@@ -108,7 +108,7 @@ class DominancePruningSimulation : public PruneHeuristic {
   virtual void initialize();
 
   //Methods for pruning explicit search
-  virtual bool prune_generation(const State &state, int g, const State &parent, int action_cost);
+  virtual bool prune_generation(const State &state, int g, const State &parent);
   virtual bool prune_expansion (const State &state, int g);
 
   virtual bool is_dead_end(const State &state);

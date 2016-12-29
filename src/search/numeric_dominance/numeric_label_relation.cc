@@ -1,11 +1,7 @@
-#include "label_relation.h"
-
-#include "labels.h"
-#include "simulation_relation.h"
-#include "dominance_relation.h"
-#include "labelled_transition_system.h"
-#include "lts_complex.h"
-#include "../equivalence_relation.h"
+#include "../merge_and_shrink/labels.h"
+#include "numeric_simulation_relation.h"
+#include "numeric_dominance_relation.h"
+#include "../merge_and_shrink/labelled_transition_system.h"
 #include "../globals.h"
 #include "../utilities.h"
 #include "../debug.h"
@@ -21,7 +17,7 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
 				const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
 
-    std::vector<std::vector<int> >().swap(lqrel);
+    std::vector<std::vector<std::vector<int> > >().swap(lqrel);
     std::vector<std::vector<int> >().swap(simulates_irrelevant);
     std::vector<std::vector<int> >().swap(simulated_by_irrelevant);
     std::vector<std::vector<int> > ().swap(dominates_in);
@@ -106,11 +102,11 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 
         //Is l2 simulated by irrelevant_labels in lts?
 	int old_value = simulated_by_irrelevant[l2][lts_i];
-	if(old_value != std::numeric_limits::lowest()) {
-	    int min_value = std::numeric_limits::max();
+	if(old_value != std::numeric_limits<int>::lowest()) {
+	    int min_value = std::numeric_limits<int>::max();
 	    for(auto tr : lts->get_transitions_label(l2)){
 		min_value = std::min(min_value, sim.q_simulates(tr.src, tr.target));
-		if(min_value == std::numeric_limits::lowest()) {
+		if(min_value == std::numeric_limits<int>::lowest()) {
 		    break;
 		}
 	    }
@@ -126,8 +122,8 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 
         //Does l2 simulates irrelevant_labels in lts?
 	old_value = simulates_irrelevant[l2][lts_i];
-	if(old_value != std::numeric_limits::lowest()) {
-	    int min_value = std::numeric_limits::max();
+	if(old_value != std::numeric_limits<int>::lowest()) {
+	    int min_value = std::numeric_limits<int>::max();
 	    for(int s = 0; s < lts->size(); s++){
 		int max_value = std::numeric_limits<int>::lowest();
 		for(const auto & tr : lts->get_transitions_label(l2)) {
@@ -153,47 +149,6 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
     return changes;
 }
 
-
-
-int NumericLabelRelation::q_simulates (int l1, int l2, int lts) const {
-    if(dominates_in[l1][l2] !=  DOMINATES_IN_NONE &&
-       (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
-	dominates_in[l1][l2] != lts)) {
-	int sum_negatives = 0;
-	int max_positive = 0;
-	    
-	for(int lts_id = 0; lts_id < lqrel[l1][l2].size(); ++lts_id) {
-	    if(lts_id == lts) continue;
-	    int val = lqrel[l1][l2][lts_id];
-	    if(val < 0) {
-		sum_negatives += val;
-	    } else {
-		max_positive = std::max(max_positive, val);
-	    }
-	}
-	return sum_negatives + max_positive;
-    }
-}
-
-int NumericLabelRelation::q_dominated_by_noop (int l1, int lts) const {
-    if(dominated_by_noop_in[l1][l2] !=  DOMINATES_IN_NONE &&
-       (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
-	dominates_in[l1][l2] != lts)) {
-	int sum_negatives = 0;
-	int max_positive = 0;
-	    
-	for(int lts_id = 0; lts_id < lqrel[l1][l2].size(); ++lts_id) {
-	    if(lts_id == lts) continue;
-	    int val = lqrel[l1][l2][lts_id];
-	    if(val < 0) {
-		sum_negatives += val;
-	    } else {
-		max_positive = std::max(max_positive, val);
-	    }
-	}
-	return sum_negatives + max_positive;
-    }
-}
 
 
 int NumericLabelRelation::mix_numbers (const std::vector<int> & values, int lts) const {

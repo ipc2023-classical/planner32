@@ -1,8 +1,8 @@
 #include "numeric_simulation_relation.h"
 
-#include "abstraction.h" 
 #include "numeric_label_relation.h" 
-#include "labelled_transition_system.h" 
+#include "../merge_and_shrink/abstraction.h" 
+#include "../merge_and_shrink/labelled_transition_system.h" 
 #include "../priority_queue.h"
 
 using namespace std;

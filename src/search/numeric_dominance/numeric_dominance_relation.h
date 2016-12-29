@@ -1,10 +1,10 @@
-#ifndef MERGE_AND_SHRINK_NUMERIC_DOMINANCE_RELATION_H
-#define MERGE_AND_SHRINK_NUMERIC_DOMINANCE_RELATION_H
+#ifndef NUMERIC_DOMINANCE_NUMERIC_DOMINANCE_RELATION_H
+#define NUMERIC_DOMINANCE_NUMERIC_DOMINANCE_RELATION_H
 
 #include <vector>
 #include <memory>
-#include "abstraction.h" 
-#include "labels.h" 
+#include "../merge_and_shrink/abstraction.h" 
+#include "../merge_and_shrink/labels.h" 
 #include "numeric_simulation_relation.h"
 #include "numeric_label_relation.h"
 
@@ -25,9 +25,6 @@ protected:
 
     std::unique_ptr<NumericSimulationRelation> init_simulation (Abstraction * _abs);
 
-    void update(int lts_id, const LabelledTransitionSystem * lts, 
-		const NumericLabelRelation & label_dominance, NumericSimulationRelation & simrel);
-
     template<typename LTS>
 	void compute_ld_simulation_template(std::vector<LTS *> & _ltss, const LabelMap & labelMap) {
 	assert(_ltss.size() == simulations.size());
@@ -41,7 +38,7 @@ protected:
 	do{
 	    //label_dominance.dump();
 		for (int i = 0; i < simulations.size(); i++){
-		    update(i, _ltss[i], label_dominance, *(simulations[i]));
+		    simulations[i]->update(i, _ltss[i], label_dominance);
 		    //_dominance_relation[i]->dump(_ltss[i]->get_names());
 		}
 	    std::cout << " " << t() << "s" << std::flush;
@@ -65,13 +62,14 @@ public:
     //Methods to use the dominance relation 
     bool pruned_state(const State &state) const;
     //int get_cost(const State &state) const;
-    bool dominates(const State &t, const State & s) const;
+    bool dominates(const State &t, const State & s, int g_diff) const;
 
     void init (const std::vector<Abstraction *> & abstractions);
     
     void compute_ld_simulation (std::vector<LabelledTransitionSystem *> & _ltss, 
-				const LabelMap & labelMap, 
-				bool incremental_step);   
+				const LabelMap & labelMap) {
+	compute_ld_simulation_template(_ltss, labelMap);
+    }
 
 
     //Methods to access the underlying simulation relations

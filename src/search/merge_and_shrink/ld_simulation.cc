@@ -17,6 +17,8 @@
 #include "label_relation_identity.h"
 #include "label_relation_noop.h"
 
+#include "../numeric_dominance/numeric_dominance_relation.h"
+
 using namespace std;
 
 std::ostream & operator<<(std::ostream &os, const LabelDominanceType & type){
@@ -94,6 +96,42 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
     cerr << "Error: unkown type of simulation relation or label dominance" << endl;
     exit(-1);
 }
+
+
+unique_ptr<NumericDominanceRelation> LDSimulation::compute_numeric_dominance_relation() const{
+
+    unique_ptr<NumericDominanceRelation> result = make_unique<NumericDominanceRelation>(labels.get());
+
+    LabelMap labelMap (labels.get());
+
+
+    vector<LabelledTransitionSystem *> ltss_simple;
+    vector<LTSComplex *> ltss_complex;
+    // Generate LTSs and initialize simulation relations
+    DEBUG_MSG(cout << "Building LTSs and Simulation Relations:";);
+    for (auto a : abstractions){
+        a->compute_distances();
+	if (!a->is_solvable()){
+	    exit_with(EXIT_UNSOLVABLE);
+	}
+        int lts_size, lts_trs;
+	ltss_simple.push_back(a->get_lts(labelMap));
+	lts_size= ltss_simple.back()->size();
+	lts_trs= ltss_simple.back()->num_transitions();
+        DEBUG_MSG(cout << " " << lts_size << " (" << lts_trs << ")";);
+    }
+    DEBUG_MSG(cout << endl;);
+
+
+    result->init(abstractions);
+    result->compute_ld_simulation(ltss_simple, labelMap);
+
+    return result;
+}
+
+
+
+
 
 void LDSimulation::init_atomic_abstractions() {
     cout << "Init atomic abstractions" << endl;

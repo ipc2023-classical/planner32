@@ -21,7 +21,7 @@ public:
     virtual void initialize() = 0;
 
     //Methods for pruning explicit search
-    virtual bool prune_generation(const State &state, int g, const State &parent) = 0;
+    virtual bool prune_generation(const State &state, int g, const State &parent, int action_cost) = 0;
     virtual bool prune_expansion (const State &state, int g) = 0;
     virtual bool is_dead_end(const State &state) = 0;
 

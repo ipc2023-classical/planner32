@@ -22,7 +22,6 @@ protected:
     //If fixed_relation is set, then we can skip checking it
     std::vector<std::vector<bool> > fixed_relation;
 
-
     //For each abstract state, we create a BDD that represents all the
     //abstract states dominated by it and dominating it
     std::vector<BDD> dominated_bdds, dominating_bdds;
@@ -47,8 +46,6 @@ public:
     SimulationRelation(CompositeAbstraction * _abs, 
 		       const SimulationRelation & simrel_one, 
 		       const SimulationRelation & simrel_two);
-
-    virtual ~SimulationRelation();
 
     void apply_shrinking_to_table(const std::vector<int> & abstraction_mapping);
 

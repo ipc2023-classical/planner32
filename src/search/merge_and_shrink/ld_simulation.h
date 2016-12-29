@@ -17,6 +17,7 @@ class Abstraction;
 class SymManager;
 class LabelledTransitionSystem;
 class LTSComplex;
+class NumericDominanceRelation;
 
 enum class LabelDominanceType {
     NONE, NOOP, NORMAL
@@ -131,6 +132,9 @@ public:
     inline bool has_dominance_relation() {
         return dominance_relation.get() != nullptr;
     }
+
+    std::unique_ptr<NumericDominanceRelation> compute_numeric_dominance_relation() const;
+
 
     void getVariableOrdering(std::vector <int> & var_order);
 

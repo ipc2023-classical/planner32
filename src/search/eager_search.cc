@@ -175,10 +175,12 @@ int EagerSearch::step() {
             }
         }
 
+	int op_cost = get_adjusted_cost(*op);
+
         if (succ_node.is_new() ||
-                succ_node.get_g() > node.get_g() + get_adjusted_cost(*op)) {
+                succ_node.get_g() > node.get_g() + op_cost) {
             if(prune_heuristic &&
-	       prune_heuristic->prune_generation(succ_state, node.get_g() + get_adjusted_cost(*op), s)){
+	       prune_heuristic->prune_generation(succ_state, node.get_g() + op_cost, s, op_cost)){
                 if(succ_node.is_new()){
                     search_progress.inc_pruned();
                 }
