@@ -15,8 +15,7 @@ class LabelledTransitionSystem;
 class NumericSimulationRelation {
 protected:
     Abstraction * abs;
-
-
+    
     std::vector<int> tau_labels;
     std::vector<std::vector<int> > distances_with_tau;
 
@@ -31,17 +30,23 @@ public:
 
     bool pruned(const State & state) const;
 	
-    bool simulates (const State & t, const State & s) const;
+    int  q_simulates (const State & t, const State & s) const;
+    int  q_simulates (const std::vector<int> & t, const std::vector<int> & s) const;
 
     inline bool simulates (int s, int t) const {
         return relation[s][t] >= 0;
     }
 
     inline bool may_simulate (int s, int t) const {
+	assert(s < relation.size());
+	assert(t < relation[s].size());
         return relation[s][t] > std::numeric_limits<int>::lowest();
     }
 
     inline int q_simulates (int s, int t) const {
+	assert(s < relation.size());
+	assert(t < relation[s].size());
+	assert(s!=t || relation[s][t] == 0);
         return relation[s][t];
     }
 
@@ -50,6 +55,9 @@ public:
     }
 
     inline void update_value (int s, int t, int value) {
+	if(value < -1000) {
+	    value = std::numeric_limits<int>::lowest();
+	}
         relation[s][t] = value;
     }
 
@@ -62,13 +70,15 @@ public:
     }
 
     inline int minus_shortest_path_with_tau(int from, int to) {
+	assert(from < distances_with_tau.size());
+	assert(to < distances_with_tau[from].size());
 	return distances_with_tau[from][to] == std::numeric_limits<int>::max() 
 	    ? std::numeric_limits<int>::lowest() 
 	    : - distances_with_tau[from][to];
     }
 
-    void precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, 
-					   const std::vector<int> & tau_labels);
+    void precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
+					   const NumericLabelRelation & label_dominance);
 
     void dump(const std::vector<std::string> & names) const;
     void dump() const;

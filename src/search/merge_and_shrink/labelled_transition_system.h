@@ -71,6 +71,10 @@ class LabelledTransitionSystem {
     return goal_states;
   }
 
+  bool is_goal(int state) const {
+      return goal_states[state];
+  }
+
   inline int size() const{
     return num_states;
   }

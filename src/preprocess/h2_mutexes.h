@@ -82,8 +82,9 @@ class H2Mutexes {
   void print_mutexes(const std::vector <Variable *> &variables);
 
   inline bool are_mutex(int var1, int val1, int var2, int val2) const {
-  if (val1 == -1 || val2 == -1)
-    return false;
+      if (val1 == -1 || val2 == -1){
+	  return false;
+      }
 
     if (var1 == var2) // same variable: mutex iff different value
       return val1 != val2; //TODO: || unreachable[var1][val1];

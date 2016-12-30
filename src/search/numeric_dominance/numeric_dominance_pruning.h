@@ -13,9 +13,9 @@ class SymVariables;
 class SymManager;
 class Abstraction;
 
-enum class PruningType {Expansion, Generation, Parent, None};
-std::ostream & operator<<(std::ostream &os, const PruningType & m);
-extern const std::vector<std::string> PruningTypeValues;
+enum class NumericPruningType {Expansion, Generation, Parent, Successor, ParentSuccessor, None};
+std::ostream & operator<<(std::ostream &os, const NumericPruningType & m);
+extern const std::vector<std::string> NumericPruningTypeValues;
 
 class NumericDominancePruning : public PruneHeuristic {  
  protected:
@@ -25,7 +25,7 @@ class NumericDominancePruning : public PruneHeuristic {
   bool initialized;
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
-  const PruningType pruning_type;
+  const NumericPruningType pruning_type;
 
   /*
    * Three parameters help to decide whether to apply dominance
@@ -80,6 +80,7 @@ class NumericDominancePruning : public PruneHeuristic {
   virtual void initialize();
 
   //Methods for pruning explicit search
+  virtual void prune_applicable_operators(const State & state, int g, std::vector<const Operator *> & operators);
   virtual bool prune_generation(const State &state, int g, const State &parent, int action_cost);
   virtual bool prune_expansion (const State &state, int g);
 

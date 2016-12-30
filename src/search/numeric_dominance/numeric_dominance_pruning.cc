@@ -27,7 +27,7 @@ NumericDominancePruning::NumericDominancePruning(const Options &opts)
   mgrParams(opts), initialized(false),
   remove_spurious_dominated_states(opts.get<bool>("remove_spurious")),
   insert_dominated(opts.get<bool>("insert_dominated")),
-  pruning_type(PruningType(opts.get_enum("pruning_type"))),
+  pruning_type(NumericPruningType(opts.get_enum("pruning_type"))),
   min_insertions_desactivation(opts.get<int>("min_insertions")),
   min_desactivation_ratio(opts.get<double>("min_desactivation_ratio")),
   vars(new SymVariables()), abstractionBuilder(opts.get<AbstractionBuilder *>("abs")),
@@ -51,13 +51,13 @@ void NumericDominancePruning::initialize() {
 					      cost_type, ldSimulation, abstractions);
 	cout << "LDSimulation finished" << endl;
 
-	ldSimulation->release_memory();
-
-	if(pruning_type != PruningType::None) {
+	if(pruning_type != NumericPruningType::None) {
 	    numeric_dominance_relation = ldSimulation->compute_numeric_dominance_relation();
 	}
 
-	// if(pruning_type != PruningType::None && pruning_type != PruningType::Parent) {
+	ldSimulation->release_memory();
+
+	// if(pruning_type != NumericPruningType::None && pruning_type != NumericPruningType::Parent) {
 	//     vector <int> var_order;
 	//     ldSimulation->getVariableOrdering(var_order);
 
@@ -110,8 +110,40 @@ int NumericDominancePruning::compute_heuristic(const State &state) {
     return cost;
 }
 
+void NumericDominancePruning::prune_applicable_operators(const State & state, int /*g*/,
+					std::vector<const Operator *> & applicable_operators) {
+
+    if(pruning_type == NumericPruningType::Successor ||
+       pruning_type == NumericPruningType::ParentSuccessor) {
+	vector<int> parent (g_variable_domain.size());
+	for(int i = 0; i < g_variable_domain.size(); ++i) {
+	    parent[i] = state[i];
+	}
+	vector<int> succ (parent);
+	for (auto op : applicable_operators) {
+	    for(const auto & prepost : op->get_pre_post()){
+		succ[prepost.var] = prepost.post;
+	    }
+
+	    //TODO: Use adjusted cost instead.
+	    if(numeric_dominance_relation->dominates_parent(succ, parent, op->get_cost())) {
+		cout << (applicable_operators.size() - 1) << " operators pruned because I have " << op->get_name() << endl;
+		applicable_operators.clear();
+		applicable_operators.push_back(op);
+		return;
+	    }
+
+	    
+	    
+	    for(const auto & prepost : op->get_pre_post()){
+		succ[prepost.var] = parent[prepost.var];
+	    }
+	}
+    }    
+}
+
 bool NumericDominancePruning::prune_generation(const State &state, int /*g*/, const State &parent, int action_cost ) {
-    if(pruning_type == PruningType::None) return false;
+    if(pruning_type == NumericPruningType::None) return false;
     if(!is_activated()) return false;
     
     // if(states_inserted%1000 == 0){
@@ -131,7 +163,7 @@ bool NumericDominancePruning::prune_generation(const State &state, int /*g*/, co
         return true;
     } 
 
-    if(pruning_type == PruningType::Parent) {
+    if(pruning_type == NumericPruningType::Parent || pruning_type == NumericPruningType::ParentSuccessor) {
 	return numeric_dominance_relation->dominates(parent, state, action_cost);
     }
 
@@ -160,7 +192,7 @@ bool NumericDominancePruning::prune_generation(const State &state, int /*g*/, co
 
 
     // //b) Insert state and other states dominated by it
-    // if(pruning_type == PruningType::Generation){
+    // if(pruning_type == NumericPruningType::Generation){
     //     insert(state, g);
     //     states_inserted ++;
     // }
@@ -168,7 +200,9 @@ bool NumericDominancePruning::prune_generation(const State &state, int /*g*/, co
 }
 
 bool NumericDominancePruning::prune_expansion (const State &/*state*/, int /*g*/){
-    if(pruning_type == PruningType::None ||  pruning_type == PruningType::Parent) return false;
+    if(pruning_type == NumericPruningType::None ||  pruning_type == NumericPruningType::Parent
+       || pruning_type == NumericPruningType::ParentSuccessor
+       || pruning_type == NumericPruningType::Successor) return false;
     // if(!is_activated()) return false;
     
     // //a) Check if state is in a BDD with g.closed <= g
@@ -178,7 +212,7 @@ bool NumericDominancePruning::prune_expansion (const State &/*state*/, int /*g*/
     //     return true;
     // }
     // //b) Insert state and other states dominated by it
-    // if(pruning_type == PruningType::Expansion){
+    // if(pruning_type == NumericPruningType::Expansion){
     //     insert(state, g);
     //     states_inserted ++;
     // }
@@ -192,7 +226,7 @@ BDD NumericDominancePruning::getBDDToInsert(const State &state){
     //         res = mgr->filter_mutex(res, true, 1000000, true);
     //         res = mgr->filter_mutex(res, false, 1000000, true);
     //     }
-    //     if(pruning_type == PruningType::Generation){
+    //     if(pruning_type == NumericPruningType::Generation){
     //         res -= vars->getStateBDD(state); //Remove the state
     //     }else if (vars->numStates(res) == 1) {
     //         //Small optimization: If we have a single state, not include it
@@ -236,7 +270,7 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     //LDSimulation::add_options_to_parser(parser);
 
     parser.add_enum_option
-    ("pruning_type", PruningTypeValues,
+    ("pruning_type", NumericPruningTypeValues,
             "Implementation of the simulation pruning: "
             "Expansion: prunes states when they are simulated by an expanded state"
             "Generation: prunes states when they are simulated by a generated state ",
@@ -339,3 +373,23 @@ void NumericDominancePruning::print_statistics()
 	 cout << "Dominance BDD memory: " << mgr->totalMemory() << endl;
      }
  }
+
+
+std::ostream & operator<<(std::ostream &os, const NumericPruningType & pt){
+    switch(pt){
+    case NumericPruningType::Expansion: return os << "expansion";
+    case NumericPruningType::Generation: return os << "generation";
+    case NumericPruningType::Parent: return os << "parent";
+
+    case NumericPruningType::Successor: return os << "successor";
+    case NumericPruningType::ParentSuccessor: return os << "parent_successor";
+    case NumericPruningType::None: return os << "none";
+    default:
+        std::cerr << "Name of NumericPruningTypeStrategy not known";
+        exit(-1);
+    }
+}
+
+const std::vector<std::string> NumericPruningTypeValues {
+    "expansion", "generation", "parent", "successor", "parent_successor", "none"
+};

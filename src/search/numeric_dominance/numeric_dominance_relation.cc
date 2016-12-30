@@ -48,8 +48,9 @@ bool NumericDominanceRelation::dominates(const State &t, const State & s, int g_
     int sum_negatives = 0;
     int max_positive = 0;
 
-    for(auto & sim : simulations) {
-	int val = sim->simulates(t, s);
+    for(const auto & sim : simulations) {
+	int val = sim->q_simulates(t, s);
+	// cout << val << endl;
 	if(val == std::numeric_limits<int>::lowest()) {
 	    return false;
 	}
@@ -60,7 +61,33 @@ bool NumericDominanceRelation::dominates(const State &t, const State & s, int g_
 	}
     }    
     int total_value = sum_negatives + max_positive;
+    // cout << "Prune? " << total_value << " " << g_diff << ": " <<
+    // 	(total_value -g_diff > 0 || (total_value == g_diff && g_diff > 0)) << endl;
+    
     return total_value -g_diff > 0 ||
 	(total_value == g_diff && g_diff > 0);
+}
+
+
+
+bool NumericDominanceRelation::dominates_parent(const vector<int> & state, const vector<int> & parent, int action_cost) const {
+    int sum_negatives = 0;
+    int max_positive = 0;
+
+    for(const auto & sim : simulations) {
+	int val = sim->q_simulates(state, parent);
+
+	if(val == std::numeric_limits<int>::lowest()) {
+	    return false;
+	}
+	if(val < 0) {
+	    sum_negatives += val;
+	} else {
+	    max_positive = std::max(max_positive, val);
+	}
+    }    
+    int total_value = sum_negatives + max_positive;
+    
+    return total_value - action_cost > 0 || (total_value == action_cost && action_cost > 0);
 }
 

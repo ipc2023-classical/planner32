@@ -244,6 +244,7 @@ public:
     }
 
     virtual AbstractStateRef get_abstract_state(const State &state) const = 0;
+    virtual AbstractStateRef get_abstract_state(const std::vector<int> &state) const = 0;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
 
@@ -332,6 +333,7 @@ public:
     virtual ~AtomicAbstraction();
 
     virtual AbstractStateRef get_abstract_state(const State &state) const;
+    virtual AbstractStateRef get_abstract_state(const std::vector<int> &state) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
 
@@ -353,6 +355,7 @@ public:
     virtual ~CompositeAbstraction();
 
     virtual AbstractStateRef get_abstract_state(const State &state) const;
+    virtual AbstractStateRef get_abstract_state(const std::vector<int> &state) const;
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     const Abstraction* get_component(const int id) const {
@@ -401,6 +404,7 @@ public:
     virtual ~PDBAbstraction();
 
     virtual AbstractStateRef get_abstract_state(const State &state) const;
+    virtual AbstractStateRef get_abstract_state(const std::vector<int> &state) const;
     virtual void getAbsStateBDDs(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const;
 

@@ -1136,7 +1136,21 @@ AbstractStateRef AtomicAbstraction::get_abstract_state(const State &state) const
     return lookup_table[value];
 }
 
+AbstractStateRef AtomicAbstraction::get_abstract_state(const vector<int> &state) const {
+    int value = state[variable];
+    return lookup_table[value];
+}
+
 AbstractStateRef CompositeAbstraction::get_abstract_state(const State &state) const {
+    AbstractStateRef state1 = components[0]->get_abstract_state(state);
+    AbstractStateRef state2 = components[1]->get_abstract_state(state);
+    if (state1 == PRUNED_STATE || state2 == PRUNED_STATE)
+        return PRUNED_STATE;
+    return lookup_table[state1][state2];
+}
+
+
+AbstractStateRef CompositeAbstraction::get_abstract_state(const vector<int> &state) const {
     AbstractStateRef state1 = components[0]->get_abstract_state(state);
     AbstractStateRef state2 = components[1]->get_abstract_state(state);
     if (state1 == PRUNED_STATE || state2 == PRUNED_STATE)
@@ -1979,6 +1993,10 @@ int PDBAbstraction::memory_estimate() const {
 }
 
 AbstractStateRef PDBAbstraction::get_abstract_state(const State &state) const {
+    return lookup_table[rank(state)];
+}
+
+AbstractStateRef PDBAbstraction::get_abstract_state(const vector<int> &state) const {
     return lookup_table[rank(state)];
 }
 

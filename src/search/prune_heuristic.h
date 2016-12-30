@@ -21,6 +21,7 @@ public:
     virtual void initialize() = 0;
 
     //Methods for pruning explicit search
+    virtual void prune_applicable_operators(const State &/*state*/, int /*g*/, std::vector<const Operator *> & /*operators*/) {}
     virtual bool prune_generation(const State &state, int g, const State &parent, int action_cost) = 0;
     virtual bool prune_expansion (const State &state, int g) = 0;
     virtual bool is_dead_end(const State &state) = 0;

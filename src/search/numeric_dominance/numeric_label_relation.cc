@@ -33,34 +33,59 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
     dominates_noop_in.resize(num_labels, DOMINATES_IN_ALL);
 
     for(int i = 0; i < num_labels; i++){
-        simulates_irrelevant[i].resize(lts.size(), 0);
-        simulated_by_irrelevant[i].resize(lts.size(), 0);
+        simulates_irrelevant[i].resize(lts.size(), std::numeric_limits<int>::max());
+        simulated_by_irrelevant[i].resize(lts.size(), std::numeric_limits<int>::max());
 	lqrel[i].resize(num_labels);
 	for(int j = 0; j < num_labels; j++){
-	    lqrel[i][j].resize(lts.size(), 0);
+	    lqrel[i][j].resize(lts.size(), std::numeric_limits<int>::max());
 	}
     }
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
         dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
     }
-    DEBUG_MSG(cout << "Update label dominance: " << num_labels
-	      << " labels " << lts.size() << " systems." << endl;);
+    cout << "Update label dominance: " << num_labels
+	      << " labels " << lts.size() << " systems." << endl;
     
     for (int i = 0; i < lts.size(); ++i){
         update(i, lts[i], sim[i]);
+    }
+
+    cout << "Computing tau labels for " << lts.size() << endl;
+    tau_labels.resize(lts.size());
+    for(int l = 0; l < num_labels; l++){
+	if(dominates_noop_in[l] == DOMINATES_IN_ALL){
+	    for (int lts_id = 0; lts_id < lts.size(); ++lts_id){
+		tau_labels[lts_id].push_back(l);
+	    }
+	} else if (dominates_noop_in[l] >= 0) {
+	    tau_labels[dominates_noop_in[l]].push_back(l);
+	} 
+    }
+    for (int lts_id = 0; lts_id < lts.size(); ++lts_id) {
+	cout << "Number of tau labels: " << tau_labels[lts_id].size() << endl;
     }
 }
 
 
 
 bool NumericLabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
-				  const NumericDominanceRelation & sim){
+				  const NumericDominanceRelation & sim) {
     bool changes = false;
     
     for (int i = 0; i < lts.size(); ++i){
         changes |= update(i, lts[i], sim[i]);
     }
-    
+
+    for (int lts_id = 0; lts_id < lts.size(); ++lts_id) {
+	tau_labels[lts_id].erase(remove_if(tau_labels[lts_id].begin(),
+					   tau_labels[lts_id].end(), [&](int label) {
+					       return dominates_noop_in[label] != DOMINATES_IN_ALL &&
+						   dominates_noop_in[label] != lts_id;
+					   }),
+				 tau_labels[lts_id].end());
+    }
+				 
+		
     return changes;
 }
 
@@ -85,17 +110,17 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
                     for(const auto & tr2 : lts->get_transitions_label(l1)){
                         if(tr2.src == tr.src && sim.may_simulate(tr2.target, tr.target)){
 			    max_value = std::max(max_value, sim.q_simulates(tr2.target, tr.target));
-			    if(max_value >= min_value){
+			    if(max_value >= min_value) {
 				break; //Stop checking this tr
 			    }
                         }
                     }
 		    min_value = std::min(min_value, max_value);
-		    changes |= set_lqrel(l1, l2, lts_i, min_value);
 		    if(min_value == std::numeric_limits<int>::lowest()) {
 			break; //Stop checking trs of l1, l2
 		    }
                 }
+		changes |= set_lqrel(l1, l2, lts_i, min_value);		    
 		assert(min_value != std::numeric_limits<int>::max());
             }
         }
@@ -110,6 +135,8 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 		    break;
 		}
 	    }
+
+	    assert(min_value != std::numeric_limits<int>::max());
 
 	    if (min_value < old_value) {
 		changes |= set_simulated_by_irrelevant(l2, lts_i, min_value);
@@ -135,16 +162,24 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 		    }
 		}
 		min_value = std::min(min_value, max_value);
-		if(min_value < old_value) {
-		    old_value = min_value;
-		    changes |= set_simulates_irrelevant(l2, lts_i, min_value);
-		    for (int l : lts->get_irrelevant_labels()){
-			changes |= set_lqrel(l2, l, lts_i, min_value);
-		    }
+	    }
+	    assert(min_value != std::numeric_limits<int>::max());
+	    if(min_value < old_value) {
+		old_value = min_value;
+		changes |= set_simulates_irrelevant(l2, lts_i, min_value);
+		for (int l : lts->get_irrelevant_labels()){
+		    changes |= set_lqrel(l2, l, lts_i, min_value);
 		}
 	    }
 	}
     }
+
+    for (int l : lts->get_irrelevant_labels()) {
+	set_simulates_irrelevant(l, lts_i, 0);
+	set_simulated_by_irrelevant(l, lts_i, 0);
+    }
+		    
+    
 
     return changes;
 }

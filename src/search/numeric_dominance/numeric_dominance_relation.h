@@ -44,10 +44,10 @@ protected:
 	    std::cout << " " << t() << "s" << std::flush;
 	}while(label_dominance.update(_ltss, *this));
 	std::cout << std::endl << "LDSim computed " << t() << std::endl;
-	//for(int i = 0; i < _ltss.size(); i++){
-	//_ltss[i]->dump();
-	//	_dominance_relation[i]->dump(_ltss[i]->get_names());
-	//}
+	for(int i = 0; i < _ltss.size(); i++){
+	    //_ltss[i]->dump();
+	    simulations[i]->dump(_ltss[i]->get_names());
+	}
 	//label_dominance.dump_equivalent();
 	//label_dominance.dump_dominance();
 	//exit(0);
@@ -63,6 +63,7 @@ public:
     bool pruned_state(const State &state) const;
     //int get_cost(const State &state) const;
     bool dominates(const State &t, const State & s, int g_diff) const;
+    bool dominates_parent(const std::vector<int> & state, const std::vector<int> & parent, int action_cost) const;
 
     void init (const std::vector<Abstraction *> & abstractions);
     
