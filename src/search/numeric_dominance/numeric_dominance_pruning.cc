@@ -127,13 +127,11 @@ void NumericDominancePruning::prune_applicable_operators(const State & state, in
 
 	    //TODO: Use adjusted cost instead.
 	    if(numeric_dominance_relation->dominates_parent(succ, parent, op->get_cost())) {
-		cout << (applicable_operators.size() - 1) << " operators pruned because I have " << op->get_name() << endl;
+		//cout << (applicable_operators.size() - 1) << " operators pruned because I have " << op->get_name() << endl;
 		applicable_operators.clear();
 		applicable_operators.push_back(op);
 		return;
 	    }
-
-	    
 	    
 	    for(const auto & prepost : op->get_pre_post()){
 		succ[prepost.var] = parent[prepost.var];
