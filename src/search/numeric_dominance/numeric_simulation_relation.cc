@@ -147,8 +147,7 @@ void  NumericSimulationRelation::update (int lts_id, const LabelledTransitionSys
     // for (int s = 0; s < lts->size(); s++) {	
     // 	cout << g_fact_names[lts_id][s] << endl;
     // }
-    //dump();
-
+    //dump(g_fact_names[lts_id]);
 }
 
 

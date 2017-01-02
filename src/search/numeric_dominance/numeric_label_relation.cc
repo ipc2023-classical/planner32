@@ -32,12 +32,12 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
     dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
     dominates_noop_in.resize(num_labels, DOMINATES_IN_ALL);
 
-    for(int i = 0; i < num_labels; i++){
+    for(int i = 0; i < num_labels; i++) {
         simulates_irrelevant[i].resize(lts.size(), std::numeric_limits<int>::max());
         simulated_by_irrelevant[i].resize(lts.size(), std::numeric_limits<int>::max());
 	lqrel[i].resize(num_labels);
-	for(int j = 0; j < num_labels; j++){
-	    lqrel[i][j].resize(lts.size(), std::numeric_limits<int>::max());
+	for(int j = 0; j < num_labels; j++) {
+	    lqrel[i][j].resize(lts.size(), i == j ? 0 : std::numeric_limits<int>::max());
 	}
     }
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
@@ -178,13 +178,9 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 	set_simulates_irrelevant(l, lts_i, 0);
 	set_simulated_by_irrelevant(l, lts_i, 0);
     }
-		    
-    
 
     return changes;
 }
-
-
 
 int NumericLabelRelation::mix_numbers (const std::vector<int> & values, int lts) const {
     int sum_negatives = 0;
@@ -193,13 +189,29 @@ int NumericLabelRelation::mix_numbers (const std::vector<int> & values, int lts)
     for(int lts_id = 0; lts_id < values.size(); ++lts_id) {
 	if(lts_id == lts) continue;
 	int val = values[lts_id];
+	// assert(val != std::numeric_limits<int>::max());
 	if(val < 0) {
 	    sum_negatives += val;
 	} else {
 	    max_positive = std::max(max_positive, val);
 	}
     }
-    return sum_negatives + max_positive;    
+    
+    return sum_negatives; //+ max_positive;    
 }
 
 
+void NumericLabelRelation::dump(const LabelledTransitionSystem * lts, int lts_id) const {
+    for(int l2 : lts->get_relevant_labels()) {
+        for(int l1 : lts->get_relevant_labels()) {
+	    if(l2 == l1) {
+		continue;
+	    }
+	    if (may_dominate(l2, l1, lts_id)) {
+		cout << g_operators[l1].get_name() << " <= " << 
+		    g_operators[l2].get_name() << " with " 
+		     << q_dominates(l2, l1, lts_id) << endl;
+	    }
+	}
+    }
+}

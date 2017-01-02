@@ -152,6 +152,7 @@ public:
 	    return std::numeric_limits<int>::lowest();
 	}
     }
+
     int q_dominated_by_noop (int l, int lts) const {
 	if (may_dominated_by_noop(l, lts)) {
 	    int res = mix_numbers(simulated_by_irrelevant[l], lts);
@@ -166,6 +167,8 @@ public:
     const std::vector<int> & get_tau_labels(int lts) const {
 	return tau_labels[lts];
     }
+
+    void dump(const LabelledTransitionSystem * lts, int lts_id) const;
 };
 
 #endif

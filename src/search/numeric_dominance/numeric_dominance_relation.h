@@ -44,10 +44,11 @@ protected:
 	    std::cout << " " << t() << "s" << std::flush;
 	}while(label_dominance.update(_ltss, *this));
 	std::cout << std::endl << "LDSim computed " << t() << std::endl;
-	/* for(int i = 0; i < _ltss.size(); i++){ */
-	/*     //_ltss[i]->dump(); */
-	/*     simulations[i]->dump(_ltss[i]->get_names()); */
-	/* } */
+	for(int i = 0; i < _ltss.size(); i++){
+	    //_ltss[i]->get_abstraction()->dump_names();
+	    simulations[i]->dump(_ltss[i]->get_names());
+	    /* label_dominance.dump(_ltss[i], i); */
+	}
 	//label_dominance.dump_equivalent();
 	//label_dominance.dump_dominance();
 	//exit(0);

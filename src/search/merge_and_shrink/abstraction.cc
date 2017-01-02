@@ -1484,6 +1484,35 @@ void Abstraction::dump() const {
     cout << "}" << endl;
 }
 
+
+void Abstraction::dump_names() const {
+    cout << "digraph abstract_transition_graph";
+    for (int i = 0; i < varset.size(); i++)
+        cout << "_" << varset[i];
+    cout << " {" << endl;
+    cout << "    node [shape = none] start;" << endl;
+    for (int i = 0; i < num_states; i++) {
+        bool is_init = (i == init_state);
+        bool is_goal = (goal_states[i] == true);
+        cout << "    node [shape = " << (is_goal ? "doublecircle" : "circle")
+	     << "] " << description(i) << ";" << endl;
+        if (is_init)
+            cout << "    start -> " << description(i) << ";" << endl;
+    }
+
+    for (int label_no = 0; label_no < num_labels; label_no++) {
+        // reduced labels are automatically skipped because trans is then empty
+        const vector<AbstractTransition> &trans = transitions_by_label[label_no];
+        for (int i = 0; i < trans.size(); i++) {
+            int src = trans[i].src;
+            int target = trans[i].target;
+            cout << "   " << description(src) << " -> " << description(target) << " [label = "
+		 << g_operators[label_no].get_name() << "];" << endl;
+        }
+    }
+    cout << "}" << endl;
+}
+
 bool Abstraction::is_own_label(int label_no){
     const set<Abstraction *> & relevant_abstractions = labels->get_relevant_for(label_no);
     return relevant_abstractions.size() == 1 && *(relevant_abstractions.begin()) == this;

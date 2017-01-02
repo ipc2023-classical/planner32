@@ -61,6 +61,16 @@ bool NumericDominanceRelation::dominates(const State &t, const State & s, int g_
 	}
     }    
     int total_value = sum_negatives + max_positive;
+
+    // if(total_value -g_diff > 0 ||
+    //    (total_value == g_diff && g_diff > 0)) {
+    // 	cout << "Find domination with: " << total_value << " action_cost: " << g_diff << endl;
+    // 	for (int var = 0; var < g_variable_domain.size(); ++var) {
+    // 	    if(s[var] != t[var]) {
+    // 		cout <<  "   " << g_fact_names[var][s[var]] << " -> " << g_fact_names[var][t[var]] << endl;
+    // 	    }
+    // 	}	     
+    // }
     // cout << "Prune? " << total_value << " " << g_diff << ": " <<
     // 	(total_value -g_diff > 0 || (total_value == g_diff && g_diff > 0)) << endl;
     

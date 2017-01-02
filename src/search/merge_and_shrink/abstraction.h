@@ -189,6 +189,7 @@ public:
 
     void dump_relevant_labels() const;
     void dump() const;
+    void dump_names() const;
 
     // The following methods exist for the benefit of shrink strategies.
     int get_max_f() const;
