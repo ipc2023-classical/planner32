@@ -11,15 +11,26 @@ class Labels;
 class Abstraction;
 class CompositeAbstraction;
 class LabelledTransitionSystem;
-
+class LTSTransition; 
 class NumericSimulationRelation {
 protected:
     Abstraction * abs;
     
     std::vector<int> tau_labels;
     std::vector<std::vector<int> > distances_with_tau;
+    //List of states for which distances_with_tau is not infinity
+    std::vector<std::vector<int> > reachable_with_tau;
 
     std::vector<std::vector<int> > relation;
+
+
+    int compare_noop(int lts_id, const LTSTransition & trs, int t,
+		     int tau_distance, const NumericLabelRelation & label_dominance) const;
+
+
+    int compare_transitions(int lts_id, const LTSTransition & trs, const LTSTransition & trt, 
+			    int tau_distance, const NumericLabelRelation & label_dominance) const;
+
 public:
     NumericSimulationRelation(Abstraction * _abs);
     

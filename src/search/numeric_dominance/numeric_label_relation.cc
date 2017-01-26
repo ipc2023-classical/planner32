@@ -184,17 +184,18 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 
 int NumericLabelRelation::mix_numbers (const std::vector<int> & values, int lts) const {
     int sum_negatives = 0;
-    int max_positive = 0;
+    //int max_positive = 0;
 	    
     for(int lts_id = 0; lts_id < values.size(); ++lts_id) {
 	if(lts_id == lts) continue;
-	int val = values[lts_id];
+	sum_negatives += min(0, values[lts_id]);
+	// int val = values[lts_id];
 	// assert(val != std::numeric_limits<int>::max());
-	if(val < 0) {
-	    sum_negatives += val;
-	} else {
-	    max_positive = std::max(max_positive, val);
-	}
+	// if(val < 0) {
+	//     sum_negatives += val;
+	// } else {
+	//     max_positive = std::max(max_positive, val);
+	// }
     }
     
     return sum_negatives; //+ max_positive;    
