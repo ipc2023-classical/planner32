@@ -40,9 +40,9 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
 	    }
 	}
 
-	for(int l : lts[i]->get_relevant_labels()) {
-	    assert(position_of_label[i][l]  >= 0);
-	}
+	// for(int l : lts[i]->get_relevant_labels()) {
+	//     assert(position_of_label[i][l]  >= 0);
+	// }
 
 	simulates_irrelevant[i].resize(num_relevant_labels, std::numeric_limits<int>::max());
         simulated_by_irrelevant[i].resize(num_relevant_labels, std::numeric_limits<int>::max());
