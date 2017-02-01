@@ -8,7 +8,7 @@
 
 using namespace std;
 
-NumericLabelRelation::NumericLabelRelation(Labels * _labels) : labels (_labels), num_labels(_labels->get_size()){
+NumericLabelRelation::NumericLabelRelation(Labels * _labels, bool compute_tau_labels_with_noop_dominance_) : compute_tau_labels_with_noop_dominance (compute_tau_labels_with_noop_dominance_),  labels (_labels), num_labels(_labels->get_size()){
 
 }
 
@@ -16,54 +16,98 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
 				const NumericDominanceRelation & sim,
 				const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
+    num_ltss = lts.size();
 
+    std::vector<std::vector<int> >().swap(position_of_label);
     std::vector<std::vector<std::vector<int> > >().swap(lqrel);
     std::vector<std::vector<int> >().swap(simulates_irrelevant);
     std::vector<std::vector<int> >().swap(simulated_by_irrelevant);
+
+    irrelevant_labels_lts.resize(lts.size());
+    position_of_label.resize(lts.size());
+    simulates_irrelevant.resize(lts.size());
+    simulated_by_irrelevant.resize(lts.size());
+    lqrel.resize(lts.size());
+
+    for (int i = 0; i < num_ltss; ++i){
+        position_of_label[i].resize(num_labels, -1);
+	irrelevant_labels_lts[i] = lts[i]->get_irrelevant_labels();
+
+	int num_relevant_labels = 0;
+	for(int l = 0; l < num_labels; l++) {
+	    if(lts[i]->is_relevant_label(l)){
+		position_of_label[i][l] = num_relevant_labels++;
+	    }
+	}
+
+	for(int l : lts[i]->get_relevant_labels()) {
+	    assert(position_of_label[i][l]  >= 0);
+	}
+
+	simulates_irrelevant[i].resize(num_relevant_labels, std::numeric_limits<int>::max());
+        simulated_by_irrelevant[i].resize(num_relevant_labels, std::numeric_limits<int>::max());
+	lqrel[i].resize(num_relevant_labels);
+
+	for(int j = 0; j < num_relevant_labels; j++) {
+	    lqrel[i][j].resize(num_relevant_labels, std::numeric_limits<int>::max());
+	    lqrel[i][j][j] = 0;
+	}
+    }
+
     std::vector<std::vector<int> > ().swap(dominates_in);
     std::vector<int> ().swap(dominated_by_noop_in);
     std::vector<int> ().swap(dominates_noop_in);
-
-    simulates_irrelevant.resize(num_labels);
-    simulated_by_irrelevant.resize(num_labels);
-    lqrel.resize(num_labels);
-
-    dominates_in.resize(num_labels);
     dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
     dominates_noop_in.resize(num_labels, DOMINATES_IN_ALL);
+    dominates_in.resize(num_labels);
 
-    for(int i = 0; i < num_labels; i++) {
-        simulates_irrelevant[i].resize(lts.size(), std::numeric_limits<int>::max());
-        simulated_by_irrelevant[i].resize(lts.size(), std::numeric_limits<int>::max());
-	lqrel[i].resize(num_labels);
-	for(int j = 0; j < num_labels; j++) {
-	    lqrel[i][j].resize(lts.size(), i == j ? 0 : std::numeric_limits<int>::max());
-	}
-    }
     for (int l1 = 0; l1 < dominates_in.size(); ++l1){
         dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
     }
     cout << "Update label dominance: " << num_labels
 	      << " labels " << lts.size() << " systems." << endl;
     
-    for (int i = 0; i < lts.size(); ++i){
+    for (int i = 0; i < num_ltss; ++i){
         update(i, lts[i], sim[i]);
     }
+	   
 
     cout << "Computing tau labels for " << lts.size() << endl;
+    tau_labels_changed.resize(lts.size(), true);
     tau_labels.resize(lts.size());
-    for(int l = 0; l < num_labels; l++){
-	if(dominates_noop_in[l] == DOMINATES_IN_ALL){
-	    for (int lts_id = 0; lts_id < lts.size(); ++lts_id){
-		tau_labels[lts_id].push_back(l);
+    if(compute_tau_labels_with_noop_dominance) {
+	for(int l = 0; l < num_labels; l++){
+	    if(dominates_noop_in[l] == DOMINATES_IN_ALL){
+		for (int lts_id = 0; lts_id < num_ltss; ++lts_id){
+		    tau_labels[lts_id].push_back(l);
+		}
+	    } else if (dominates_noop_in[l] >= 0) {
+		tau_labels[dominates_noop_in[l]].push_back(l);
+	    } 
+	}
+    } else {
+	for(int l = 0; l < num_labels; l++) {
+	    int transition_system_relevant = -1;
+	    for (int lts_id = 0; lts_id < num_ltss; ++lts_id){
+		if(lts[lts_id]->is_relevant_label(l)) {
+		    if(transition_system_relevant == -1) {
+			transition_system_relevant = lts_id;
+		    }else {
+			transition_system_relevant = -2;
+			break;
+		    }
+		}
 	    }
-	} else if (dominates_noop_in[l] >= 0) {
-	    tau_labels[dominates_noop_in[l]].push_back(l);
-	} 
+	    assert(transition_system_relevant != -1);
+	    if(transition_system_relevant >= 0) {
+		tau_labels[transition_system_relevant].push_back(l);
+	    }
+	}
     }
-    for (int lts_id = 0; lts_id < lts.size(); ++lts_id) {
-	cout << "Number of tau labels: " << tau_labels[lts_id].size() << endl;
-    }
+
+    // for (int lts_id = 0; lts_id < lts.size(); ++lts_id) {
+    // 	cout << "Number of tau labels: " << tau_labels[lts_id].size() << endl;
+    // }
 }
 
 
@@ -89,13 +133,12 @@ bool NumericLabelRelation::update(const std::vector<LabelledTransitionSystem*> &
     return changes;
 }
 
-/* TODO: This version is inefficient. It could be improved by
- * iterating only the right transitions (see TODO inside the loop)
- */
 bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lts,  const NumericSimulationRelation & sim){
     bool changes = false;
     for(int l2 : lts->get_relevant_labels()) {
-        for(int l1 : lts->get_relevant_labels()){
+	assert(lts->is_relevant_label(l2));
+        for(int l1 : lts->get_relevant_labels()) {
+	    assert(lts->is_relevant_label(l1));
             if(l1 != l2 && may_simulate(l1, l2, lts_i)){
 		int min_value = std::numeric_limits<int>::max();
                 //std::cout << "Check " << l1 << " " << l2 << std::endl;
@@ -104,6 +147,7 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
                 //Check if it really simulates
                 //For each transition s--l2-->t, and every label l1 that dominates
                 //l2, exist s--l1-->t', t <= t'?
+
                 for(const auto & tr : lts->get_transitions_label(l2)){
 		    int max_value = std::numeric_limits<int>::lowest();
                     //TODO: for(auto tr2 : lts->get_transitions_for_label_src(l1, tr.src)){
@@ -120,13 +164,14 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 			break; //Stop checking trs of l1, l2
 		    }
                 }
+		
 		changes |= set_lqrel(l1, l2, lts_i, min_value);		    
 		assert(min_value != std::numeric_limits<int>::max());
             }
         }
 
         //Is l2 simulated by irrelevant_labels in lts?
-	int old_value = simulated_by_irrelevant[l2][lts_i];
+	int old_value = get_simulated_by_irrelevant(l2, lts_i);
 	if(old_value != std::numeric_limits<int>::lowest()) {
 	    int min_value = std::numeric_limits<int>::max();
 	    for(auto tr : lts->get_transitions_label(l2)){
@@ -140,15 +185,15 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 
 	    if (min_value < old_value) {
 		changes |= set_simulated_by_irrelevant(l2, lts_i, min_value);
-		for (int l : lts->get_irrelevant_labels()){
-		    changes |= set_lqrel(l, l2, lts_i, min_value);
-		}
+		// for (int l : lts->get_irrelevant_labels()){
+		//     changes |= set_lqrel(l, l2, lts_i, min_value);
+		// }
 		old_value = min_value;
 	    }
         }
 
         //Does l2 simulates irrelevant_labels in lts?
-	old_value = simulates_irrelevant[l2][lts_i];
+	old_value = get_simulates_irrelevant(l2, lts_i);
 	if(old_value != std::numeric_limits<int>::lowest()) {
 	    int min_value = std::numeric_limits<int>::max();
 	    for(int s = 0; s < lts->size(); s++){
@@ -167,40 +212,20 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
 	    if(min_value < old_value) {
 		old_value = min_value;
 		changes |= set_simulates_irrelevant(l2, lts_i, min_value);
-		for (int l : lts->get_irrelevant_labels()){
-		    changes |= set_lqrel(l2, l, lts_i, min_value);
-		}
+		// for (int l : lts->get_irrelevant_labels()){
+		//     changes |= set_lqrel(l2, l, lts_i, min_value);
+		// }
 	    }
 	}
     }
 
-    for (int l : lts->get_irrelevant_labels()) {
-	set_simulates_irrelevant(l, lts_i, 0);
-	set_simulated_by_irrelevant(l, lts_i, 0);
-    }
+    // for (int l : lts->get_irrelevant_labels()) {
+    // 	set_simulates_irrelevant(l, lts_i, 0);
+    // 	set_simulated_by_irrelevant(l, lts_i, 0);
+    // }
 
     return changes;
 }
-
-int NumericLabelRelation::mix_numbers (const std::vector<int> & values, int lts) const {
-    int sum_negatives = 0;
-    //int max_positive = 0;
-	    
-    for(int lts_id = 0; lts_id < values.size(); ++lts_id) {
-	if(lts_id == lts) continue;
-	sum_negatives += min(0, values[lts_id]);
-	// int val = values[lts_id];
-	// assert(val != std::numeric_limits<int>::max());
-	// if(val < 0) {
-	//     sum_negatives += val;
-	// } else {
-	//     max_positive = std::max(max_positive, val);
-	// }
-    }
-    
-    return sum_negatives; //+ max_positive;    
-}
-
 
 void NumericLabelRelation::dump(const LabelledTransitionSystem * lts, int lts_id) const {
     for(int l2 : lts->get_relevant_labels()) {
@@ -214,5 +239,13 @@ void NumericLabelRelation::dump(const LabelledTransitionSystem * lts, int lts_id
 		     << q_dominates(l2, l1, lts_id) << endl;
 	    }
 	}
+	if (may_dominated_by_noop (l2, lts_id))  {
+	    cout <<  g_operators[l2].get_name() << " dominates noop: " << q_dominated_by_noop(l2, lts_id) << endl;
+
+	}
+	if (may_dominate_noop_in (l2, lts_id))  {
+	    cout <<  g_operators[l2].get_name() << " dominated by noop: " << q_dominates_noop(l2, lts_id) << endl;
+	}
     }
+
 }

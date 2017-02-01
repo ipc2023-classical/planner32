@@ -133,7 +133,10 @@ public:
         return dominance_relation.get() != nullptr;
     }
 
-    std::unique_ptr<NumericDominanceRelation> compute_numeric_dominance_relation() const;
+    std::unique_ptr<NumericDominanceRelation> 
+	compute_numeric_dominance_relation(int truncate_value, 
+					   bool compute_tau_labels_with_noop_dominance, 
+					   bool dump) const;
 
 
     void getVariableOrdering(std::vector <int> & var_order);

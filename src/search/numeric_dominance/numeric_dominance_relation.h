@@ -10,7 +10,7 @@
 
 class LabelledTransitionSystem;
 class LTSComplex;
-
+class Operator;
 /*
  * Class that represents the collection of simulation relations for a
  * factored LTS. Uses unique_ptr so that it owns the simulations and
@@ -18,6 +18,7 @@ class LTSComplex;
  */
 class NumericDominanceRelation {
 
+    const int truncate_value;
     NumericLabelRelation label_dominance;
 
 protected:
@@ -26,28 +27,50 @@ protected:
     std::unique_ptr<NumericSimulationRelation> init_simulation (Abstraction * _abs);
 
     template<typename LTS>
-	void compute_ld_simulation_template(std::vector<LTS *> & _ltss, const LabelMap & labelMap) {
+	void compute_ld_simulation_template(std::vector<LTS *> & _ltss,
+					    const LabelMap & labelMap,
+					    bool dump) {
 	assert(_ltss.size() == simulations.size());
 	Timer t;
+	int num_iterations = 0;
+	int num_inner_iterations = 0;
 
 	std::cout << "Compute numLDSim on " << _ltss.size() << " LTSs." << std::endl;
+	for (auto lts : _ltss) {
+	    std::cout << lts->size() << " states and " << lts->num_transitions() << " transitions" << std::endl;
+	}
+
 	
         label_dominance.init(_ltss, *this, labelMap);
 	
 	std::cout << "  Init numLDSim in " << t() << "s: " << std::flush;
 	do{
+	    num_iterations++;
 	    //label_dominance.dump();
 		for (int i = 0; i < simulations.size(); i++){
-		    simulations[i]->update(i, _ltss[i], label_dominance);
+		    num_inner_iterations += simulations[i]->update(i, _ltss[i], label_dominance);
 		    //_dominance_relation[i]->dump(_ltss[i]->get_names());
 		}
 	    std::cout << " " << t() << "s" << std::flush;
 	}while(label_dominance.update(_ltss, *this));
-	std::cout << std::endl << "LDSim computed " << t() << std::endl;
-	for(int i = 0; i < _ltss.size(); i++){
-	    //_ltss[i]->get_abstraction()->dump_names();
-	    simulations[i]->dump(_ltss[i]->get_names());
-	    /* label_dominance.dump(_ltss[i], i); */
+	std::cout << std::endl << "Numeric LDSim computed " << t() << std::endl;
+	std::cout << "Numeric LDSim outer iterations: " << num_iterations << std::endl;
+	std::cout << "Numeric LDSim inner iterations: " << num_inner_iterations << std::endl;
+	
+	std::cout << "------" << std::endl; 
+        for(int i = 0; i < _ltss.size(); i++){
+	    simulations[i]->statistics();
+	    std::cout << "------" << std::endl; 
+	}
+
+	if(dump) {
+	    std::cout << "------" << std::endl; 
+	    for(int i = 0; i < _ltss.size(); i++){ 
+		/*     //_ltss[i]->get_abstraction()->dump_names(); */
+		simulations[i]->dump(_ltss[i]->get_names()); 
+		std::cout << "------" << std::endl; 
+		/*     label_dominance.dump(_ltss[i], i);  */
+	    } 
 	}
 	//label_dominance.dump_equivalent();
 	//label_dominance.dump_dominance();
@@ -57,20 +80,28 @@ protected:
 
 public:
 
-   NumericDominanceRelation(Labels * labels) : label_dominance(labels) 
+    NumericDominanceRelation(Labels * labels, 
+			     int truncate_value_, 
+			     bool compute_tau_labels_with_noop_dominance) : 
+								truncate_value(truncate_value_),
+								label_dominance(labels,
+										compute_tau_labels_with_noop_dominance) 
     {}
  
     //Methods to use the dominance relation 
     bool pruned_state(const State &state) const;
     //int get_cost(const State &state) const;
+
+    //bool parent_dominates_successor(const State & parent, const Operator *op) const;
     bool dominates(const State &t, const State & s, int g_diff) const;
+
     bool dominates_parent(const std::vector<int> & state, const std::vector<int> & parent, int action_cost) const;
 
     void init (const std::vector<Abstraction *> & abstractions);
     
     void compute_ld_simulation (std::vector<LabelledTransitionSystem *> & _ltss, 
-				const LabelMap & labelMap) {
-	compute_ld_simulation_template(_ltss, labelMap);
+				const LabelMap & labelMap, bool dump) {
+	compute_ld_simulation_template(_ltss, labelMap, dump);
     }
 
 

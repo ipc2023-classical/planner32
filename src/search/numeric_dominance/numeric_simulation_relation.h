@@ -14,7 +14,8 @@ class LabelledTransitionSystem;
 class LTSTransition; 
 class NumericSimulationRelation {
 protected:
-    Abstraction * abs;
+    const  Abstraction * abs;
+    const int truncate_value; 
     
     std::vector<int> tau_labels;
     std::vector<std::vector<int> > distances_with_tau;
@@ -32,11 +33,11 @@ protected:
 			    int tau_distance, const NumericLabelRelation & label_dominance) const;
 
 public:
-    NumericSimulationRelation(Abstraction * _abs);
+    NumericSimulationRelation(Abstraction * _abs, int truncate_value);
     
     void init_goal_respecting (); 
-    void update (int lts_id, const LabelledTransitionSystem * lts,
-			const NumericLabelRelation & label_dominance);
+    int update (int lts_id, const LabelledTransitionSystem * lts,
+		 const NumericLabelRelation & label_dominance);
 
 
     bool pruned(const State & state) const;
@@ -66,7 +67,9 @@ public:
     }
 
     inline void update_value (int s, int t, int value) {
-	if(value < -1000) {
+
+	if(value < -truncate_value) {
+	    //std::cout << value << " rounded to -infty: " << truncate_value << std::endl;
 	    value = std::numeric_limits<int>::lowest();
 	}
         relation[s][t] = value;
@@ -93,6 +96,8 @@ public:
 
     void dump(const std::vector<std::string> & names) const;
     void dump() const;
+
+    void statistics() const;
 };
 
 #endif

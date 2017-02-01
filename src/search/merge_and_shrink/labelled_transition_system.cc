@@ -21,13 +21,18 @@ LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs, const La
     for (int label_no = 0; label_no < num_labels; label_no++) {
 	int old_label = labelMap.get_old_id(label_no);
 	if(was_rel_label[old_label]){
-	    relevant_labels.push_back(label_no);
 	    const vector<AbstractTransition> &abs_tr = abs->get_transitions_for_label(old_label);
-	    for (int j = 0; j < abs_tr.size(); j++) {
-		LTSTransition t (abs_tr[j].src, abs_tr[j].target, label_no);
-		transitions.push_back(t);
-		transitions_src[t.src].push_back(t);
-		transitions_label[t.label].push_back(t);
+
+	    if (!abs_tr.empty()) {
+		relevant_labels.push_back(label_no);
+		for (int j = 0; j < abs_tr.size(); j++) {
+		    LTSTransition t (abs_tr[j].src, abs_tr[j].target, label_no);
+		    transitions.push_back(t);
+		    transitions_src[t.src].push_back(t);
+		    transitions_label[t.label].push_back(t);
+		}
+	    } else {
+		//dead_label
 	    }
 	}else{
 	    irrelevant_labels.push_back(label_no);
@@ -51,6 +56,7 @@ void LabelledTransitionSystem::kill_transition(int src, int label, int target) {
 
 
 void LabelledTransitionSystem::kill_label(int l) {
+    cout << "KILL " << l << endl;
     std::vector <LTSTransition>().swap(transitions_label[l]);
 
     transitions.erase(std::remove_if(begin(transitions),
@@ -66,4 +72,8 @@ void LabelledTransitionSystem::kill_label(int l) {
     				     return t.label == l;
     				 }), end(trs));
     }
+
+
+    relevant_labels.erase(remove(begin(relevant_labels), end(relevant_labels), l), end(relevant_labels));
+    irrelevant_labels.erase(remove(begin(irrelevant_labels), end(irrelevant_labels), l), end(irrelevant_labels));   
 }

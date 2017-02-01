@@ -13,21 +13,24 @@ class SymVariables;
 class SymManager;
 class Abstraction;
 
-enum class NumericPruningType {Expansion, Generation, Parent, Successor, ParentSuccessor, None};
-std::ostream & operator<<(std::ostream &os, const NumericPruningType & m);
-extern const std::vector<std::string> NumericPruningTypeValues;
-
 class NumericDominancePruning : public PruneHeuristic {  
  protected:
   //Parameters to control the pruning
   const SymParamsMgr mgrParams; //Parameters for SymManager configuration.
 
   bool initialized;
+  const bool compute_tau_labels_with_noop_dominance;
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
-  const NumericPruningType pruning_type;
 
-  /*
+  const bool prune_dominated_by_parent; 
+  const bool prune_successors; 
+  const bool prune_dominated_by_closed; 
+  const bool prune_dominated_by_open; 
+
+  const int truncate_value; 
+
+    /*
    * Three parameters help to decide whether to apply dominance
    * pruning or not. Dominance pruning is used until
    * min_insertions_desactivation are performed. At that moment, if
@@ -37,6 +40,8 @@ class NumericDominancePruning : public PruneHeuristic {
    */
   const int min_insertions_desactivation;
   const double min_desactivation_ratio;
+
+  const bool dump;
   
   std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
   std::unique_ptr<SymManager> mgr;    //The symbolic manager to handle mutex BDDs
@@ -55,6 +60,8 @@ class NumericDominancePruning : public PruneHeuristic {
   int deadends_pruned; //Count the number of dead ends detected
 
   void dump_options() const;
+
+  bool apply_pruning() const;
 
   /* Methods to help concrete classes */
   BDD getBDDToInsert(const State &state);

@@ -1,3 +1,4 @@
+
 #ifndef MERGE_AND_SHRINK_LABELLED_TRANSITION_SYSTEM_H
 #define MERGE_AND_SHRINK_LABELLED_TRANSITION_SYSTEM_H
 
@@ -5,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>    // std::find
+#include <cassert>
 
 typedef int AbstractStateRef;
 class Abstraction;
@@ -101,6 +103,13 @@ class LabelledTransitionSystem {
 
   const std::string & name (int s) const {
     return name_states[s];
+  }
+
+  int is_relevant_label(int label) const {
+      assert(std::find(relevant_labels.begin(), relevant_labels.end(), label)
+	     == relevant_labels.end()
+	     || !transitions_label[label].empty());
+      return std::find(relevant_labels.begin(), relevant_labels.end(), label) != relevant_labels.end();
   }
 
   const std::vector<int> & get_irrelevant_labels() const {

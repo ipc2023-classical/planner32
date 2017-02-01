@@ -15,8 +15,9 @@ void NumericDominanceRelation::init (const std::vector<Abstraction *> & abstract
     }
 }
 
-std::unique_ptr<NumericSimulationRelation> NumericDominanceRelation::init_simulation (Abstraction * _abs){
-    auto res = make_unique<NumericSimulationRelation> (_abs);
+std::unique_ptr<NumericSimulationRelation> 
+NumericDominanceRelation::init_simulation (Abstraction * _abs){
+    auto res = make_unique<NumericSimulationRelation> (_abs, truncate_value);
     res->init_goal_respecting();
     return std::move (res);
 }
@@ -43,10 +44,30 @@ bool NumericDominanceRelation::pruned_state(const State &state) const {
 // }
 
 
+
+// bool NumericDominanceRelation::parent_dominates_successor(const State & parent, 
+// 							  const Operator *op) const {
+    
+//     for(const auto & sim : simulations) {
+// 	int val = sim->q_simulates(t, s);
+// 	// cout << val << endl;
+// 	if(val == std::numeric_limits<int>::lowest()) {
+// 	    return false;
+// 	}
+// 	if(val < 0) {
+// 	    sum_negatives += val;
+// 	} else {
+// 	    max_positive = std::max(max_positive, val);
+// 	}
+
+//     }
+// }
 bool NumericDominanceRelation::dominates(const State &t, const State & s, int g_diff) const {
 
-    int sum_negatives = 0;
-    int max_positive = 0;
+    int total_value = 0;
+    
+    // int sum_negatives = 0;
+    // int max_positive = 0;
 
     for(const auto & sim : simulations) {
 	int val = sim->q_simulates(t, s);
@@ -54,13 +75,14 @@ bool NumericDominanceRelation::dominates(const State &t, const State & s, int g_
 	if(val == std::numeric_limits<int>::lowest()) {
 	    return false;
 	}
-	if(val < 0) {
-	    sum_negatives += val;
-	} else {
-	    max_positive = std::max(max_positive, val);
-	}
-    }    
-    int total_value = sum_negatives + max_positive;
+	total_value += val;
+	// if(val < 0) {
+	//     sum_negatives += val;
+	// } else {
+	//     max_positive = std::max(max_positive, val);
+	// }
+    }
+    //int total_value = sum_negatives + max_positive;
 
     // if(total_value -g_diff > 0 ||
     //    (total_value == g_diff && g_diff > 0)) {
@@ -74,7 +96,7 @@ bool NumericDominanceRelation::dominates(const State &t, const State & s, int g_
     // cout << "Prune? " << total_value << " " << g_diff << ": " <<
     // 	(total_value -g_diff > 0 || (total_value == g_diff && g_diff > 0)) << endl;
     
-    return total_value -g_diff > 0 ||
+    return total_value - g_diff > 0 ||
 	(total_value == g_diff && g_diff > 0);
 }
 

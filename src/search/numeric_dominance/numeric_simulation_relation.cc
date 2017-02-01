@@ -8,7 +8,7 @@
 
 using namespace std;
 
-NumericSimulationRelation::NumericSimulationRelation(Abstraction * _abs) : abs(_abs) { 
+NumericSimulationRelation::NumericSimulationRelation(Abstraction * _abs, int truncate_value_) : abs(_abs), truncate_value(truncate_value_) { 
 }
 
 void NumericSimulationRelation::init_goal_respecting() {
@@ -26,9 +26,6 @@ void NumericSimulationRelation::init_goal_respecting() {
     }
 }
 
-
-
-
 int NumericSimulationRelation::compare_transitions(int lts_id, const LTSTransition & trs, 
 						   const LTSTransition & trt, 
 						   int tau_distance, const NumericLabelRelation & label_dominance) const {
@@ -42,7 +39,6 @@ int NumericSimulationRelation::compare_transitions(int lts_id, const LTSTransiti
 	return std::numeric_limits<int>::lowest();
     }     
 }
-
 
 int NumericSimulationRelation::compare_noop(int lts_id, const LTSTransition & trs, 
 					    int t,  int tau_distance, 
@@ -60,18 +56,17 @@ int NumericSimulationRelation::compare_noop(int lts_id, const LTSTransition & tr
 }				
 
 
-
-void  NumericSimulationRelation::update (int lts_id, const LabelledTransitionSystem * lts,
-					 const NumericLabelRelation & label_dominance) {
+int NumericSimulationRelation::update (int lts_id, const LabelledTransitionSystem * lts,
+				       const NumericLabelRelation & label_dominance) {
+    int num_iterations = 0;
     bool changes = true;
     precompute_shortest_path_with_tau(lts, lts_id, label_dominance);
-    cout << "NumericSimulationRelation::update" << endl;
     // for (int s = 0; s < lts->size(); s++) {	
     // 	cout << g_fact_names[lts_id][s] << endl;
     // }
 
     while (changes) {
-	cout << "updating numSim" << endl;	
+	num_iterations ++;
 	// dump();
         changes = false;
         for (int s = 0; s < lts->size(); s++) {
@@ -147,8 +142,9 @@ void  NumericSimulationRelation::update (int lts_id, const LabelledTransitionSys
 				return min_value <= lower_bound;
 			    });
 			assert(min_value < std::numeric_limits<int>::max());
-			
+
 			min_value = std::max(min_value, lower_bound);
+
 		    } else {
 			min_value = lower_bound;
 		    }
@@ -166,6 +162,7 @@ void  NumericSimulationRelation::update (int lts_id, const LabelledTransitionSys
         }
     }
 
+    return num_iterations;
     
     // for (int s = 0; s < lts->size(); s++) {	
     // 	cout << g_fact_names[lts_id][s] << endl;
@@ -222,9 +219,12 @@ static void dijkstra_search(
 
 void NumericSimulationRelation::precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
 								  const NumericLabelRelation & label_dominance) {
+
+    if(!label_dominance.have_tau_labels_changed(lts_id) && 
+       !distances_with_tau.empty()) return;
     const vector<int> & tau_labels = label_dominance.get_tau_labels(lts_id);
 	
-    // cout << "Number of tau labels: " << tau_labels_.size() << endl;
+    //cout << "Number of tau labels: " << tau_labels.size() << endl;
     // if(!distances_with_tau.empty() && tau_labels_ == tau_labels) return;
     // tau_labels = tau_labels_;
 
@@ -232,17 +232,20 @@ void NumericSimulationRelation::precompute_shortest_path_with_tau(const Labelled
     //Create copy of the graph only with tau transitions
     vector<vector<pair<int, int> > > tau_graph(num_states);
     for (int label_no : tau_labels) {
-        int label_cost = abs->get_label_cost_by_index(label_no) -
-	    std::max(0, label_dominance.q_dominates_noop(label_no, lts_id));
-        for (const auto & trans : lts->get_transitions_label(label_no)) {
-	    if(trans.src != trans.target) {
-		tau_graph[trans.src].push_back(make_pair(trans.target, label_cost));
+	if(label_dominance.may_dominate_noop_in(label_no, lts_id)) {
+	    int label_cost = abs->get_label_cost_by_index(label_no) +
+		std::min(0,  - label_dominance.q_dominates_noop(label_no, lts_id));
+	    for (const auto & trans : lts->get_transitions_label(label_no)) {
+		if(trans.src != trans.target) {
+		    tau_graph[trans.src].push_back(make_pair(trans.target, label_cost));
+		}
 	    }
-        }
+	}
     }
 
     AdaptiveQueue<int> queue;
     distances_with_tau.resize(num_states);
+    reachable_with_tau.resize(num_states);
     for(int s = 0; s < num_states; ++s) {
 	//Perform Dijkstra search from s
 	auto & distances = distances_with_tau [s];
@@ -276,3 +279,30 @@ void NumericSimulationRelation::dump() const{
     }
 }
 
+
+
+void NumericSimulationRelation::statistics() const {
+    map<int, int> values;
+    for(int j = 0; j < relation.size(); ++j){
+        for(int i = 0; i < relation.size(); ++i){
+	    if(i == j) continue;
+	    // if (relation[i][j] > std::numeric_limits<int>::lowest()) {
+	    if(values.count(relation[i][j])) {
+		values[relation[i][j]] ++;
+	    } else {
+		values[relation[i][j]] = 1;
+	    }
+	    // }
+	}
+    }
+
+    for (auto & it : values) {
+	if(it.first == std::numeric_limits<int>::lowest()) {
+	    cout << "-infinity"; 
+	} else {
+	    cout << it.first;
+	}
+
+	cout << ": " << it.second << endl;
+    }
+}

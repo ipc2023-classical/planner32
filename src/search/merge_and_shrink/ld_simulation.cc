@@ -98,9 +98,9 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
 }
 
 
-unique_ptr<NumericDominanceRelation> LDSimulation::compute_numeric_dominance_relation() const{
+unique_ptr<NumericDominanceRelation> LDSimulation::compute_numeric_dominance_relation(int truncate_value, bool compute_tau_labels_with_noop_dominance, bool dump) const{
 
-    unique_ptr<NumericDominanceRelation> result = make_unique<NumericDominanceRelation>(labels.get());
+    unique_ptr<NumericDominanceRelation> result = make_unique<NumericDominanceRelation>(labels.get(), truncate_value, compute_tau_labels_with_noop_dominance);
 
     LabelMap labelMap (labels.get());
 
@@ -124,7 +124,7 @@ unique_ptr<NumericDominanceRelation> LDSimulation::compute_numeric_dominance_rel
 
 
     result->init(abstractions);
-    result->compute_ld_simulation(ltss_simple, labelMap);
+    result->compute_ld_simulation(ltss_simple, labelMap, dump);
 
     return result;
 }

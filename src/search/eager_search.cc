@@ -172,7 +172,7 @@ int EagerSearch::step() {
 
         if (succ_node.is_new()) {
             if(prune_heuristic &&
-                    prune_heuristic->is_dead_end(succ_state)) {
+	       prune_heuristic->is_dead_end(succ_state)) {
                 succ_node.mark_as_dead_end();
                 search_progress.inc_dead_ends();
                 continue;
