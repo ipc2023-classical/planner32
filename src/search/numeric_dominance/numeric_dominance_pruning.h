@@ -84,22 +84,22 @@ class NumericDominancePruning : public PruneHeuristic {
   }
 
  public:
-  virtual void initialize();
+  virtual void initialize() override;
 
   //Methods for pruning explicit search
-  virtual void prune_applicable_operators(const State & state, int g, std::vector<const Operator *> & operators);
-  virtual bool prune_generation(const State &state, int g, const State &parent, int action_cost);
-  virtual bool prune_expansion (const State &state, int g);
+  virtual void prune_applicable_operators(const State & state, int g, std::vector<const Operator *> & operators, SearchProgress & search_progress) override;
+  virtual bool prune_generation(const State &state, int g, const State &parent, int action_cost) override;
+  virtual bool prune_expansion (const State &state, int g) override;
 
-  virtual bool is_dead_end(const State &state);
+  virtual bool is_dead_end(const State &state) override;
 
-  virtual int compute_heuristic(const State &state);
+  virtual int compute_heuristic(const State &state) override;
   NumericDominancePruning(const Options &opts);
   virtual ~NumericDominancePruning();
 
-  virtual void print_statistics();
+  virtual void print_statistics() override;
 
-  virtual bool proves_task_unsolvable() const {
+  virtual bool proves_task_unsolvable() const override {
       return true;
   }
 };

@@ -12,6 +12,8 @@ SearchProgress::SearchProgress() {
     generated_states = 0;
     dead_end_states = 0;
     pruned_states = 0;
+    action_selection_rules = 0;
+    pruned_by_action_selection_rules = 0;
     generated_ops = 0;
     pathmax_corrections = 0;
 
@@ -91,8 +93,8 @@ void SearchProgress::print_line() const {
     if (reopened_states > 0) {
         cout << reopened_states << " reopened, ";
     }
-    if (pruned_states > 0) {
-        cout << pruned_states << " pruned, ";
+    if (pruned_states + pruned_by_action_selection_rules > 0) {
+        cout << pruned_states + pruned_by_action_selection_rules << " pruned, ";
     }
 
     cout << "t=" << g_timer;
@@ -119,6 +121,8 @@ void SearchProgress::print_statistics() const {
     cout << "Generated " << generated_states << " state(s)." << endl;
     cout << "Dead ends: " << dead_end_states << " state(s)." << endl;
     cout << "Pruned: " << pruned_states << " state(s)." << endl;
+    cout << "Action selection rules: " << action_selection_rules << " rule(s)." << endl;
+    cout << "Pruned by action selection: " << pruned_by_action_selection_rules << " state(s)." << endl;
     if (pathmax_corrections > 0) {
         cout << "Pathmax corrections: " << pathmax_corrections << endl;
     }

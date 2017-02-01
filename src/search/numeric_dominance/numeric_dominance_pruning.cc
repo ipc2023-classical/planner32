@@ -12,6 +12,7 @@
 #include "../plugin.h"
 #include "../state.h"
 #include "../timer.h"
+#include "../search_progress.h"
 
 #include "../sym/sym_transition.h"
 #include "../sym/sym_manager.h"
@@ -142,9 +143,9 @@ int NumericDominancePruning::compute_heuristic(const State &state) {
 }
 
 void NumericDominancePruning::prune_applicable_operators(const State & state, int /*g*/,
-					std::vector<const Operator *> & applicable_operators) {
+							 std::vector<const Operator *> & applicable_operators, SearchProgress & search_progress) {
 
-    if(prune_successors) {
+    if(prune_successors && applicable_operators.size() > 1) {
 	vector<int> parent (g_variable_domain.size());
 	for(int i = 0; i < g_variable_domain.size(); ++i) {
 	    parent[i] = state[i];
@@ -157,6 +158,7 @@ void NumericDominancePruning::prune_applicable_operators(const State & state, in
 
 	    //TODO: Use adjusted cost instead.
 	    if(numeric_dominance_relation->dominates_parent(succ, parent, op->get_cost())) {
+		search_progress.inc_action_selection(applicable_operators.size() - 1);
 		//cout << (applicable_operators.size() - 1) << " operators pruned because I have " << op->get_name() << endl;
 		applicable_operators.clear();
 		applicable_operators.push_back(op);

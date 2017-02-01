@@ -20,6 +20,8 @@ private:
     int reopened_states;  // nr of *closed* states which we reopened
     int dead_end_states;
     int pruned_states;
+    int action_selection_rules;
+    int pruned_by_action_selection_rules;
 
     int generated_ops;    // nr of operators that were returned as applicable
     int pathmax_corrections; // nr of pathmax corrections;
@@ -51,6 +53,10 @@ public:
     void inc_evaluations(int inc = 1) {evaluations += inc; }
     void inc_dead_ends(int inc = 1) {dead_end_states += inc; }
     void inc_pruned(int inc = 1) {pruned_states += inc; }
+    void inc_action_selection(int inc = 1) {
+	pruned_by_action_selection_rules += inc;
+	action_selection_rules ++;  
+    }
 
     //statistics access
     int get_expanded() const {return expanded_states; }

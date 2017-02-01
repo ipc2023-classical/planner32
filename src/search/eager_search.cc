@@ -149,7 +149,7 @@ int EagerSearch::step() {
     search_progress.inc_evaluations(preferred_operator_heuristics.size());
 
     if(prune_heuristic) {
-	prune_heuristic->prune_applicable_operators(s, node.get_g(), applicable_ops);
+	prune_heuristic->prune_applicable_operators(s, node.get_g(), applicable_ops, search_progress);
     }
 
     for (int i = 0; i < applicable_ops.size(); i++) {
