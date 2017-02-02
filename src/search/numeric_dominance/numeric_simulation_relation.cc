@@ -179,12 +179,18 @@ bool NumericSimulationRelation::pruned(const State & state) const {
 int NumericSimulationRelation::q_simulates (const State & t, const State & s) const{
     int tid = abs->get_abstract_state(t);
     int sid = abs->get_abstract_state(s);
+    if(sid == -1 || tid == -1) {
+	return std::numeric_limits<int>::lowest(); 
+    }
     return q_simulates(tid, sid);
 }
 
 int NumericSimulationRelation::q_simulates (const vector<int> & t, const vector<int> & s) const{
     int tid = abs->get_abstract_state(t);
     int sid = abs->get_abstract_state(s);
+    if(sid == -1 || tid == -1) {
+	return std::numeric_limits<int>::lowest(); 
+    }
     return q_simulates(tid, sid);
 }
 

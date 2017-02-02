@@ -56,6 +56,10 @@ public:
     }
 
     inline int q_simulates (int s, int t) const {
+	if(s >= relation.size()) {
+	    std::cout << s << std::endl;
+	    std::cout << relation.size() << std::endl;
+	}
 	assert(s < relation.size());
 	assert(t < relation[s].size());
 	assert(s!=t || relation[s][t] == 0);
