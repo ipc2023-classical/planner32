@@ -21,7 +21,7 @@
 using namespace std;
 
 int main(int argc, const char ** argv) {
-  int h2_mutex_time = 300; // 5 minutes to compute mutexes by default
+  int h2_mutex_time = 0; // disabled mutexes by default
   bool optimize_ordering = false;  
   bool write_to_file_for_gamer = false;
   bool include_augmented_preconditions = false;
@@ -89,7 +89,7 @@ if (arg.compare("--no_rel") == 0) {
   strip_axioms(axioms);
 
   // compute h2 mutexes
-	if (axioms.size() > 0) {
+  if (axioms.size() > 0) {
         cout << "Disabling h2 analysis because it does not currently support axioms" << endl;
     } else if(h2_mutex_time){
       bool conditional_effects = false;
