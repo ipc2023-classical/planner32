@@ -14,6 +14,9 @@ eval.add_pattern('useless_vars', r'Useless vars: (d+)]', type=int, required=Fals
 eval.add_pattern('total_simulations', r'Total Simulations: (d+)]', type=int, required=False)
 eval.add_pattern('sim_equivalences', r'Similarity equivalences: (d+)]', type=int, required=False)
 eval.add_pattern('only_simulations', r'Only Simulations: (d+)]', type=int, required=False)
+eval.add_pattern('time_numeric_ldsimulation', r'Numeric LDSim computed (.+)]', type=float, required=False)
+eval.add_pattern('outer_iterations_numeric_ldsimulation', r'Numeric LDSim outer iterations: (d+)]', type=int, required=False)
+eval.add_pattern('inner_iterations_numeric_ldsimulation', r'Numeric LDSim inner iterations: (d+)]', type=int, required=False)
 
 regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P<lts_total_size>(\d+)) Total trsize: (?P<lts_total_trsize>(\d+)) Max size: (?P<lts_max_size>(\d+)) Max trsize: (?P<lts_max_trsize>(\d+))"), 
            re.compile("Dead operators due to dead labels: (?P<dead_ops_by_labels>(\d+)) / (?P<orig_ops>(\d+)) \((?P<perc_dead_ops_by_labels>(\d*[.\d+]*))\%\)"), 
@@ -36,7 +39,24 @@ def parse_regexps (content, props):
                 for item in data:
                     props[item] = type_atr[item](data[item])
                 break
-     
+
+
+def parse_numeric_dominance (content, props):
+    check = False
+    min_val = 100000000
+    max_val = -100000000
+    for l in content.split("\n"):
+        if check: 
+            if l != "Init partitions": 
+                props['min_negative_dominance'] = min_val 
+                props['max_positive_dominance'] = max_val 
+                return
+            if ":" in l: 
+                min_val = min(min_val, int(l.split(":").trim()))
+                max_val = max(max_val, int(l.split(":").trim()))
+        elif l == "------": 
+            check = True
+            
 
 
 
@@ -128,6 +148,8 @@ def parse_regexps (content, props):
 eval.add_function(parse_regexps)
 
 eval.add_function(desactivation)
+
+eval.add_function(parse_numeric_dominance)
 
 
 eval.parse()

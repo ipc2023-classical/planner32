@@ -104,6 +104,17 @@ public:
 	compute_ld_simulation_template(_ltss, labelMap, dump);
     }
 
+    
+    //Methods to obtain the BDD representation for pruning
+    void precompute_bdds(SymVariables * vars, bool dominating, 
+			 bool quantified, bool use_ADD);
+
+    //Methods to obtain the BDD representation for pruning
+    BDD getDominatedBDD(SymVariables * vars, const State &state) const;
+    BDD getDominatingBDD(SymVariables * vars, const State &state) const;
+    /* map<int, BDD> getBDDMap(SymVariables * vars, const State &state, bool dominating); */
+    /* ADD getADD(SymVariables * vars, const State &state, bool dominating); */
+
 
     //Methods to access the underlying simulation relations
     const std::vector<std::unique_ptr<NumericSimulationRelation> > & get_simulations () const{

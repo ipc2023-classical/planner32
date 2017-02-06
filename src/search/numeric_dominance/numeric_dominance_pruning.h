@@ -22,6 +22,8 @@ class NumericDominancePruning : public PruneHeuristic {
   const bool compute_tau_labels_with_noop_dominance;
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
+  const bool use_quantified_dominance;
+  const bool use_ADDs;
 
   const bool prune_dominated_by_parent; 
   const bool prune_successors; 
@@ -65,6 +67,7 @@ class NumericDominancePruning : public PruneHeuristic {
 
   /* Methods to help concrete classes */
   BDD getBDDToInsert(const State &state);
+  std::map<int, BDD> getBDDMapToInsert(const State &state);
 
   //Methods to keep dominated states in explicit search
   //Check: returns true if a better or equal state is known

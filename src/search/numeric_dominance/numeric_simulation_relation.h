@@ -24,6 +24,17 @@ protected:
 
     std::vector<std::vector<int> > relation;
 
+    //BDDs of each abstract state
+    std::vector<BDD> abs_bdds;
+    SymVariables * vars; 
+
+    //For each abstract state, we create a BDD/ADD/BDDMap that represents all the
+    //abstract states dominated by it and dominating it
+    std::vector<BDD> may_dominated_bdds, may_dominating_bdds;
+    std::vector<BDD> dominated_bdds, dominating_bdds;
+    std::vector<ADD> dominated_adds, dominating_adds;
+    std::vector<std::map<int, BDD> > dominated_bdd_maps, dominating_bdd_maps;
+
 
     int compare_noop(int lts_id, const LTSTransition & trs, int t,
 		     int tau_distance, const NumericLabelRelation & label_dominance) const;
@@ -102,6 +113,14 @@ public:
     void dump() const;
 
     void statistics() const;
+
+    void precompute_absstate_bdds(SymVariables * vars);
+    void precompute_bdds(bool dominating, bool quantified, bool use_ADD);
+
+
+    BDD getSimulatedBDD(const State & state) const;
+    BDD getSimulatingBDD(const State & state) const;
+
 };
 
 #endif

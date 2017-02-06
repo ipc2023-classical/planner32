@@ -96,15 +96,13 @@ bool NumericDominanceRelation::dominates(const State &t, const State & s, int g_
     // cout << "Prune? " << total_value << " " << g_diff << ": " <<
     // 	(total_value -g_diff > 0 || (total_value == g_diff && g_diff > 0)) << endl;
     
-    return total_value - g_diff > 0 ||
-	(total_value == g_diff && g_diff > 0);
+    return total_value - g_diff > 0 || (total_value == g_diff && g_diff > 0);
 }
 
 
 
 bool NumericDominanceRelation::dominates_parent(const vector<int> & state, const vector<int> & parent, int action_cost) const {
-    int sum_negatives = 0;
-    int max_positive = 0;
+    int total_sum = 0;
 
     for(const auto & sim : simulations) {
 	int val = sim->q_simulates(state, parent);
@@ -112,14 +110,46 @@ bool NumericDominanceRelation::dominates_parent(const vector<int> & state, const
 	if(val == std::numeric_limits<int>::lowest()) {
 	    return false;
 	}
-	if(val < 0) {
-	    sum_negatives += val;
-	} else {
-	    max_positive = std::max(max_positive, val);
-	}
+	total_sum += val;
     }    
-    int total_value = sum_negatives + max_positive;
     
-    return total_value - action_cost > 0 || (total_value == action_cost && action_cost > 0);
+    return total_sum - action_cost > 0 || (total_sum == action_cost && action_cost > 0);
 }
 
+
+void NumericDominanceRelation::precompute_bdds(SymVariables * vars, 
+					       bool dominating, bool quantified, bool use_ADD){
+    Timer t;
+    for(auto & sim : simulations){
+        sim->precompute_absstate_bdds(vars);
+        sim->precompute_bdds(dominating, quantified, use_ADD);
+    }
+    cout << "Precomputed  BDDs: " << t() << endl;
+}
+
+
+
+BDD NumericDominanceRelation::getDominatedBDD(SymVariables * vars, const State &state ) const{
+    BDD res = vars->oneBDD();
+    try{
+        for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+            res *= (*it)->getSimulatedBDD(state);
+        }
+    }catch(BDDError e){
+        return vars->zeroBDD();
+    }
+    return res;
+}
+
+BDD NumericDominanceRelation::getDominatingBDD(SymVariables * vars, const State &state ) const{
+    BDD res = vars->oneBDD();
+    try{
+        for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+            res *= (*it)->getSimulatingBDD(state);
+        }
+    }catch(BDDError e){
+        return vars->zeroBDD();
+    }
+
+    return res;
+}

@@ -26,9 +26,11 @@ using namespace std;
 NumericDominancePruning::NumericDominancePruning(const Options &opts)
 : PruneHeuristic(opts), 
   mgrParams(opts), initialized(false),
-    compute_tau_labels_with_noop_dominance(opts.get<bool>("compute_tau_labels_with_noop_dominance")),
+  compute_tau_labels_with_noop_dominance(opts.get<bool>("compute_tau_labels_with_noop_dominance")),
   remove_spurious_dominated_states(opts.get<bool>("remove_spurious")),
   insert_dominated(opts.get<bool>("insert_dominated")),
+  use_quantified_dominance(opts.get<bool>("use_quantified_dominance")),
+  use_ADDs(opts.get<bool>("use_adds")),
   prune_dominated_by_parent(opts.get<bool>("prune_dominated_by_parent")), 
   prune_successors(opts.get<bool>("prune_successors")), 
   prune_dominated_by_closed(opts.get<bool>("prune_dominated_by_closed")), 
@@ -62,6 +64,11 @@ void NumericDominancePruning::dump_options() const {
     if(prune_dominated_by_open) {
 	cout << " dominated_by_open";
     }
+
+    cout <<  endl 
+	 << "compute_tau_labels_with_noop_dominance: " << 
+	compute_tau_labels_with_noop_dominance << endl
+	 << "truncate_value: " << truncate_value << endl;
 }
 
 
@@ -89,31 +96,27 @@ void NumericDominancePruning::initialize() {
 
 	ldSimulation->release_memory();
 
-	// if(pruning_type != NumericPruningType::None && pruning_type != NumericPruningType::Parent) {
-	//     vector <int> var_order;
-	//     ldSimulation->getVariableOrdering(var_order);
+	if(prune_dominated_by_closed || prune_dominated_by_open) {
+	    vector <int> var_order;
+	    ldSimulation->getVariableOrdering(var_order);
 
-	//     vars->init(var_order, mgrParams);
-	//     if(remove_spurious_dominated_states){
-	// 	mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams, cost_type));
-	// 	mgr->init();
-	//     }
-	//     mgrParams.print_options();
+	    vars->init(var_order, mgrParams);
+	    if(remove_spurious_dominated_states){
+		mgr = unique_ptr<SymManager> (new SymManager(vars.get(), nullptr, mgrParams, cost_type));
+		mgr->init();
+	    }
+	    mgrParams.print_options();
 
-	//     if(insert_dominated){
-	// 	ldSimulation->get_dominance_relation().precompute_dominated_bdds(vars.get());
-		
-	//     }else{
-	// 	ldSimulation->get_dominance_relation().precompute_dominating_bdds(vars.get());
-	//     }
-	// }
+	    numeric_dominance_relation->precompute_bdds(vars.get(), !insert_dominated, 
+							use_quantified_dominance, use_ADDs);
+	}
         cout << "Completed preprocessing: " << g_timer() << endl;
     }
 }
 
 bool NumericDominancePruning::is_dead_end(const State &state) {
     if(ldSimulation && ldSimulation->has_dominance_relation() &&
-       /*is_activated() && */ldSimulation->get_dominance_relation().pruned_state(state)){
+       /*is_activated() && */numeric_dominance_relation->pruned_state(state)){
         deadends_pruned ++;
         return true;
     }
@@ -243,6 +246,29 @@ bool NumericDominancePruning::prune_expansion (const State & state, int g){
 }
 
 BDD NumericDominancePruning::getBDDToInsert(const State &state){
+    if(insert_dominated){
+        BDD res = numeric_dominance_relation->getDominatedBDD(vars.get(), state);
+
+        if(remove_spurious_dominated_states){
+            res = mgr->filter_mutex(res, true, 1000000, true);
+            res = mgr->filter_mutex(res, false, 1000000, true);
+        }
+
+        if(prune_dominated_by_open){
+            res -= vars->getStateBDD(state); //Remove the state
+        }else if (vars->numStates(res) == 1) {
+            //Small optimization: If we have a single state, not include it
+            return vars->zeroBDD();
+        }
+        return res;
+    }else{
+         return vars->getStateBDD(state);
+    }
+}
+
+map<int, BDD> NumericDominancePruning::getBDDMapToInsert(const State &// state
+    ){
+    return map<int, BDD>();
     // if(insert_dominated){
     //     BDD res = numeric_dominance_relation->getSimulatedBDD(vars.get(), state);
     //     if(remove_spurious_dominated_states){
@@ -257,9 +283,10 @@ BDD NumericDominancePruning::getBDDToInsert(const State &state){
     //     }
     //     return res;
     // }else{
-         return vars->getStateBDD(state);
+    //      return vars->getStateBDD(state);
     // }
 }
+
 
 static PruneHeuristic *_parse(OptionParser &parser) {
     parser.document_synopsis("Simulation heuristic", "");
@@ -329,6 +356,15 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "Whether we store the set of dominated states (default) or just the set of closed.",
             "true");
 
+    parser.add_option<bool>("use_quantified_dominance",
+            "Prune with respect to the quantified or the qualitative dominance",
+            "true");
+
+    parser.add_option<bool>("use_adds",
+            "Use ADDs (or BDD maps) to represent quantified dominance",
+            "false");
+
+
     parser.add_option<double>("min_desactivation_ratio",
             "Ratio of pruned/checked needed to continue pruning the search.",
             "0.0");
@@ -339,10 +375,17 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
     Options opts = parser.parse();
 
+   
     if (parser.dry_run()) {
         return 0;
     } else {
-	return new NumericDominancePruningBDDMap (opts);
+	if (opts.get<bool> ("use_adds")) {
+	    return nullptr; //new NumericDominancePruningADD (opts);
+	} else if (opts.get<bool> ("use_quantified_dominance")){
+	    return new NumericDominancePruningBDDMap (opts);
+	} else {
+	    return new NumericDominancePruningBDDMap (opts); // new NumericDominancePruningBDD (opts);
+	}
     }
 }
 
@@ -358,12 +401,25 @@ static Plugin<Heuristic> _plugin_h("num_simulation", _parse_h);
 
 void NumericDominancePruningBDDMap::insert (const State & state, int g){
     //Timer t;
-    BDD res = getBDDToInsert(state);
-    //time_bdd += t();
-    if (!closed.count(g)){
-        closed[g] = res;
-    }else{
-        closed[g] += res;
+    if(use_quantified_dominance) { 
+	map<int, BDD> res = getBDDMapToInsert(state);
+	for (const auto & i : res) {
+	    int cost = i.first + g;
+	    BDD bdd = i.second;
+	    if (!closed.count(cost)){
+		closed[cost] = bdd;
+	    }else{
+		closed[cost] += bdd;
+	    }
+	}
+    } else {
+	BDD res = getBDDToInsert(state);
+   
+	if (!closed.count(g)){
+	    closed[g] = res;
+	}else{
+	    closed[g] += res;
+	}
     }
     /*time_insert += t();
     if(states_inserted % 1000 == 0){
@@ -377,7 +433,7 @@ void NumericDominancePruningBDDMap::insert (const State & state, int g){
 
 }
 
-bool NumericDominancePruningBDDMap::check (const State & /* state*/, int /* g*/){
+bool NumericDominancePruningBDDMap::check (const State & state, int g){
     //Timer t;
     // //CODE TO TEST Simulation TR
     // BDD dominatedBDD = vars->oneBDD();
@@ -393,25 +449,26 @@ bool NumericDominancePruningBDDMap::check (const State & /* state*/, int /* g*/)
     // }
 
     // //END CODE TO TEST
-    // if(insert_dominated){
-    //     auto sb = vars->getBinaryDescription(state);
-    //     for(auto & entry : closed){
-    //         if(entry.first > g) break;
-    //         if(!(entry.second.Eval(sb).IsZero())){
-    //             return true;
-    //         }
-    //     }
-    // }else{
-    //     BDD simulatingBDD = numeric_dominance_relation.getSimulatingBDD(vars.get(), state);
-    //     for(auto & entry : closed){
-    //         if(entry.first > g) break;
-    //         if(!((entry.second*simulatingBDD).IsZero())){
-    //             return true;
-    //         }
-    //     }
-    // }
-    //time_check += t();
 
+    if(insert_dominated){
+        auto sb = vars->getBinaryDescription(state);
+        for(auto & entry : closed){
+            if(entry.first > g) break;
+            if(!(entry.second.Eval(sb).IsZero())){      
+                return true;
+            }
+        }
+    }else{
+        BDD simulatingBDD = numeric_dominance_relation->getDominatingBDD(vars.get(), state);
+        for(auto & entry : closed){
+            if(entry.first > g) break;
+            if(!((entry.second*simulatingBDD).IsZero())){
+                return true;
+            }
+        }
+    }
+
+    // time_check += t();
     return false;
 }
 

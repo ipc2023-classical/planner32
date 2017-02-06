@@ -76,6 +76,7 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
     tau_labels_changed.resize(lts.size(), true);
     tau_labels.resize(lts.size());
     if(compute_tau_labels_with_noop_dominance) {
+	cout << "Compute tau labels with noop dominance" << endl;
 	for(int l = 0; l < num_labels; l++){
 	    if(dominates_noop_in[l] == DOMINATES_IN_ALL){
 		for (int lts_id = 0; lts_id < num_ltss; ++lts_id){
@@ -86,6 +87,7 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
 	    } 
 	}
     } else {
+	cout << "Compute tau labels as self-loops everywhere" << endl;
 	for(int l = 0; l < num_labels; l++) {
 	    int transition_system_relevant = -1;
 	    for (int lts_id = 0; lts_id < num_ltss; ++lts_id){
@@ -98,7 +100,8 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
 		    }
 		}
 	    }
-	    assert(transition_system_relevant != -1);
+	    //TODO: check why there are labels irrelevant everywhere
+	    //assert(transition_system_relevant != -1);
 	    if(transition_system_relevant >= 0) {
 		tau_labels[transition_system_relevant].push_back(l);
 	    }
