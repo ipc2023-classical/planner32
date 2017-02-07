@@ -153,3 +153,42 @@ BDD NumericDominanceRelation::getDominatingBDD(SymVariables * vars, const State 
 
     return res;
 }
+
+
+
+
+
+map<int, BDD> NumericDominanceRelation::getDominatedBDDMap(SymVariables * vars, 
+							   const State &state ) const{
+    map<int, BDD> res; 
+    res[0] = vars->oneBDD();
+
+    for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+	const auto & sim_bdd_map = (*it)->getSimulatedBDDMap(state);
+	map<int, BDD> new_res; 
+
+	for(const auto & entry : sim_bdd_map) {
+	    for(const auto & entry2 : res) {
+		try{
+		    if(entry.first != std::numeric_limits<int>::lowest()) {
+			int value = entry.first + entry2.first;
+			if (new_res.count(value)) {
+			    new_res[value] += entry.second*entry2.second;
+			} else {
+			    new_res[value] = entry.second*entry2.second;
+			} 
+		    }
+		}catch(BDDError e){
+		}
+	    }
+	}
+	new_res.swap(res);
+    }
+
+    // for(const auto & entry2 : res) {
+    // 	cout << "XX: " << entry2.first << ": " << entry2.second.nodeCount() << endl;
+    // }
+		
+
+    return res;
+}

@@ -120,6 +120,13 @@ public:
 
     BDD getSimulatedBDD(const State & state) const;
     BDD getSimulatingBDD(const State & state) const;
+    const std::map<int, BDD> & getSimulatedBDDMap(const State & state) const;
+    const std::map<int, BDD> & getSimulatingBDDMap(const State & state) const;
+    BDD getMaySimulatedBDD(const State & state) const;
+    BDD getMaySimulatingBDD(const State & state) const;
+    ADD getSimulatedADD(const State & state) const;
+    ADD getSimulatingADD(const State & state) const;
+
 
 };
 

@@ -328,11 +328,11 @@ void NumericSimulationRelation::precompute_bdds(bool dominating, bool quantified
 	}else {
 	    cout << "Precomputing dominated_bdds ... " << endl;
 	    
-	    for (int i = 0; i < abs->size(); i++){
-		dominated_bdds.push_back(vars->zeroBDD());
-	    }
+	    // for (int i = 0; i < abs->size(); i++){
+	    // 	dominated_bdds.push_back(vars->zeroBDD());
+	    // }
 
-	    //dominated_bdds.resize(abs->size(), vars->zeroBDD());
+	    dominated_bdds.resize(abs->size(), vars->zeroBDD());
 	}
 	
 	for(int i = 0; i < relation.size(); ++i){
@@ -362,11 +362,11 @@ void NumericSimulationRelation::precompute_bdds(bool dominating, bool quantified
 
 		ADD val = vars->getADD(value);
 		if(dominating) {
-		    may_dominating_bdds[i] += abs_bdds[j];
-		    dominating_adds[i] += abs_bdds[j].Add()*val;
+		    may_dominating_bdds[j] += abs_bdds[i];
+		    dominating_adds[j] += abs_bdds[i].Add()*val;
 		} else { 
-		    may_dominated_bdds[j] +=  abs_bdds[i];
-		    dominated_adds[j] += abs_bdds[i].Add()*val;
+		    may_dominated_bdds[i] +=  abs_bdds[j];
+		    dominated_adds[i] += abs_bdds[j].Add()*val;
 		}
 	    }
 	}	
@@ -377,7 +377,7 @@ void NumericSimulationRelation::precompute_bdds(bool dominating, bool quantified
 	    dominating_bdd_maps.resize(abs->size());
 	    may_dominating_bdds.resize(abs->size(), vars->zeroBDD()); 
 	}else {
-	    cout << "Precomputed dominating_bdd_maps ... " << endl;
+	    cout << "Precomputing dominated_bdd_maps ... " << endl;
 
 	    dominated_bdd_maps.resize(abs->size());
 	    may_dominated_bdds.resize(abs->size(), vars->zeroBDD());
@@ -386,16 +386,26 @@ void NumericSimulationRelation::precompute_bdds(bool dominating, bool quantified
 	for(int i = 0; i < relation.size(); ++i){
 	    for(int j = 0; j < relation.size(); ++j){
 		if(may_simulate(i, j)) {
+		    int val = q_simulates (i, j);
 		    if(dominating) {
-			may_dominating_bdds[i] += abs_bdds[j];
-			dominating_bdd_maps[i][q_simulates (i, j)] = abs_bdds[j];
+			may_dominating_bdds[j] += abs_bdds[i];
+			
+			if(dominating_bdd_maps[j].count(val)) {
+			    dominating_bdd_maps[j][val] += abs_bdds[i];
+			} else { 
+			    dominating_bdd_maps[j][val] = abs_bdds[i];
+			}
 		    }else {
-			may_dominated_bdds[j] +=  abs_bdds[i];
-			dominated_bdd_maps[j][q_simulates (i, j)] = abs_bdds[i];
+			may_dominated_bdds[i] +=  abs_bdds[j];
+			if(dominated_bdd_maps[i].count(val)) {
+			    dominated_bdd_maps[i][val] += abs_bdds[j];
+			} else { 
+			    dominated_bdd_maps[i][val] = abs_bdds[j];
+			}
 		    }  
 		}
 	    }
-	}	
+	}
     }
 }
 
@@ -411,4 +421,49 @@ BDD NumericSimulationRelation::getSimulatingBDD(const State & state) const{
     int absstate = abs->get_abstract_state(state);
     if(absstate == -1) return vars->zeroBDD();
     else return dominating_bdds[absstate];
+}
+
+
+const map<int, BDD> & NumericSimulationRelation::getSimulatedBDDMap(const State & state) const{
+    assert(!dominated_bdd_maps.empty());
+    int absstate = abs->get_abstract_state(state);
+    assert(absstate != -1); 
+    return dominated_bdd_maps[absstate];
+}
+
+const map<int, BDD> & NumericSimulationRelation::getSimulatingBDDMap(const State & state) const{
+    assert(!dominated_bdd_maps.empty());
+    int absstate = abs->get_abstract_state(state);
+    assert(absstate == -1);
+    return dominating_bdd_maps[absstate];
+}
+
+
+BDD NumericSimulationRelation::getMaySimulatedBDD(const State & state) const{
+    assert(!may_dominated_bdds.empty());
+    int absstate = abs->get_abstract_state(state);
+    if(absstate == -1) return vars->zeroBDD();
+    else return may_dominated_bdds[absstate];
+}
+
+BDD NumericSimulationRelation::getMaySimulatingBDD(const State & state) const{
+    assert(!may_dominated_bdds.empty());
+    int absstate = abs->get_abstract_state(state);
+    if(absstate == -1) return vars->zeroBDD();
+    else return may_dominating_bdds[absstate];
+}
+
+
+ADD NumericSimulationRelation::getSimulatedADD(const State & state) const{
+    assert(!dominated_bdds.empty());
+    int absstate = abs->get_abstract_state(state);
+    if(absstate == -1) return vars->getADD(std::numeric_limits<int>::lowest());
+    else return dominated_adds[absstate];
+}
+
+ADD NumericSimulationRelation::getSimulatingADD(const State & state) const{
+    assert(!dominated_bdds.empty());
+    int absstate = abs->get_abstract_state(state);
+    if(absstate == -1) return vars->getADD(std::numeric_limits<int>::lowest());
+    else return dominating_adds[absstate];
 }

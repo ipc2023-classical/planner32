@@ -112,6 +112,9 @@ public:
     //Methods to obtain the BDD representation for pruning
     BDD getDominatedBDD(SymVariables * vars, const State &state) const;
     BDD getDominatingBDD(SymVariables * vars, const State &state) const;
+    std::map<int, BDD> getDominatedBDDMap(SymVariables * vars, const State &state) const;
+    std::map<int, BDD> getDominatingBDDMap(SymVariables * vars, const State &state) const;
+
     /* map<int, BDD> getBDDMap(SymVariables * vars, const State &state, bool dominating); */
     /* ADD getADD(SymVariables * vars, const State &state, bool dominating); */
 

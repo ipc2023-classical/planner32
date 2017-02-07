@@ -109,6 +109,7 @@ void NumericDominancePruning::initialize() {
 
 	    numeric_dominance_relation->precompute_bdds(vars.get(), !insert_dominated, 
 							use_quantified_dominance, use_ADDs);
+
 	}
         cout << "Completed preprocessing: " << g_timer() << endl;
     }
@@ -266,25 +267,20 @@ BDD NumericDominancePruning::getBDDToInsert(const State &state){
     }
 }
 
-map<int, BDD> NumericDominancePruning::getBDDMapToInsert(const State &// state
-    ){
-    return map<int, BDD>();
-    // if(insert_dominated){
-    //     BDD res = numeric_dominance_relation->getSimulatedBDD(vars.get(), state);
-    //     if(remove_spurious_dominated_states){
-    //         res = mgr->filter_mutex(res, true, 1000000, true);
-    //         res = mgr->filter_mutex(res, false, 1000000, true);
-    //     }
-    //     if(prune_dominated_by_open){
-    //         res -= vars->getStateBDD(state); //Remove the state
-    //     }else if (vars->numStates(res) == 1) {
-    //         //Small optimization: If we have a single state, not include it
-    //         return vars->zeroBDD();
-    //     }
-    //     return res;
-    // }else{
-    //      return vars->getStateBDD(state);
-    // }
+map<int, BDD> NumericDominancePruning::getBDDMapToInsert(const State & state){
+    assert(insert_dominated); 
+    map<int, BDD> res = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state);
+    for(auto & it : res) {
+	BDD & bdd = it.second;
+	if(remove_spurious_dominated_states){
+	    bdd = mgr->filter_mutex(bdd, true, 1000000, true);
+	    bdd = mgr->filter_mutex(bdd, false, 1000000, true);
+	}
+	if(prune_dominated_by_open){
+	    bdd -= vars->getStateBDD(state); //Remove the state
+	}
+    }
+    return res;
 }
 
 
@@ -403,9 +399,13 @@ void NumericDominancePruningBDDMap::insert (const State & state, int g){
     //Timer t;
     if(use_quantified_dominance) { 
 	map<int, BDD> res = getBDDMapToInsert(state);
+
 	for (const auto & i : res) {
-	    int cost = i.first + g;
+	    
+	    int cost = max(0, g - (i.first >= 0 ?  i.first : i.first - 1));
 	    BDD bdd = i.second;
+	    assert(!bdd.IsZero());
+	    //cout << g << " " << cost << endl;
 	    if (!closed.count(cost)){
 		closed[cost] = bdd;
 	    }else{
@@ -414,7 +414,6 @@ void NumericDominancePruningBDDMap::insert (const State & state, int g){
 	}
     } else {
 	BDD res = getBDDToInsert(state);
-   
 	if (!closed.count(g)){
 	    closed[g] = res;
 	}else{
