@@ -15,16 +15,22 @@ eval.add_pattern('total_simulations', r'Total Simulations: (d+)]', type=int, req
 eval.add_pattern('sim_equivalences', r'Similarity equivalences: (d+)]', type=int, required=False)
 eval.add_pattern('only_simulations', r'Only Simulations: (d+)]', type=int, required=False)
 
+
 regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P<lts_total_size>(\d+)) Total trsize: (?P<lts_total_trsize>(\d+)) Max size: (?P<lts_max_size>(\d+)) Max trsize: (?P<lts_max_trsize>(\d+))"), 
            re.compile("Dead operators due to dead labels: (?P<dead_ops_by_labels>(\d+)) / (?P<orig_ops>(\d+)) \((?P<perc_dead_ops_by_labels>(\d*[.\d+]*))\%\)"), 
            re.compile("Dead operators detected by storing original operators: (?P<dead_ops_by_stored>(\d+)) / (?P<orig_ops>(\d+)) \((?P<perc_dead_ops_by_stored>(\d*[.\d+]*))\%\)"), 
-           re.compile("Simulation pruning (?P<pruning_desactivated>(.*)): (?P<pruned_desactivated>(\d+)) pruned (?P<checked_desactivated>(\d+)) checked (?P<inserted_desactivated>(\d+)) inserted (?P<deadends_desactivated>(\d+)) deadends")]
+           re.compile("Simulation pruning (?P<pruning_desactivated>(.*)): (?P<pruned_desactivated>(\d+)) pruned (?P<checked_desactivated>(\d+)) checked (?P<inserted_desactivated>(\d+)) inserted (?P<deadends_desactivated>(\d+)) deadends"),
+           re.compile("Numeric LDSim computed(?P<time_numeric_ldsimulation> (.*))"),
+           re.compile("Numeric LDSim outer iterations: (?P<outer_iterations_numeric_ldsimulation>(.*))"),
+           re.compile("Numeric LDSim inner iterations: (?P<inner_iterations_numeric_ldsimulation>(.*))")
+]
 
 type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig_ops' : int, 
             'dead_ops_by_stored' : int, 'perc_dead_ops_by_stored' : float, 
             'lts_num' : int, 'lts_total_size' : int,  'lts_max_size' : int, 'lts_total_trsize' : int, 'lts_max_trsize' : int, 
             'pruning_desactivated' : (lambda x : 1 if "desactivated" == x else 0 ), 
-            'pruned_desactivated' : int, 'checked_desactivated' : int, 'inserted_desactivated' : int, 'deadends_desactivated' : int
+            'pruned_desactivated' : int, 'checked_desactivated' : int, 'inserted_desactivated' : int, 'deadends_desactivated' : int,
+            'time_numeric_ldsimulation' : lambda x : max(0.01, float(x)) , 'outer_iterations_numeric_ldsimulation' : int, 'inner_iterations_numeric_ldsimulation' : int
         }
 
 def parse_regexps (content, props):
@@ -36,7 +42,27 @@ def parse_regexps (content, props):
                 for item in data:
                     props[item] = type_atr[item](data[item])
                 break
-     
+
+
+
+
+def parse_numeric_dominance (content, props):
+    check = False
+    min_val = 100000000
+    max_val = -100000000
+
+    for l in content.split("\n"):
+        if check: 
+            if l != "Init partitions": 
+                props['min_negative_dominance'] = min_val 
+                props['max_positive_dominance'] = max_val 
+                return
+            if ":" in l: 
+                min_val = min(min_val, int(l.split(":").trim()))
+                max_val = max(max_val, int(l.split(":").trim()))
+        elif l == "------": 
+            check = True
+            
 
 
 
@@ -127,7 +153,9 @@ def parse_regexps (content, props):
 
 eval.add_function(parse_regexps)
 
-eval.add_function(desactivation)
+#eval.add_function(desactivation)
+
+eval.add_function(parse_numeric_dominance)
 
 
 eval.parse()
