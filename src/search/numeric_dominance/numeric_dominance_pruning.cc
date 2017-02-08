@@ -399,11 +399,12 @@ void NumericDominancePruningBDDMap::insert (const State & state, int g){
 
 	for (const auto & i : res) {
 	    int dom_value = i.first;
+	    int epsilon = 0;
 	    if (dom_value < 0 || (dom_value == 0 && g_min_action_cost == 0)) {
-		dom_value -= 1;
+		epsilon = 1;
 	    }
 
-	    int cost = max(0, g - dom_value);
+	    int cost = max(0, g - dom_value + epsilon);
 	    BDD bdd = i.second;
 	    assert(!bdd.IsZero());
 	    //cout << g << " " << cost << endl;
@@ -415,7 +416,11 @@ void NumericDominancePruningBDDMap::insert (const State & state, int g){
 	}
     } else {
 	BDD res = getBDDToInsert(state);
-	if (!closed.count(g)){
+	if (g_min_action_cost == 0) {
+	    g += 1;
+	}
+	// cout << "Inserting with g= " << g << endl;
+	if (!closed.count(g)) {
 	    closed[g] = res;
 	}else{
 	    closed[g] += res;
