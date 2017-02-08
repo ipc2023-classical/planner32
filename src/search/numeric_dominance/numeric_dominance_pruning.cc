@@ -341,9 +341,6 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "Assume -infinity if below minus this value",
             "1000");
 
-
-
-
     parser.add_option<bool>("prune_successors",
             "Prunes all siblings if any successor dominates the parent by enough margin",
             "false");
@@ -401,8 +398,12 @@ void NumericDominancePruningBDDMap::insert (const State & state, int g){
 	map<int, BDD> res = getBDDMapToInsert(state);
 
 	for (const auto & i : res) {
-	    
-	    int cost = max(0, g - (i.first >= 0 ?  i.first : i.first - 1));
+	    int dom_value = i.first;
+	    if (dom_value < 0 || (dom_value == 0 && g_min_action_cost == 0)) {
+		dom_value -= 1;
+	    }
+
+	    int cost = max(0, g - dom_value);
 	    BDD bdd = i.second;
 	    assert(!bdd.IsZero());
 	    //cout << g << " " << cost << endl;

@@ -310,7 +310,7 @@ void NumericSimulationRelation::statistics() const {
 	}
 
 	cout << ": " << it.second << endl;
-    }
+    } 
 }
 
 
