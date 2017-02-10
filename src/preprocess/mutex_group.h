@@ -17,7 +17,8 @@ class MutexGroup {
   // Bw mutexes cannot reach the goal (should be pruned in fw search)
   // Both mutex groups contain fw and bw mutexes so they should be pruned in both directions
   Dir dir; 
-  vector<pair<const Variable *, int> > facts;
+  bool is_exactly_invariant; 
+  vector<pair<Variable *, int> > facts;
  public:
   MutexGroup(istream &in, const vector<Variable *> &variables);
 
@@ -25,7 +26,7 @@ class MutexGroup {
 	     const vector<Variable *> &variables,
 	     bool regression);
 
-  MutexGroup(const Variable * var);
+  MutexGroup(Variable * var);
 
   void strip_unimportant_facts();
   bool is_redundant() const;
@@ -43,12 +44,14 @@ class MutexGroup {
     void get_mutex_group(vector<pair<int, int>> &invariant_group) const;
 
   void remove_unreachable_facts();
+  void set_exactly_invariant(const vector<Operator> & operators,
+				    const State & initial_state);
 
   void generate_gamer_input(ofstream &outfile) const;
 
   bool hasPair(int var, int val) const;
 
-  inline const vector<pair<const Variable *, int> > & getFacts() const{
+  inline const vector<pair<Variable *, int> > & getFacts() const{
     return facts;
   }
     void add_tuples(std::set<std::vector<int>> &tuples) const {
@@ -81,5 +84,8 @@ class MutexGroup {
 
 extern void strip_mutexes(vector<MutexGroup> &mutexes);
 
+extern void generate_invariants(vector<MutexGroup> & mutexes, 
+				const vector<Operator> & operators, 
+				const State & initial_state);
 
 #endif

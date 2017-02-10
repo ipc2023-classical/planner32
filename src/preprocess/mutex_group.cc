@@ -33,7 +33,7 @@ MutexGroup::MutexGroup(const vector<pair<int, int> > & f,
   }
 }
 
-MutexGroup::MutexGroup(const Variable * var) : dir(FW){
+MutexGroup::MutexGroup(Variable * var) : dir(FW){
   for(int i = 0; i < var->get_range(); ++i){
     facts.push_back(make_pair(var, i));
   }
@@ -47,7 +47,7 @@ int MutexGroup::get_encoding_size() const {
 void MutexGroup::dump() const {
     cout << "mutex group of size " << facts.size() << ":" << endl;
     for (const auto &fact : facts) {
-        const Variable *var = fact.first;
+        Variable *var = fact.first;
         int value = fact.second;
         cout << "   " << var->get_name() << " = " << value
              << " (" << var->get_fact_name(value) << ")" << endl;
@@ -55,7 +55,7 @@ void MutexGroup::dump() const {
 }
 
 void MutexGroup::generate_cpp_input(ofstream &outfile) const {
-  string groupname = "mutex" ;
+  string groupname = is_exactly_invariant ? "exactly_one" : "mutex_group" ;
   string dirname = dir == FW ? "fw" : "bw";  
   outfile << "begin_mutex_group" << endl <<  groupname << endl << dirname << endl
 	  << facts.size() << endl;
@@ -100,8 +100,8 @@ void strip_mutexes(vector<MutexGroup> &mutexes) {
 }
 
 void MutexGroup::remove_unreachable_facts(){
-  vector<pair<const Variable *, int> > newfacts;
-    for (const pair<const Variable *, int> &fact : facts) {
+  vector<pair<Variable *, int> > newfacts;
+    for (const auto &fact : facts) {
         if (fact.first->is_necessary() && fact.first->is_reachable(fact.second)) {
             newfacts.push_back(make_pair(fact.first, fact.first->get_new_id(fact.second)));
         }
@@ -118,8 +118,51 @@ void MutexGroup::get_mutex_group(vector<pair<int, int>> &invariant_group) const 
     }
 }
 
+
+
+void MutexGroup::set_exactly_invariant(const vector<Operator> & operators, const State & initial_state){
+  // check that at least one is true in the initial state
+  is_exactly_invariant = false;
+  for (int j = 0; !is_exactly_invariant && j < facts.size(); j++) {
+      is_exactly_invariant = initial_state[facts[j].first] == facts[j].second;
+  }
+
+  for (int j = 0; is_exactly_invariant && j < operators.size(); j++) {
+    if(operators[j].is_redundant()) continue;
+    bool adds = false;
+    bool deletes = false;
+    const vector<Operator::PrePost> & pre_post = operators[j].get_pre_post();
+    for (int k = 0; k < pre_post.size(); k++) {
+      for (int l = 0; l < facts.size(); l++) {
+        if (pre_post[k].is_conditional_effect && pre_post[k].var == facts[l].first) {
+          is_exactly_invariant = false;
+          return;
+        }
+	adds = adds || (pre_post[k].var == facts[l].first && pre_post[k].post == facts[l].second);
+	deletes = deletes || (pre_post[k].var == facts[l].first &&
+			      (pre_post[k].pre == facts[l].second ||
+			       (pre_post[k].pre == -1 && !adds) ) );
+      }
+    }
+    is_exactly_invariant = (adds && deletes) || (!adds && !deletes);
+    // if(!is_exactly_invariant){
+    // 	cout << "Group  is not exactly invariant because of " << operators[j].get_name() << endl;
+    // 	dump();
+    // } else {
+    // 	cout << "Yes" << endl;
+    // }
+  }
+}
+
+void generate_invariants(vector<MutexGroup> & mutexes, const vector<Operator> & operators, const State & initial_state){
+  for(int i = 0; i < mutexes.size(); ++i){
+    mutexes[i].set_exactly_invariant(operators, initial_state);
+  }
+}
+
+
 void MutexGroup::generate_gamer_input(ofstream &outfile) const {
-  string groupname = "mutex_group" ;
+  string groupname = is_exactly_invariant ? "exactly_one_group" : "mutex_group" ;
   string dirname = dir == FW ? "fw" : "bw";
   outfile << "begin_" << groupname << "_" << dirname << endl;
   for (size_t i = 0; i < facts.size(); ++i) {
@@ -140,7 +183,7 @@ void MutexGroup::generate_gamer_input(ofstream &outfile) const {
 }
 
 bool MutexGroup::hasPair(int var, int val) const{
-    for (const pair<const Variable *, int> &fact : facts) {
+    for (const auto &fact : facts) {
         if (fact.first->get_level() == var && fact.second == val) {
       return true;
     }

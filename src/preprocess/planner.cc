@@ -170,7 +170,7 @@ if (arg.compare("--no_rel") == 0) {
   }
 
   //Merge mutexes and make exactly one invariant groups
-  //generate_invariants(mutexes, operators, initial_state); 
+  generate_invariants(mutexes, operators, initial_state); 
     
   if(optimize_ordering){
     causal_graph.optimize_ordering_gamer();
