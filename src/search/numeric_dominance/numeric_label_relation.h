@@ -211,7 +211,7 @@ public:
     //Returns true if l1 simulates l2 in lts
     inline bool may_simulate (int l1, int l2, int lts) const{
 	if(dominates_in.empty()) {
-	    return get_lqrel(l1, l2, lts) == std::numeric_limits<int>::lowest();
+	    return get_lqrel(l1, l2, lts) != std::numeric_limits<int>::lowest();
 	}
         return dominates_in[l1][l2] !=  DOMINATES_IN_NONE &&
 	    (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
