@@ -95,7 +95,7 @@ class Exploration : public Heuristic {
     std::vector<ExProposition *> goal_propositions;
     std::vector<ExProposition *> termination_propositions;
 
-    AdaptiveQueue<ExProposition *> prop_queue;
+    AdaptiveQueue<int, ExProposition *> prop_queue;
     bool did_write_overflow_warning;
 
     bool heuristic_recomputation_needed;

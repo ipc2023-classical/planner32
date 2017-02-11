@@ -16,15 +16,16 @@ class Operator;
  * factored LTS. Uses unique_ptr so that it owns the simulations and
  * it cannot be copied away.
  */
+template <typename T>
 class NumericDominanceRelation {
 
     const int truncate_value;
-    NumericLabelRelation label_dominance;
+    NumericLabelRelation<T> label_dominance;
 
 protected:
-    std::vector<std::unique_ptr<NumericSimulationRelation> > simulations;
+    std::vector<std::unique_ptr<NumericSimulationRelation<T>> > simulations;
 
-    std::unique_ptr<NumericSimulationRelation> init_simulation (Abstraction * _abs);
+    std::unique_ptr<NumericSimulationRelation<T>> init_simulation (Abstraction * _abs);
 
     template<typename LTS>
 	void compute_ld_simulation_template(std::vector<LTS *> & _ltss,
@@ -112,15 +113,15 @@ public:
     //Methods to obtain the BDD representation for pruning
     BDD getDominatedBDD(SymVariables * vars, const State &state) const;
     BDD getDominatingBDD(SymVariables * vars, const State &state) const;
-    std::map<int, BDD> getDominatedBDDMap(SymVariables * vars, const State &state) const;
-    std::map<int, BDD> getDominatingBDDMap(SymVariables * vars, const State &state) const;
+    std::map<T, BDD> getDominatedBDDMap(SymVariables * vars, const State &state) const;
+    //std::map<T, BDD> getDominatingBDDMap(SymVariables * vars, const State &state) const;
 
     /* map<int, BDD> getBDDMap(SymVariables * vars, const State &state, bool dominating); */
     /* ADD getADD(SymVariables * vars, const State &state, bool dominating); */
 
 
     //Methods to access the underlying simulation relations
-    const std::vector<std::unique_ptr<NumericSimulationRelation> > & get_simulations () const{
+    const std::vector<std::unique_ptr<NumericSimulationRelation<T>> > & get_simulations () const{
 	return simulations;
     }
 
@@ -128,14 +129,13 @@ public:
 	return simulations.size();
     }
     
-    NumericSimulationRelation & operator[](int index) {
+    NumericSimulationRelation<T> & operator[](int index) {
         return *(simulations[index]);
     }
 
-    const NumericSimulationRelation & operator[](int index) const {
+    const NumericSimulationRelation<T> & operator[](int index) const {
         return *(simulations[index]);
     }    
 };
-
 
 #endif

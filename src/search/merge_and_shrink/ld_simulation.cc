@@ -18,6 +18,7 @@
 #include "label_relation_noop.h"
 
 #include "../numeric_dominance/numeric_dominance_relation.h"
+#include "../numeric_dominance/int_epsilon.h"
 
 using namespace std;
 
@@ -97,10 +98,15 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
     exit(-1);
 }
 
-
-unique_ptr<NumericDominanceRelation> LDSimulation::compute_numeric_dominance_relation(int truncate_value, bool compute_tau_labels_with_noop_dominance, bool dump) const{
-
-    unique_ptr<NumericDominanceRelation> result = make_unique<NumericDominanceRelation>(labels.get(), truncate_value, compute_tau_labels_with_noop_dominance);
+template<typename T> 
+void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
+						      bool compute_tau_labels_with_noop_dominance, 
+						      bool dump, 
+						      unique_ptr<NumericDominanceRelation<T>> & result) const{
+    result = 
+	make_unique<NumericDominanceRelation<T>>(labels.get(), 
+						 truncate_value, 
+						 compute_tau_labels_with_noop_dominance);
 
     LabelMap labelMap (labels.get());
 
@@ -125,11 +131,20 @@ unique_ptr<NumericDominanceRelation> LDSimulation::compute_numeric_dominance_rel
 
     result->init(abstractions);
     result->compute_ld_simulation(ltss_simple, labelMap, dump);
-
-    return result;
 }
 
+template
+void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
+						      bool compute_tau_labels_with_noop_dominance, 
+						      bool dump, 
+						      unique_ptr<NumericDominanceRelation<int>> & result) const; 
 
+
+template 
+void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
+						      bool compute_tau_labels_with_noop_dominance, 
+						      bool dump, 
+						      unique_ptr<NumericDominanceRelation<IntEpsilon>> & result) const; 
 
 
 

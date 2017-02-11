@@ -9,15 +9,19 @@
 #include <vector>
 #include "../merge_and_shrink/labels.h"
 #include "../merge_and_shrink/label.h"
+#include "int_epsilon.h"
 
 class LabelledTransitionSystem;
-class NumericSimulationRelation;
-class NumericDominanceRelation;
+
+
+template <typename T> class NumericDominanceRelation;
+template <typename T> class NumericSimulationRelation;
 
 /* 
  * Label relation represents the preorder relations on labels that
  * occur in a set of LTS
  */ 
+template <typename T>
 class NumericLabelRelation {
     const int compute_tau_labels_with_noop_dominance; 
 
@@ -34,16 +38,16 @@ class NumericLabelRelation {
     //simulates l or l simulates noop
     std::vector<std::vector<int> > position_of_label; //position that label l takes on lts
     std::vector<std::vector<int> > irrelevant_labels_lts;
-    std::vector<std::vector<std::vector<int > > > lqrel;
-    std::vector<std::vector<int> > simulated_by_irrelevant;
-    std::vector<std::vector<int> > simulates_irrelevant;
+    std::vector<std::vector<std::vector<T> > > lqrel;
+    std::vector<std::vector<T> > simulated_by_irrelevant;
+    std::vector<std::vector<T> > simulates_irrelevant;
 
     std::vector<std::vector<int> > tau_labels;
 //Vector to indicate whether tau_labels changed since last time
     mutable std::vector<bool> tau_labels_changed; 
 
     bool update(int i, const LabelledTransitionSystem * lts, 
-		const NumericSimulationRelation & sim);
+		const NumericSimulationRelation<T> & sim);
 
     //Returns true if l1 simulates l2 in lts
     inline bool may_simulate (int l1, int l2, int lts) const{
@@ -52,7 +56,7 @@ class NumericLabelRelation {
 	     dominates_in[l1][l2] != lts);
     }
 
-    inline int get_lqrel(int l1, int l2, int lts) const {
+    inline T get_lqrel(int l1, int l2, int lts) const {
 	int pos1 = position_of_label[lts][l1];
 	int pos2 = position_of_label[lts][l2];
 	if(pos1 >= 0) {
@@ -70,7 +74,7 @@ class NumericLabelRelation {
 	}
     }
 
-    inline bool set_lqrel (int l1, int l2, int lts, int value){	
+    inline bool set_lqrel (int l1, int l2, int lts, T value){	
 	assert(value != std::numeric_limits<int>::lowest() + 1);
 	assert(dominates_in[l1][l2] == DOMINATES_IN_ALL || dominates_in[l1][l2] != lts);
 	assert(position_of_label[lts][l1] >= 0 &&  position_of_label[lts][l2] >= 0);
@@ -90,7 +94,7 @@ class NumericLabelRelation {
 	return false;
     }
 
-    inline int get_simulated_by_irrelevant(int l, int lts) const {
+    inline T get_simulated_by_irrelevant(int l, int lts) const {
 	if(position_of_label[lts][l] >= 0) {
 	    return simulated_by_irrelevant[lts][position_of_label[lts][l]];
 	} else {
@@ -98,7 +102,7 @@ class NumericLabelRelation {
 	}
     }
 
-    inline bool set_simulated_by_irrelevant(int l, int lts, int value){
+    inline bool set_simulated_by_irrelevant(int l, int lts, T value){
         //Returns if there were changes in dominated_by_noop_in
 	
 	assert(position_of_label[lts][l] >= 0);
@@ -128,7 +132,7 @@ class NumericLabelRelation {
     }
 
 
-    inline int get_simulates_irrelevant(int l, int lts) const {
+    inline T get_simulates_irrelevant(int l, int lts) const {
 	if(position_of_label[lts][l] >= 0) {
 	    return simulates_irrelevant[lts][position_of_label[lts][l]];
 	} else {
@@ -136,7 +140,7 @@ class NumericLabelRelation {
 	}
     }
 
-    inline bool set_simulates_irrelevant(int l, int lts, int value){
+    inline bool set_simulates_irrelevant(int l, int lts, T value){
 	//std::cout << "simulates irrelevant: " << g_operators[l].get_name() << " in " << g_fact_names[lts][0] << ": " << value << std::endl;
 	assert(value != std::numeric_limits<int>::lowest() + 1);
 	
@@ -176,11 +180,11 @@ public:
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
     void init(const std::vector<LabelledTransitionSystem *> & lts, 
-	      const NumericDominanceRelation & sim, 
+	      const NumericDominanceRelation<T> & sim, 
 	      const LabelMap & labelMap);
 
     bool update(const std::vector<LabelledTransitionSystem*> & lts, 
-		const NumericDominanceRelation & sim);
+		const NumericDominanceRelation<T> & sim);
 
     inline int get_num_labels() const {
         return num_labels;
@@ -200,9 +204,9 @@ public:
     }
 
     //Returns true if l1 simulates l2 in lts
-    int q_dominates (int l1, int l2, int lts) const {
+    T q_dominates (int l1, int l2, int lts) const {
 	if (may_dominate(l1, l2, lts)) {
-	    int total_sum = 0;
+	    T total_sum = 0;
 	    
 	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
 		if(lts_id != lts) {
@@ -218,9 +222,9 @@ public:
 	}
     }
     
-    int q_dominates_noop (int l, int lts) const{
+    T q_dominates_noop (int l, int lts) const{
 	if (may_dominate_noop_in(l, lts)) {
-	    int total_sum = 0;
+	    T total_sum = 0;
 	    
 	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
 		if(lts_id != lts) {
@@ -235,9 +239,9 @@ public:
 	}
     }
 
-    int q_dominated_by_noop (int l, int lts) const {
+    T q_dominated_by_noop (int l, int lts) const {
 	if (may_dominated_by_noop(l, lts)) {
-	    int total_sum = 0;
+	    T total_sum = 0;
 	    
 	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
 		if(lts_id != lts) {

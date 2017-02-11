@@ -24,7 +24,7 @@ CGHeuristic::CGHeuristic(const Options &opts)
       helpful_transition_extraction_counter(0) {
     prio_queues.reserve(g_transition_graphs.size());
     for (int i = 0; i < g_transition_graphs.size(); ++i)
-        prio_queues.push_back(new AdaptiveQueue<ValueNode *>);
+        prio_queues.push_back(new AdaptiveQueue<int, ValueNode *>);
 }
 
 CGHeuristic::~CGHeuristic() {
@@ -103,7 +103,7 @@ int CGHeuristic::get_transition_cost(const State &state,
             start->children_state[i] = state[dtg->local_to_global_child[i]];
 
         // Initialize Heap for Dijkstra's algorithm.
-        AdaptiveQueue<ValueNode *> &prio_queue = *prio_queues[var_no];
+        AdaptiveQueue<int, ValueNode *> &prio_queue = *prio_queues[var_no];
         prio_queue.clear();
         prio_queue.push(0, start);
 

@@ -6,7 +6,7 @@
 #include <cassert>
 
 class HSPMaxHeuristic : public RelaxationHeuristic {
-    AdaptiveQueue<Proposition *> queue;
+    AdaptiveQueue<int, Proposition *> queue;
 
     void setup_exploration_queue();
     void setup_exploration_queue_state(const State &state);

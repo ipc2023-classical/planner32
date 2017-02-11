@@ -15,7 +15,7 @@ class AdditiveHeuristic : public RelaxationHeuristic {
      */
     static const int MAX_COST_VALUE = 100000000;
 
-    AdaptiveQueue<Proposition *> queue;
+    AdaptiveQueue<int, Proposition *> queue;
     bool did_write_overflow_warning;
 
     void setup_exploration_queue();

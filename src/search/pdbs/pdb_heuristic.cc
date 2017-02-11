@@ -194,7 +194,7 @@ void PDBHeuristic::create_pdb() {
     }
 
     distances.reserve(num_states);
-    AdaptiveQueue<size_t> pq; // (first implicit entry: priority,) second entry: index for an abstract state
+    AdaptiveQueue<int, size_t> pq; // (first implicit entry: priority,) second entry: index for an abstract state
 
     // initialize queue
     for (size_t state_index = 0; state_index < num_states; ++state_index) {

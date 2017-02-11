@@ -13,7 +13,7 @@ class State;
 class ValueNode;
 
 class CGHeuristic : public Heuristic {
-    std::vector<AdaptiveQueue<ValueNode *> *> prio_queues;
+    std::vector<AdaptiveQueue<int, ValueNode *> *> prio_queues;
 
     CGCache *cache;
     int cache_hits;

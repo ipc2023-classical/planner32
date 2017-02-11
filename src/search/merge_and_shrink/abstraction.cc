@@ -297,7 +297,7 @@ void Abstraction::compute_goal_distances_unit_cost() {
 
 static void dijkstra_search(
     const vector<vector<pair<int, int> > > &graph,
-    AdaptiveQueue<int> &queue,
+    AdaptiveQueue<int, int> &queue,
     vector<int> &distances) {
     while (!queue.empty()) {
         pair<int, int> top_pair = queue.pop();
@@ -334,7 +334,7 @@ void Abstraction::compute_init_distances_general_cost() {
 
     // TODO: Reuse the same queue for multiple computations to save speed?
     //       Also see compute_goal_distances_general_cost.
-    AdaptiveQueue<int> queue;
+    AdaptiveQueue<int, int> queue;
     for (AbstractStateRef state = 0; state < num_states; state++) {
         if (state == init_state) {
             init_distances[state] = 0;
@@ -358,7 +358,7 @@ void Abstraction::compute_goal_distances_general_cost() {
 
     // TODO: Reuse the same queue for multiple computations to save speed?
     //       Also see compute_init_distances_general_cost.
-    AdaptiveQueue<int> queue;
+    AdaptiveQueue<int, int> queue;
     for (AbstractStateRef state = 0; state < num_states; state++) {
         if (goal_states[state]) {
             goal_distances[state] = 0;

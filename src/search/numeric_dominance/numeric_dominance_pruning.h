@@ -5,6 +5,7 @@
 #include "../sym/sym_variables.h"
 #include "../sym/sym_params.h"
 
+#include "int_epsilon.h"
 #include "numeric_dominance_relation.h"
 
 class LDSimulation;
@@ -13,6 +14,7 @@ class SymVariables;
 class SymManager;
 class Abstraction;
 
+template <typename T> 
 class NumericDominancePruning : public PruneHeuristic {  
  protected:
   //Parameters to control the pruning
@@ -50,7 +52,7 @@ class NumericDominancePruning : public PruneHeuristic {
 
   std::unique_ptr<AbstractionBuilder> abstractionBuilder;
   std::unique_ptr<LDSimulation> ldSimulation;
-  std::unique_ptr<NumericDominanceRelation> numeric_dominance_relation;
+  std::unique_ptr<NumericDominanceRelation<T>> numeric_dominance_relation;
   std::vector<std::unique_ptr<Abstraction> > abstractions;
 
   bool all_desactivated;
@@ -97,8 +99,9 @@ class NumericDominancePruning : public PruneHeuristic {
   virtual bool is_dead_end(const State &state) override;
 
   virtual int compute_heuristic(const State &state) override;
+
   NumericDominancePruning(const Options &opts);
-  virtual ~NumericDominancePruning();
+  virtual ~NumericDominancePruning() = default;
 
   virtual void print_statistics() override;
 
@@ -107,11 +110,13 @@ class NumericDominancePruning : public PruneHeuristic {
   }
 };
 
-class NumericDominancePruningBDDMap : public NumericDominancePruning {
+
+template <typename T> 
+class NumericDominancePruningBDDMap : public NumericDominancePruning<T> {
     std::map<int, BDD> closed;
 public:
     NumericDominancePruningBDDMap (const Options &opts) : 
-    NumericDominancePruning(opts)
+    NumericDominancePruning<T>(opts)
     {}
     virtual ~NumericDominancePruningBDDMap () = default;
 

@@ -8,22 +8,24 @@
 using namespace std;
 
 
-void NumericDominanceRelation::init (const std::vector<Abstraction *> & abstractions){ 
+template <typename T> 
+void NumericDominanceRelation<T>::init (const std::vector<Abstraction *> & abstractions){ 
     simulations.clear();
     for (auto abs : abstractions){
 	simulations.push_back(init_simulation(abs)); 
     }
 }
 
-std::unique_ptr<NumericSimulationRelation> 
-NumericDominanceRelation::init_simulation (Abstraction * _abs){
-    auto res = make_unique<NumericSimulationRelation> (_abs, truncate_value);
+template <typename T> 
+std::unique_ptr<NumericSimulationRelation<T>> 
+NumericDominanceRelation<T>::init_simulation (Abstraction * _abs){
+    auto res = make_unique<NumericSimulationRelation<T>> (_abs, truncate_value);
     res->init_goal_respecting();
     return std::move (res);
 }
 
-
-bool NumericDominanceRelation::pruned_state(const State &state) const {
+template <typename T> 
+bool NumericDominanceRelation<T>::pruned_state(const State &state) const {
     for(auto & sim : simulations) {
         if(sim->pruned(state)){
             return true;
@@ -33,7 +35,7 @@ bool NumericDominanceRelation::pruned_state(const State &state) const {
 }
 
 
-// int NumericDominanceRelation::get_cost(const State &state) const{
+// int NumericDominanceRelation<T>::get_cost(const State &state) const{
 //     int cost = 0;
 //     for(auto & sim : simulations) {
 // 	int new_cost = sim->get_cost(state);
@@ -45,7 +47,7 @@ bool NumericDominanceRelation::pruned_state(const State &state) const {
 
 
 
-// bool NumericDominanceRelation::parent_dominates_successor(const State & parent, 
+// bool NumericDominanceRelation<T>::parent_dominates_successor(const State & parent, 
 // 							  const Operator *op) const {
     
 //     for(const auto & sim : simulations) {
@@ -62,62 +64,41 @@ bool NumericDominanceRelation::pruned_state(const State &state) const {
 
 //     }
 // }
-bool NumericDominanceRelation::dominates(const State &t, const State & s, int g_diff) const {
 
-    int total_value = 0;
-    
-    // int sum_negatives = 0;
-    // int max_positive = 0;
-
+template <typename T> 
+bool NumericDominanceRelation<T>::dominates(const State &t, const State & s, int g_diff) const {
+    T total_value = 0;
     for(const auto & sim : simulations) {
-	int val = sim->q_simulates(t, s);
-	// cout << val << endl;
+	T val = sim->q_simulates(t, s);
 	if(val == std::numeric_limits<int>::lowest()) {
 	    return false;
 	}
 	total_value += val;
-	// if(val < 0) {
-	//     sum_negatives += val;
-	// } else {
-	//     max_positive = std::max(max_positive, val);
-	// }
     }
-    //int total_value = sum_negatives + max_positive;
-
-    // if(total_value -g_diff > 0 ||
-    //    (total_value == g_diff && g_diff > 0)) {
-    // 	cout << "Find domination with: " << total_value << " action_cost: " << g_diff << endl;
-    // 	for (int var = 0; var < g_variable_domain.size(); ++var) {
-    // 	    if(s[var] != t[var]) {
-    // 		cout <<  "   " << g_fact_names[var][s[var]] << " -> " << g_fact_names[var][t[var]] << endl;
-    // 	    }
-    // 	}	     
-    // }
-    // cout << "Prune? " << total_value << " " << g_diff << ": " <<
-    // 	(total_value -g_diff > 0 || (total_value == g_diff && g_diff > 0)) << endl;
     
-    return total_value - g_diff > 0 || (total_value == g_diff && g_diff > 0);
+    return total_value - g_diff >= 0;
+
 }
 
 
-
-bool NumericDominanceRelation::dominates_parent(const vector<int> & state, const vector<int> & parent, int action_cost) const {
-    int total_sum = 0;
-
+template <typename T> 
+bool NumericDominanceRelation<T>::dominates_parent(const vector<int> & state, 
+						   const vector<int> & parent, 
+						   int action_cost) const {
+    T total_value = 0;
     for(const auto & sim : simulations) {
-	int val = sim->q_simulates(state, parent);
-
+	T val = sim->q_simulates(state, parent);
 	if(val == std::numeric_limits<int>::lowest()) {
 	    return false;
 	}
-	total_sum += val;
-    }    
+	total_value += val;
+    }
     
-    return total_sum - action_cost > 0 || (total_sum == action_cost && action_cost > 0);
+    return total_value - action_cost >= 0;
 }
 
-
-void NumericDominanceRelation::precompute_bdds(SymVariables * vars, 
+template <typename T> 
+void NumericDominanceRelation<T>::precompute_bdds(SymVariables * vars, 
 					       bool dominating, bool quantified, bool use_ADD){
     Timer t;
     for(auto & sim : simulations){
@@ -128,8 +109,8 @@ void NumericDominanceRelation::precompute_bdds(SymVariables * vars,
 }
 
 
-
-BDD NumericDominanceRelation::getDominatedBDD(SymVariables * vars, const State &state ) const{
+template <typename T> 
+BDD NumericDominanceRelation<T>::getDominatedBDD(SymVariables * vars, const State &state ) const{
     BDD res = vars->oneBDD();
     try{
         for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
@@ -141,7 +122,8 @@ BDD NumericDominanceRelation::getDominatedBDD(SymVariables * vars, const State &
     return res;
 }
 
-BDD NumericDominanceRelation::getDominatingBDD(SymVariables * vars, const State &state ) const{
+template <typename T> 
+BDD NumericDominanceRelation<T>::getDominatingBDD(SymVariables * vars, const State &state ) const{
     BDD res = vars->oneBDD();
     try{
         for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
@@ -156,22 +138,21 @@ BDD NumericDominanceRelation::getDominatingBDD(SymVariables * vars, const State 
 
 
 
-
-
-map<int, BDD> NumericDominanceRelation::getDominatedBDDMap(SymVariables * vars, 
-							   const State &state ) const{
-    map<int, BDD> res; 
-    res[0] = vars->oneBDD();
+template<typename T>
+map<T, BDD> NumericDominanceRelation<T>::getDominatedBDDMap(SymVariables * vars, 
+							      const State &state ) const{
+    map<T, BDD> res; 
+    res[T(0)] = vars->oneBDD();
 
     for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
 	const auto & sim_bdd_map = (*it)->getSimulatedBDDMap(state);
-	map<int, BDD> new_res; 
+	map<T, BDD> new_res; 
 
 	for(const auto & entry : sim_bdd_map) {
 	    for(const auto & entry2 : res) {
 		try{
 		    if(entry.first != std::numeric_limits<int>::lowest()) {
-			int value = entry.first + entry2.first;
+			T value = entry.first + entry2.first;
 			if (new_res.count(value)) {
 			    new_res[value] += entry.second*entry2.second;
 			} else {
@@ -185,10 +166,9 @@ map<int, BDD> NumericDominanceRelation::getDominatedBDDMap(SymVariables * vars,
 	new_res.swap(res);
     }
 
-    // for(const auto & entry2 : res) {
-    // 	cout << "XX: " << entry2.first << ": " << entry2.second.nodeCount() << endl;
-    // }
-		
-
     return res;
 }
+
+
+template class NumericDominanceRelation<int>; 
+template class NumericDominanceRelation<IntEpsilon>; 

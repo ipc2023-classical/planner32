@@ -18,7 +18,7 @@ class ContextEnhancedAdditiveHeuristic : public Heuristic {
     LocalProblem *goal_problem;
     LocalProblemNode *goal_node;
 
-    AdaptiveQueue<LocalProblemNode *> node_queue;
+    AdaptiveQueue<int, LocalProblemNode *> node_queue;
 
     LocalProblem *get_local_problem(int var_no, int value);
     LocalProblem *build_problem_for_variable(int var_no) const;

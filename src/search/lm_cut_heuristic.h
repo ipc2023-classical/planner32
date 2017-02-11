@@ -110,7 +110,7 @@ class LandmarkCutHeuristic : public Heuristic {
     RelaxedProposition artificial_precondition;
     RelaxedProposition artificial_goal;
     int num_propositions;
-    AdaptiveQueue<RelaxedProposition *> priority_queue;
+    AdaptiveQueue<int, RelaxedProposition *> priority_queue;
 
     virtual void initialize();
     virtual int compute_heuristic(const State &state);

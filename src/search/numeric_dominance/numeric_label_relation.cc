@@ -8,20 +8,22 @@
 
 using namespace std;
 
-NumericLabelRelation::NumericLabelRelation(Labels * _labels, bool compute_tau_labels_with_noop_dominance_) : compute_tau_labels_with_noop_dominance (compute_tau_labels_with_noop_dominance_),  labels (_labels), num_labels(_labels->get_size()){
+template <typename T>
+NumericLabelRelation<T>::NumericLabelRelation(Labels * _labels, bool compute_tau_labels_with_noop_dominance_) : compute_tau_labels_with_noop_dominance (compute_tau_labels_with_noop_dominance_),  labels (_labels), num_labels(_labels->get_size()){
 
 }
 
-void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & lts,
-				const NumericDominanceRelation & sim,
+template <typename T> 
+void NumericLabelRelation<T>::init(const std::vector<LabelledTransitionSystem *> & lts,
+				const NumericDominanceRelation<T> & sim,
 				const LabelMap & labelMap){
     num_labels = labelMap.get_num_labels();
     num_ltss = lts.size();
 
     std::vector<std::vector<int> >().swap(position_of_label);
-    std::vector<std::vector<std::vector<int> > >().swap(lqrel);
-    std::vector<std::vector<int> >().swap(simulates_irrelevant);
-    std::vector<std::vector<int> >().swap(simulated_by_irrelevant);
+    std::vector<std::vector<std::vector<T> > >().swap(lqrel);
+    std::vector<std::vector<T> >().swap(simulates_irrelevant);
+    std::vector<std::vector<T> >().swap(simulated_by_irrelevant);
 
     irrelevant_labels_lts.resize(lts.size());
     position_of_label.resize(lts.size());
@@ -114,9 +116,9 @@ void NumericLabelRelation::init(const std::vector<LabelledTransitionSystem *> & 
 }
 
 
-
-bool NumericLabelRelation::update(const std::vector<LabelledTransitionSystem*> & lts,
-				  const NumericDominanceRelation & sim) {
+template <typename T> 
+bool NumericLabelRelation<T>::update(const std::vector<LabelledTransitionSystem*> & lts,
+				     const NumericDominanceRelation<T> & sim) {
     bool changes = false;
     
     for (int i = 0; i < lts.size(); ++i){
@@ -136,14 +138,16 @@ bool NumericLabelRelation::update(const std::vector<LabelledTransitionSystem*> &
     return changes;
 }
 
-bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lts,  const NumericSimulationRelation & sim){
+template <typename T> 
+bool NumericLabelRelation<T>::update(int lts_i, const LabelledTransitionSystem * lts,  
+				     const NumericSimulationRelation<T> & sim){
     bool changes = false;
     for(int l2 : lts->get_relevant_labels()) {
 	assert(lts->is_relevant_label(l2));
         for(int l1 : lts->get_relevant_labels()) {
 	    assert(lts->is_relevant_label(l1));
             if(l1 != l2 && may_simulate(l1, l2, lts_i)){
-		int min_value = std::numeric_limits<int>::max();
+		T min_value = std::numeric_limits<int>::max();
                 //std::cout << "Check " << l1 << " " << l2 << std::endl;
                 //std::cout << "Num transitions: " << lts->get_transitions_label(l1).size()
                 //		    << " " << lts->get_transitions_label(l2).size() << std::endl;
@@ -152,7 +156,7 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
                 //l2, exist s--l1-->t', t <= t'?
 
                 for(const auto & tr : lts->get_transitions_label(l2)){
-		    int max_value = std::numeric_limits<int>::lowest();
+		    T max_value = std::numeric_limits<int>::lowest();
                     //TODO: for(auto tr2 : lts->get_transitions_for_label_src(l1, tr.src)){
                     for(const auto & tr2 : lts->get_transitions_label(l1)){
                         if(tr2.src == tr.src && sim.may_simulate(tr2.target, tr.target)){
@@ -174,9 +178,9 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
         }
 
         //Is l2 simulated by irrelevant_labels in lts?
-	int old_value = get_simulated_by_irrelevant(l2, lts_i);
-	if(old_value != std::numeric_limits<int>::lowest()) {
-	    int min_value = std::numeric_limits<int>::max();
+	T old_value = get_simulated_by_irrelevant(l2, lts_i);
+	if(old_value != T(std::numeric_limits<int>::lowest())) {
+	    T min_value = std::numeric_limits<int>::max();
 	    for(auto tr : lts->get_transitions_label(l2)){
 		min_value = std::min(min_value, sim.q_simulates(tr.src, tr.target));
 		if(min_value == std::numeric_limits<int>::lowest()) {
@@ -198,9 +202,9 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
         //Does l2 simulates irrelevant_labels in lts?
 	old_value = get_simulates_irrelevant(l2, lts_i);
 	if(old_value != std::numeric_limits<int>::lowest()) {
-	    int min_value = std::numeric_limits<int>::max();
+	    T min_value = std::numeric_limits<int>::max();
 	    for(int s = 0; s < lts->size(); s++){
-		int max_value = std::numeric_limits<int>::lowest();
+		T max_value = std::numeric_limits<int>::lowest();
 		for(const auto & tr : lts->get_transitions_label(l2)) {
 		    if(tr.src == s) {
 			max_value = std::max(max_value, sim.q_simulates(tr.target, tr.src));
@@ -230,7 +234,9 @@ bool NumericLabelRelation::update(int lts_i, const LabelledTransitionSystem * lt
     return changes;
 }
 
-void NumericLabelRelation::dump(const LabelledTransitionSystem * lts, int lts_id) const {
+
+template <typename T> 
+void NumericLabelRelation<T>::dump(const LabelledTransitionSystem * lts, int lts_id) const {
     for(int l2 : lts->get_relevant_labels()) {
         for(int l1 : lts->get_relevant_labels()) {
 	    if(l2 == l1) {
@@ -252,3 +258,8 @@ void NumericLabelRelation::dump(const LabelledTransitionSystem * lts, int lts_id
     }
 
 }
+
+
+
+template class NumericLabelRelation<int>; 
+template class NumericLabelRelation<IntEpsilon>; 
