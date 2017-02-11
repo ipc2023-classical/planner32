@@ -13,7 +13,6 @@
 
 class LabelledTransitionSystem;
 
-
 template <typename T> class NumericDominanceRelation;
 template <typename T> class NumericSimulationRelation;
 
@@ -49,13 +48,6 @@ class NumericLabelRelation {
     bool update(int i, const LabelledTransitionSystem * lts, 
 		const NumericSimulationRelation<T> & sim);
 
-    //Returns true if l1 simulates l2 in lts
-    inline bool may_simulate (int l1, int l2, int lts) const{
-        return dominates_in[l1][l2] !=  DOMINATES_IN_NONE &&
-	    (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
-	     dominates_in[l1][l2] != lts);
-    }
-
     inline T get_lqrel(int l1, int l2, int lts) const {
 	int pos1 = position_of_label[lts][l1];
 	int pos2 = position_of_label[lts][l2];
@@ -76,13 +68,13 @@ class NumericLabelRelation {
 
     inline bool set_lqrel (int l1, int l2, int lts, T value){	
 	assert(value != std::numeric_limits<int>::lowest() + 1);
-	assert(dominates_in[l1][l2] == DOMINATES_IN_ALL || dominates_in[l1][l2] != lts);
+	assert(dominates_in.empty() || dominates_in[l1][l2] == DOMINATES_IN_ALL || dominates_in[l1][l2] != lts);
 	assert(position_of_label[lts][l1] >= 0 &&  position_of_label[lts][l2] >= 0);
 
 	assert(value <= lqrel[lts][position_of_label[lts][l1]][position_of_label[lts][l2]]);
 	if(value < lqrel[lts][position_of_label[lts][l1]][position_of_label[lts][l2]]) {
 	    lqrel[lts][position_of_label[lts][l1]][position_of_label[lts][l2]] = value;
-	    if (value == std::numeric_limits<int>::lowest()) {
+	    if (value == std::numeric_limits<int>::lowest() && !dominates_in.empty()) {
 		if(dominates_in[l1][l2] == DOMINATES_IN_ALL){
 		    dominates_in[l1][l2] = lts;
 		}else if(dominates_in[l1][l2] != lts){
@@ -118,11 +110,13 @@ class NumericLabelRelation {
 		}else if(dominated_by_noop_in[l] != lts){
 		    dominated_by_noop_in[l] = DOMINATES_IN_NONE;
 		}
-		for(int l1 : irrelevant_labels_lts[lts]) {
-		    if(dominates_in[l1][l] == DOMINATES_IN_ALL){
-			dominates_in[l1][l] = lts;
-		    }else if(dominates_in[l1][l] != lts){
-			dominates_in[l1][l] = DOMINATES_IN_NONE;
+		if(!dominates_in.empty()) {
+		    for(int l1 : irrelevant_labels_lts[lts]) {
+			if(dominates_in[l1][l] == DOMINATES_IN_ALL){
+			    dominates_in[l1][l] = lts;
+			}else if(dominates_in[l1][l] != lts){
+			    dominates_in[l1][l] = DOMINATES_IN_NONE;
+			}
 		    }
 		}
 	    }
@@ -158,11 +152,13 @@ class NumericLabelRelation {
 		}else if(dominates_noop_in[l] != lts){
 		    dominates_noop_in[l] = DOMINATES_IN_NONE;
 		}
-		for(int l2 : irrelevant_labels_lts[lts]) {
-		    if(dominates_in[l][l2] == DOMINATES_IN_ALL){
-			dominates_in[l][l2] = lts;
-		    }else if(dominates_in[l][l2] != lts){
-			dominates_in[l][l2] = DOMINATES_IN_NONE;
+		if(!dominates_in.empty()) {
+		    for(int l2 : irrelevant_labels_lts[lts]) {
+			if(dominates_in[l][l2] == DOMINATES_IN_ALL){
+			    dominates_in[l][l2] = lts;
+			}else if(dominates_in[l][l2] != lts){
+			    dominates_in[l][l2] = DOMINATES_IN_NONE;
+			}
 		    }
 		}
 	    }
@@ -200,7 +196,26 @@ public:
 
     //Returns true if l dominates l2 in lts (simulates l2 in all j \neq lts)
     inline bool may_dominate (int l1, int l2, int lts) const{
+	if(dominates_in.empty()) {
+	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
+		if(lts_id != lts && get_lqrel(l1, l2, lts_id) == std::numeric_limits<int>::lowest() ) {
+		    return false;
+		}
+	    }
+	    return true;
+	}
+
         return dominates_in[l1][l2] == DOMINATES_IN_ALL || (dominates_in[l1][l2] == lts);
+    }
+
+    //Returns true if l1 simulates l2 in lts
+    inline bool may_simulate (int l1, int l2, int lts) const{
+	if(dominates_in.empty()) {
+	    return get_lqrel(l1, l2, lts) == std::numeric_limits<int>::lowest();
+	}
+        return dominates_in[l1][l2] !=  DOMINATES_IN_NONE &&
+	    (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
+	     dominates_in[l1][l2] != lts);
     }
 
     //Returns true if l1 simulates l2 in lts

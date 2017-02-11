@@ -20,6 +20,10 @@ void NumericLabelRelation<T>::init(const std::vector<LabelledTransitionSystem *>
     num_labels = labelMap.get_num_labels();
     num_ltss = lts.size();
 
+    cout << "Init label dominance: " << num_labels
+	      << " labels " << lts.size() << " systems." << endl;
+
+
     std::vector<std::vector<int> >().swap(position_of_label);
     std::vector<std::vector<std::vector<T> > >().swap(lqrel);
     std::vector<std::vector<T> >().swap(simulates_irrelevant);
@@ -42,6 +46,7 @@ void NumericLabelRelation<T>::init(const std::vector<LabelledTransitionSystem *>
 	    }
 	}
 
+	cout << "Relevant labels: " << num_relevant_labels << endl;
 	// for(int l : lts[i]->get_relevant_labels()) {
 	//     assert(position_of_label[i][l]  >= 0);
 	// }
@@ -56,15 +61,18 @@ void NumericLabelRelation<T>::init(const std::vector<LabelledTransitionSystem *>
 	}
     }
 
+    cout << "Dominating." << endl;
     std::vector<std::vector<int> > ().swap(dominates_in);
     std::vector<int> ().swap(dominated_by_noop_in);
     std::vector<int> ().swap(dominates_noop_in);
     dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
     dominates_noop_in.resize(num_labels, DOMINATES_IN_ALL);
-    dominates_in.resize(num_labels);
-
-    for (int l1 = 0; l1 < dominates_in.size(); ++l1){
-        dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
+    
+    if(num_labels < 5000) { // If we have more than 5000 labels, there is not enough space. 
+	dominates_in.resize(num_labels);
+	for (int l1 = 0; l1 < dominates_in.size(); ++l1){
+	    dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
+	}
     }
     cout << "Update label dominance: " << num_labels
 	      << " labels " << lts.size() << " systems." << endl;
