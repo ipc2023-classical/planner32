@@ -119,18 +119,37 @@ void NumericDominanceRelation<T>::precompute_bdds(SymVariables * vars,
 
 
 template <typename T> 
-BDD NumericDominanceRelation<T>::getDominatedBDD(SymVariables * vars, const State &state ) const{
-    BDD res = vars->oneBDD();
-    try{
-        for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
-            res *= (*it)->getSimulatedBDD(state);
-        }
-    }catch(BDDError e){
-        return vars->zeroBDD();
+BDD NumericDominanceRelation<T>::getDominatedBDD(SymVariables * vars, const State &state, 
+						 bool trade_off_dominance) const{
+
+    if(!trade_off_dominance) {
+	BDD res = vars->oneBDD();
+    
+	try{
+	    for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+		res *= (*it)->getSimulatedBDD(state);
+	    }
+	}catch(BDDError e){
+	    return vars->zeroBDD();
+	}
+	return res;
+    } else  {
+	BDD res = vars->zeroBDD();
+	try{
+	    map<T, BDD> mapa = getDominatedBDDMap (vars, state, true);
+	    for(auto & entry : mapa) {
+		assert (entry.first >= 0);
+		res += entry.second;
+	    }
+	}catch(BDDError e){
+	}	
+	return res;
     }
 
-    return res;
+
 }
+
+
 
 template <typename T> 
 BDD NumericDominanceRelation<T>::getDominatingBDD(SymVariables * vars, const State &state ) const{
@@ -150,19 +169,27 @@ BDD NumericDominanceRelation<T>::getDominatingBDD(SymVariables * vars, const Sta
 
 template<typename T>
 map<T, BDD> NumericDominanceRelation<T>::getDominatedBDDMap(SymVariables * vars, 
-							      const State &state ) const{
+							    const State &state, 
+							    bool only_positive ) const{   
     map<T, BDD> res; 
     res[T(0)] = vars->oneBDD();
 
+    T accumulated_value = total_max_value;
     for (auto it = simulations.rbegin(); it != simulations.rend(); it++){
+	accumulated_value -= (*it)->get_max_value();
 	const auto & sim_bdd_map = (*it)->getSimulatedBDDMap(state);
 	map<T, BDD> new_res; 
-
+	
 	for(const auto & entry : sim_bdd_map) {
 	    for(const auto & entry2 : res) {
 		try{
 		    if(entry.first != std::numeric_limits<int>::lowest()) {
 			T value = entry.first + entry2.first;
+			
+			if(only_positive && value + accumulated_value < 0) {
+			    continue;
+			}
+
 			if (new_res.count(value)) {
 			    new_res[value] += entry.second*entry2.second;
 			} else {

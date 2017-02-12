@@ -34,6 +34,7 @@ public:
     IntEpsilon & operator+=(const IntEpsilon & other) ;
     IntEpsilon & operator+=(const int & other) ;
     IntEpsilon & operator-=(const int & other) ;
+    IntEpsilon & operator-=(const IntEpsilon & other) ;
     IntEpsilon operator -() const;	
 
     template <typename T> 

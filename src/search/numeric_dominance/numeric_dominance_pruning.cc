@@ -33,6 +33,8 @@ NumericDominancePruning<T>::NumericDominancePruning(const Options &opts)
   remove_spurious_dominated_states(opts.get<bool>("remove_spurious")),
   insert_dominated(opts.get<bool>("insert_dominated")),
   use_quantified_dominance(opts.get<bool>("use_quantified_dominance")),
+  trade_off_dominance(opts.get<bool>("trade_off_dominance")),
+  only_positive_dominance(opts.get<bool>("only_positive_dominance")),
   use_ADDs(opts.get<bool>("use_adds")),
   prune_dominated_by_parent(opts.get<bool>("prune_dominated_by_parent")), 
   prune_successors(opts.get<bool>("prune_successors")), 
@@ -171,7 +173,9 @@ void NumericDominancePruning<T>::prune_applicable_operators(const State & state,
 template <typename T> 
 bool NumericDominancePruning<T>::prune_generation(const State &state, int g, 
 						  const State &/*parent*/, int /*action_cost*/ ) {
-    if(!apply_pruning() || !is_activated()) return false;
+    if(!(prune_dominated_by_open || prune_dominated_by_closed) || !is_activated()) { 
+	return false;
+    }
     
     // if(states_inserted%1000 == 0){
     // 	cout << "Deadend is still activated. "
@@ -212,28 +216,30 @@ bool NumericDominancePruning<T>::prune_generation(const State &state, int g,
 
 template <typename T> 
 bool NumericDominancePruning<T>::prune_expansion (const State & state, int g){
-    if(prune_dominated_by_open || prune_dominated_by_closed) {
-	if(is_activated()) {    
-	    //a) Check if state is in a BDD with g.closed <= g
-	    states_checked++;
-	    if(check(state, g)){
-		states_pruned ++;
-		return true;
-	    }
-	    //b) Insert state and other states dominated by it
-	    if(prune_dominated_by_closed){
-		insert(state, g);
-		states_inserted ++;
-	    }
-	}
+    if(!(prune_dominated_by_open || prune_dominated_by_closed) || !is_activated()) {
+	return false;
     }
+
+    //a) Check if state is in a BDD with g.closed <= g
+    states_checked++;
+    if(check(state, g)){
+	states_pruned ++;
+	return true;
+    }
+    //b) Insert state and other states dominated by it
+    if(prune_dominated_by_closed){
+	insert(state, g);
+	states_inserted ++;
+    }
+
     return false;
 }
 
 template <typename T> 
 BDD NumericDominancePruning<T>::getBDDToInsert(const State &state){
     if(insert_dominated){
-        BDD res = numeric_dominance_relation->getDominatedBDD(vars.get(), state);
+        BDD res = numeric_dominance_relation->getDominatedBDD(vars.get(), state, 
+							      trade_off_dominance);
 
         if(remove_spurious_dominated_states){
             res = mgr->filter_mutex(res, true, 1000000, true);
@@ -321,7 +327,15 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
     parser.add_option<bool>("use_quantified_dominance",
             "Prune with respect to the quantified or the qualitative dominance",
-            "true");
+            "false");
+
+    parser.add_option<bool>("trade_off_dominance",
+			    "Compute dominatedBDD trading off positive and negative values",
+			    "false");
+
+    parser.add_option<bool>("only_positive_dominance",
+            "Compute dominatedBDDMaps only for positive values",
+            "false");
 
     parser.add_option<bool>("use_adds",
             "Use ADDs (or BDD maps) to represent quantified dominance",
@@ -378,7 +392,8 @@ static Plugin<Heuristic> _plugin_h("num_simulation", _parse_h);
 template <>
 map<int, BDD> NumericDominancePruning<int>::getBDDMapToInsert(const State & state){
     assert(insert_dominated); 
-    map<int, BDD> res = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state);
+    map<int, BDD> res = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state, 
+								       only_positive_dominance);
     for(auto & it : res) {
 	BDD & bdd = it.second;
 	if(remove_spurious_dominated_states){
@@ -396,7 +411,8 @@ template <>
 map<int, BDD> NumericDominancePruning<IntEpsilon>::getBDDMapToInsert(const State & state){
     assert(insert_dominated); 
     map<int, BDD> res; 
-    map<IntEpsilon, BDD> dom = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state);
+    map<IntEpsilon, BDD> dom = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state,
+									      only_positive_dominance);
     for(const auto & it : dom) {
 	BDD bdd = it.second;
 	if(remove_spurious_dominated_states){

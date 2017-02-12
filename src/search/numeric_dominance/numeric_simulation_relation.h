@@ -27,6 +27,7 @@ protected:
     std::vector<std::vector<int> > reachable_with_tau;
 
     std::vector<std::vector<T> > relation;
+    T max_relation_value;
 
     //BDDs of each abstract state
     std::vector<BDD> abs_bdds;
@@ -98,6 +99,20 @@ public:
 
     inline const std::vector<std::vector<T> > & get_relation () {
         return relation;
+    }
+
+    T compute_max_value() {
+	max_relation_value = 0; 
+	for(const auto & row : relation) {
+	    for (T value : row) {
+		max_relation_value = std::max(max_relation_value, value);
+	    }
+	}
+	return max_relation_value;
+    }
+
+    T get_max_value () const {
+	return max_relation_value; 
     }
 
     inline T minus_shortest_path_with_tau(int from, int to) {

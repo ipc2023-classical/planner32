@@ -25,6 +25,8 @@ class NumericDominancePruning : public PruneHeuristic {
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
   const bool use_quantified_dominance;
+  const bool trade_off_dominance;
+  const bool only_positive_dominance;
   const bool use_ADDs;
 
   const bool prune_dominated_by_parent; 

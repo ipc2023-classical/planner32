@@ -11,7 +11,8 @@ using namespace std;
 template <typename T>
 NumericSimulationRelation<T>::NumericSimulationRelation(Abstraction * _abs, 
 							int truncate_value_) : abs(_abs), 
-									       truncate_value(truncate_value_) { 
+									       truncate_value(truncate_value_), 
+									       max_relation_value(0) { 
 }
 
 template <typename T>

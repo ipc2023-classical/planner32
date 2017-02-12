@@ -48,6 +48,17 @@ IntEpsilon & IntEpsilon::operator+=(const IntEpsilon & other) {
     return *this;
 }
 
+IntEpsilon & IntEpsilon::operator-=(const IntEpsilon & other) {
+    assert (epsilon*other.epsilon >= 0); //Check that both have the same sign    
+    value -= other.value;
+    if (epsilon == 0) { //Epsilon cannot be cancelled out
+	epsilon -= other.epsilon;
+    }
+    assert(epsilon >= -1 && epsilon <= 1);
+    return *this;
+}
+
+
 IntEpsilon & IntEpsilon::operator+=(const int & other_value) {
     value += other_value;
     return *this;

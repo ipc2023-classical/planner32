@@ -23,8 +23,7 @@ class NumericDominanceRelation {
 
     //Auxiliar data-structures to perform successor pruning 
     mutable std::set<int> relevant_simulations;
-    mutable std::vector<int> parent,parent_ids, succ;
-
+    mutable std::vector<int> parent, parent_ids, succ;
 
     const int truncate_value;
     NumericLabelRelation<T> label_dominance;
@@ -32,6 +31,7 @@ class NumericDominanceRelation {
 protected:
     std::vector<std::unique_ptr<NumericSimulationRelation<T>> > simulations;
     std::vector<int> simulation_of_variable;
+    T total_max_value; 
 
     std::unique_ptr<NumericSimulationRelation<T>> init_simulation (Abstraction * _abs);
 
@@ -85,6 +85,12 @@ protected:
 	//label_dominance.dump_dominance();
 	//exit(0);
 	//}
+
+
+	total_max_value = 0;
+	for (auto &  sim : simulations){
+	    total_max_value += sim->compute_max_value();
+	}
     }
 
 public:
@@ -129,9 +135,9 @@ public:
 			 bool quantified, bool use_ADD);
 
     //Methods to obtain the BDD representation for pruning
-    BDD getDominatedBDD(SymVariables * vars, const State &state) const;
+    BDD getDominatedBDD(SymVariables * vars, const State &state, bool trade_off_dominance) const;
     BDD getDominatingBDD(SymVariables * vars, const State &state) const;
-    std::map<T, BDD> getDominatedBDDMap(SymVariables * vars, const State &state) const;
+    std::map<T, BDD> getDominatedBDDMap(SymVariables * vars, const State &state, bool only_positive) const;
     //std::map<T, BDD> getDominatingBDDMap(SymVariables * vars, const State &state) const;
 
     /* map<int, BDD> getBDDMap(SymVariables * vars, const State &state, bool dominating); */
