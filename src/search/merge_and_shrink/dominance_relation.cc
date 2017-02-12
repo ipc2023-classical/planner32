@@ -186,7 +186,6 @@ void DominanceRelation::dump_statistics(bool expensive) const {
 }
 
 
-
 bool DominanceRelation::pruned_state(const State &state) const {
     for(auto & sim : simulations) {
         if(sim->pruned(state)){

@@ -44,11 +44,11 @@ public:
     
     virtual void compute_ld_simulation (std::vector<LabelledTransitionSystem *> & _ltss,
 				       const LabelMap & labelMap, 
-				       bool incremental_step) = 0;   
+					bool incremental_step, bool dump) = 0;   
 
     virtual void compute_ld_simulation (std::vector<LTSComplex *> & _ltss,
 				       const LabelMap & labelMap, 
-				       bool incremental_step) = 0;   
+				       bool incremental_step, bool dump) = 0;   
 
 
     virtual bool propagate_transition_pruning
@@ -140,8 +140,9 @@ class DominanceRelationLR : public DominanceRelation {
 
     template<typename LTS>
 	void compute_ld_simulation_template(std::vector<LTS *> & _ltss,
-				   const LabelMap & labelMap, 
-				   bool incremental_step) {
+					    const LabelMap & labelMap, 
+					    bool incremental_step, 
+					    bool dump) {
 	assert(_ltss.size() == simulations.size());
 	Timer t;
 
@@ -185,10 +186,12 @@ class DominanceRelationLR : public DominanceRelation {
 	    //return; //PIET-edit: remove this for actual runs; just here for debugging the complex stuff
 	}while(label_dominance.update(_ltss, *this));
 	std::cout << std::endl << "LDSim computed " << t() << std::endl;
-	//for(int i = 0; i < _ltss.size(); i++){
-	//_ltss[i]->dump();
-	//	_dominance_relation[i]->dump(_ltss[i]->get_names());
-	//}
+	if(dump) {
+	    for(int i = 0; i < _ltss.size(); i++){
+		//_ltss[i]->dump();
+		simulations[i]->dump(_ltss[i]->get_names());
+	    }
+	}
 	//label_dominance.dump_equivalent();
 	//label_dominance.dump_dominance();
 	//exit(0);
@@ -202,14 +205,14 @@ DominanceRelationLR(Labels * labels) : label_dominance(labels)
    
     virtual void compute_ld_simulation(std::vector<LabelledTransitionSystem *> & _ltss,
 				       const LabelMap & labelMap, 
-				       bool incremental_step){
-	compute_ld_simulation_template(_ltss, labelMap, incremental_step);
+				       bool incremental_step, bool dump){
+	compute_ld_simulation_template(_ltss, labelMap, incremental_step, dump);
     }  
 
     virtual void compute_ld_simulation(std::vector<LTSComplex *> & _ltss,
 				       const LabelMap & labelMap, 
-				       bool incremental_step){
-	compute_ld_simulation_template(_ltss, labelMap, incremental_step);
+				       bool incremental_step, bool dump){
+	compute_ld_simulation_template(_ltss, labelMap, incremental_step, dump);
     }  
  
     virtual bool propagate_transition_pruning(int lts_id,
@@ -239,8 +242,6 @@ DominanceRelationLR(Labels * labels) : label_dominance(labels)
 		}
 	    }
 	}
-
-
 
 	//b) prune transitions dominated by noop in a transition system
 	for (int l = 0; l < label_dominance.get_num_labels(); l++){

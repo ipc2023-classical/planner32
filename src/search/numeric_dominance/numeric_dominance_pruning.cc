@@ -456,9 +456,6 @@ void NumericDominancePruningBDDMap<T>::insert (const State & state, int g){
 	}
     } else {
 	BDD res = NumericDominancePruning<T>::getBDDToInsert(state);
-	if (g_min_action_cost == 0) {
-	    g += 1;
-	}
 	// cout << "Inserting with g= " << g << endl;
 	if (!closed.count(g)) {
 	    closed[g] = res;

@@ -9,8 +9,6 @@
 #include "shrink_composite.h"
 #include "shrink_own_labels.h"
 
-
-
 #include "merge_strategy.h"
 #include "variable_partition_finder.h"
 
@@ -88,11 +86,12 @@ void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost co
     if(compute_final_simulation)
 	ldSim->compute_final_simulation(simulation_type, 
 					label_dominance_type, 
-					    switch_off_label_dominance, 
-					    intermediate_simulations, complex_lts, 
-					    apply_subsumed_transitions_pruning, 
-					    apply_label_dominance_reduction, apply_simulation_shrinking,
-					    /*preserve_all_optimal_plans*/false); 
+					switch_off_label_dominance, 
+					intermediate_simulations, complex_lts, 
+					apply_subsumed_transitions_pruning, 
+					apply_label_dominance_reduction, apply_simulation_shrinking,
+					/*preserve_all_optimal_plans*/false,
+					dump); 
 
     if(prune_dead_operators) ldSim->prune_dead_ops();
 
@@ -158,6 +157,7 @@ void AbsBuilderMasSimulation::dump_options() const {
 
 AbstractionBuilder::AbstractionBuilder(const Options &opts_)  : 
     opts (opts_), expensive_statistics (opts.get<bool>("expensive_statistics")), 
+    dump(opts.get<bool>("dump")),
     limit_seconds_total(opts.get<int>("limit_seconds_total")), 
     limit_memory_kb_total(opts.get<int>("limit_memory_kb")) {     
 }
@@ -356,6 +356,8 @@ void AbstractionBuilder::add_options_to_parser(OptionParser &parser) {
 			    "prints a big warning on stderr with information on the performance impact. "
 			    "Don't use when benchmarking!)",
 			    "false");
+
+    parser.add_option<bool>("dump", "Dump relation", "false");
 
 
     parser.add_option<int>("limit_seconds_total",
@@ -655,7 +657,8 @@ void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_typ
 				    switch_off_label_dominance, 
 				    true, false, 
 				    true, 
-				    false, false, preserve_all_optimal_plans); 
+				    false, false, preserve_all_optimal_plans, 
+				    /*dump*/false); 
 
     ldSim->prune_dead_ops();
 
@@ -682,7 +685,8 @@ void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_typ
 				    switch_off_label_dominance, 
 				    true, false, 
 				    true, 
-				    false, false, preserve_all_optimal_plans); 
+				    false, false, preserve_all_optimal_plans, 
+				    dump); 
     
     ldSim->prune_dead_ops();
 
@@ -698,8 +702,6 @@ void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_typ
     strategies.push_back(own.get());
     strategies.push_back(bisim_limit.get());
     unique_ptr<ShrinkStrategy> shrink_combined (ShrinkComposite::create_default(strategies));
-    
-
 
     Abstraction::store_original_operators = false;
     

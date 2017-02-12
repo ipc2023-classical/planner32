@@ -15,6 +15,7 @@ class AbstractionBuilder {
     const Options opts;
 protected: 
     const bool expensive_statistics;
+    const bool dump;
 
     const int limit_seconds_total;
     const int limit_memory_kb_total; //Limit of seconds for building the abstraction

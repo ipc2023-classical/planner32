@@ -477,7 +477,8 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 			      complex_lts,
 			      apply_subsumed_transitions_pruning, 
 			      apply_label_dominance_reduction, 
-			      apply_simulation_shrinking, preserve_all_optimal_plans);
+			      apply_simulation_shrinking, preserve_all_optimal_plans, 
+			      /*incremental_step*/ false, /*dump*/ false);
 
     } else if (shrink_strategy) {
 	if(!forbid_lr){
@@ -658,7 +659,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 				  apply_subsumed_transitions_pruning, 
 				  apply_label_dominance_reduction, 
 				  apply_simulation_shrinking, preserve_all_optimal_plans,
-				  incremental_simulations);
+				  incremental_simulations, /*dump*/ false);
 	    
         }
 
@@ -701,7 +702,7 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
 					 bool apply_subsumed_transitions_pruning, 
 					 bool apply_label_dominance_reduction, 
 					 bool apply_simulation_shrinking, bool preserve_all_optimal_plans, 
-					 bool incremental_step ) {
+					 bool incremental_step, bool dump ) {
     if(!dominance_relation) {
 	dominance_relation = std::move(create_dominance_relation(simulation_type, 
 								 label_dominance_type, 
@@ -741,10 +742,10 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
     // Algorithm to compute LD simulation 
     if(complex_lts){
         dominance_relation->compute_ld_simulation(ltss_complex, labelMap,
-						  incremental_step);
+						  incremental_step, dump);
     }else{
         dominance_relation->compute_ld_simulation(ltss_simple, labelMap,
-						  incremental_step);
+						  incremental_step, dump);
     }
 
 
@@ -831,7 +832,7 @@ void LDSimulation::compute_final_simulation(SimulationType simulation_type,
 					    bool apply_subsumed_transitions_pruning, 
 					    bool apply_label_dominance_reduction, 
 					    bool apply_simulation_shrinking, 
-					    bool preserve_all_optimal_plans) {
+					    bool preserve_all_optimal_plans, bool dump) {
     cout << "Computing simulation..." << endl;
     if (!dominance_relation){
 	dominance_relation = std::move(create_dominance_relation(simulation_type, 
@@ -845,8 +846,8 @@ void LDSimulation::compute_final_simulation(SimulationType simulation_type,
 			  complex_lts,
 			  apply_subsumed_transitions_pruning, 
 			  apply_label_dominance_reduction, 
-			  apply_simulation_shrinking, preserve_all_optimal_plans);    
-
+			  apply_simulation_shrinking, preserve_all_optimal_plans,
+			  /*incremental_simulations*/ false, dump);
     cout << endl;
     cout << "Done initializing simulation heuristic [" << g_timer << "]"
 	 << endl;

@@ -128,6 +128,7 @@ BDD NumericDominanceRelation<T>::getDominatedBDD(SymVariables * vars, const Stat
     }catch(BDDError e){
         return vars->zeroBDD();
     }
+
     return res;
 }
 

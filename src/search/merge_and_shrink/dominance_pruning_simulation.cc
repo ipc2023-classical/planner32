@@ -52,6 +52,7 @@ void DominancePruningSimulation::initialize() {
         initialized = true;
 	abstractionBuilder->build_abstraction(is_unit_cost_problem() || cost_type == OperatorCost::ZERO, cost_type, ldSimulation, abstractions);
 	cout << "LDSimulation finished" << endl;
+ 
 
 	ldSimulation->release_memory();
 
@@ -140,21 +141,21 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g, con
         return true;
     }
 
-    if(ldSimulation->dominates(parent, state)) {
-	cerr << "Fatal error." << endl;
-	cout << "Parent: "; parent.dump_pddl();
-	cout << "State: "; state.dump_pddl();
+    // if(ldSimulation->dominates(parent, state)) {
+    // 	cerr << "Fatal error." << endl;
+    // 	cout << "Parent: "; parent.dump_pddl();
+    // 	cout << "State: "; state.dump_pddl();
 
-        insert(parent, g);
+    //     insert(parent, g);
 
-	if (check(state, g)){
-	    return true;
-	}
+    // 	if (check(state, g)){
+    // 	    return true;
+    // 	}
 
 
 
-	exit(EXIT_CRITICAL_ERROR);
-    }
+    // 	exit(EXIT_CRITICAL_ERROR);
+    // }
 
 
     //b) Insert state and other states dominated by it
