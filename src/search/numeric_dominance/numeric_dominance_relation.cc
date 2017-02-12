@@ -270,20 +270,24 @@ void NumericDominanceRelation<T>::prune_dominated_by_parent (const State & state
 							  }
 							  detected_dead_ends ++;
 							  return true;
+						      } 
+						      
+						      if (may_simulate) {
+							  T val = simulations[sim]->q_simulates(parent_ids[sim], succ_id);
+							  if(val == std::numeric_limits<int>::lowest()) {
+							      may_simulate = false;
+							      continue; //continue in order to ensure that all dead-ends are pruned
+							  }
+							  total_value += val;
 						      }
-						      T val = simulations[sim]->q_simulates(parent_ids[sim], succ_id);
-						      if(val == std::numeric_limits<int>::lowest()) {
-							  may_simulate = false;
-							  continue;
-						      }
-						      total_value += val;
 						  }
 						  relevant_simulations.clear();
 						  for(const auto & prepost : op->get_pre_post()){
 						      succ[prepost.var] = parent[prepost.var];
 						  }
 
-						  return may_simulate && total_value >= 0;
+						  //TODO: Use adjusted cost instead.
+						  return may_simulate && (total_value >= 0 || total_value + op->get_cost() > 0);
 					      }),
 			       applicable_operators.end());	
     if(ops_before > applicable_operators.size()) {

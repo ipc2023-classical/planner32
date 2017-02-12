@@ -121,8 +121,26 @@ public:
     virtual ~NumericDominancePruningBDDMap () = default;
 
     //Methods to keep dominated states in explicit search
-    virtual bool check (const State & state, int g);
-    virtual void insert (const State & state, int g);
+    virtual bool check (const State & state, int g) override;
+    virtual void insert (const State & state, int g) override;
+};
+
+
+
+template <typename T> 
+class NumericDominancePruningBDD : public NumericDominancePruning<T> {
+  BDD closed, closed_inserted;
+  bool initialized;
+
+public:
+    NumericDominancePruningBDD (const Options &opts) : 
+    NumericDominancePruning<T>(opts), initialized(false)
+    {}
+    virtual ~NumericDominancePruningBDD () = default;
+
+    //Methods to keep dominated states in explicit search
+    virtual bool check (const State & state, int g) override;
+    virtual void insert (const State & state, int g) override;
 };
 
 

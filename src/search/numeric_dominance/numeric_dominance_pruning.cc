@@ -328,6 +328,11 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "false");
 
 
+    parser.add_option<bool>("use_single_bdd",
+            "Use a single BDD to represent all dominated states",
+            "false");
+
+
     parser.add_option<double>("min_desactivation_ratio",
             "Ratio of pruned/checked needed to continue pruning the search.",
             "0.0");
@@ -344,7 +349,7 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     } else {
 	if (opts.get<bool> ("use_adds")) {
 	    return nullptr; //new NumericDominancePruningADD (opts);
-	} else if (opts.get<bool> ("use_quantified_dominance")) {
+	} else if (opts.get<bool> ("use_quantified_dominance") || !opts.get<bool> ("use_single_bdd")) {
 	    if(g_min_action_cost == 0) {
 		return new NumericDominancePruningBDDMap<IntEpsilon> (opts);
 	    } else {
@@ -352,9 +357,9 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 	    }
 	} else {
 	    if(g_min_action_cost == 0) {
-		return new NumericDominancePruningBDDMap<IntEpsilon> (opts);
+		return new NumericDominancePruningBDD<IntEpsilon> (opts);
 	    } else {
-		return new NumericDominancePruningBDDMap<int> (opts);
+		return new NumericDominancePruningBDD<int> (opts);
 	    }
 	}
     }
@@ -515,6 +520,36 @@ bool NumericDominancePruningBDDMap<T>::check (const State & state, int g){
     return false;
 }
 
+template <typename T>
+void NumericDominancePruningBDD<T>::insert (const State & state, int ){
+    assert(!NumericDominancePruning<T>::use_quantified_dominance); 
+
+    if(!initialized){
+        closed = NumericDominancePruning<T>::vars->zeroBDD();
+        closed_inserted = NumericDominancePruning<T>::vars->zeroBDD();
+        initialized=true;
+    }
+
+    closed += NumericDominancePruning<T>::getBDDToInsert(state);
+}
+
+template <typename T> 
+bool NumericDominancePruningBDD<T>::check (const State & state, int ){
+    if(!initialized){
+        closed = NumericDominancePruning<T>::vars->zeroBDD();
+        closed_inserted = NumericDominancePruning<T>::vars->zeroBDD();
+        initialized=true;
+    }
+
+    if(NumericDominancePruning<T>::insert_dominated){
+        auto sb = NumericDominancePruning<T>::vars->getBinaryDescription(state);
+        return !(closed.Eval(sb).IsZero());
+    } else{
+        BDD simulatingBDD = NumericDominancePruning<T>::ldSimulation->get_dominance_relation().getSimulatingBDD(NumericDominancePruning<T>::vars.get(), state);
+        return !((closed*simulatingBDD).IsZero());
+    }
+}
+
 template <typename T> 
 void NumericDominancePruning<T>::print_statistics()
  {
@@ -530,4 +565,7 @@ template class NumericDominancePruning<IntEpsilon>;
 
 template class NumericDominancePruningBDDMap<int>; 
 template class NumericDominancePruningBDDMap<IntEpsilon>; 
+
+template class NumericDominancePruningBDD<int>; 
+template class NumericDominancePruningBDD<IntEpsilon>; 
 
