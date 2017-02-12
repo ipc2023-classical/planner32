@@ -119,15 +119,17 @@ void NumericDominancePruning<T>::initialize() {
 
 template <typename T> 
 bool NumericDominancePruning<T>::is_dead_end(const State &state) {
-    if(ldSimulation && ldSimulation->has_dominance_relation() &&
-       /*is_activated() && */numeric_dominance_relation->pruned_state(state)){
-        deadends_pruned ++;
-        return true;
-    }
+    if(!prune_dominated_by_parent) {
+    // if(ldSimulation && ldSimulation->has_dominance_relation() &&
+    //    /*is_activated() && */numeric_dominance_relation->pruned_state(state)){
+    //     deadends_pruned ++;
+    //     return true;
+    // }
     
-    for (auto & abs : abstractions) {
-	if(abs->is_dead_end(state)) {
-	    return true;
+	for (auto & abs : abstractions) {
+	    if(abs->is_dead_end(state)) {
+		return true;
+	    }
 	}
     }
     return false;
@@ -153,48 +155,22 @@ int NumericDominancePruning<T>::compute_heuristic(const State &state) {
 template <typename T> 
 void NumericDominancePruning<T>::prune_applicable_operators(const State & state, int /*g*/,
 							 std::vector<const Operator *> & applicable_operators, SearchProgress & search_progress) {
-
+    bool applied_action_selection_pruning = false;
     if(prune_successors && applicable_operators.size() > 1) {
-	vector<int> parent (g_variable_domain.size());
-	for(int i = 0; i < g_variable_domain.size(); ++i) {
-	    parent[i] = state[i];
+	applied_action_selection_pruning = true;
+	if(numeric_dominance_relation->action_selection_pruning(state, applicable_operators, search_progress)) {
+	    return;
 	}
-	vector<int> succ (parent);
-	for (auto op : applicable_operators) {
-	    for(const auto & prepost : op->get_pre_post()){
-		succ[prepost.var] = prepost.post;
-	    }
+    } 
 
-	    //TODO: Use adjusted cost instead.
-	    if(numeric_dominance_relation->dominates_parent(succ, parent, op->get_cost())) {
-		search_progress.inc_action_selection(applicable_operators.size() - 1);
-		//cout << (applicable_operators.size() - 1) << " operators pruned because I have " << op->get_name() << endl;
-		applicable_operators.clear();
-		applicable_operators.push_back(op);
-		return;
-	    }
-	    
-	    for(const auto & prepost : op->get_pre_post()){
-		succ[prepost.var] = parent[prepost.var];
-	    }
-	}
+    if (prune_dominated_by_parent) {
+	numeric_dominance_relation->prune_dominated_by_parent(state, applicable_operators, search_progress, applied_action_selection_pruning);
     }
-    
-    // if(prune_dominated_by_parent) {
-    // 	applicable_operators.erase(remove_if(applicable_operators.begin(),
-    // 					     applicable_operators.end(), [&](const Operator * op) {
-    // 						 return numeric_dominance_relation->parent_dominates_successor(state, op);
-    // 					     }),
-    // 				   applicable_operators.end());
-    //    }
-    // }
-	
-       
 }
 
 template <typename T> 
 bool NumericDominancePruning<T>::prune_generation(const State &state, int g, 
-					       const State &parent, int action_cost ) {
+						  const State &/*parent*/, int /*action_cost*/ ) {
     if(!apply_pruning() || !is_activated()) return false;
     
     // if(states_inserted%1000 == 0){
@@ -210,13 +186,13 @@ bool NumericDominancePruning<T>::prune_generation(const State &state, int g,
     // 	     <<  endl;
     // }
 
-    if(numeric_dominance_relation->pruned_state(state)){
+    if(!prune_dominated_by_parent && numeric_dominance_relation->pruned_state(state)){
         return true;
-    } 
-
-    if(prune_dominated_by_parent) {
-	return numeric_dominance_relation->dominates(parent, state, action_cost);
     }
+
+    // if(prune_dominated_by_parent) {
+    // 	return numeric_dominance_relation->dominates(parent, state, action_cost);
+    // }
 
     // a) Check if state is in a BDD with g.closed <= g
     states_checked ++;

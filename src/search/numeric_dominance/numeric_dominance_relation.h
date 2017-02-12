@@ -11,6 +11,8 @@
 class LabelledTransitionSystem;
 class LTSComplex;
 class Operator;
+class SearchProgress;
+
 /*
  * Class that represents the collection of simulation relations for a
  * factored LTS. Uses unique_ptr so that it owns the simulations and
@@ -19,11 +21,17 @@ class Operator;
 template <typename T>
 class NumericDominanceRelation {
 
+    //Auxiliar data-structures to perform successor pruning 
+    mutable std::set<int> relevant_simulations;
+    mutable std::vector<int> parent,parent_ids, succ;
+
+
     const int truncate_value;
     NumericLabelRelation<T> label_dominance;
 
 protected:
     std::vector<std::unique_ptr<NumericSimulationRelation<T>> > simulations;
+    std::vector<int> simulation_of_variable;
 
     std::unique_ptr<NumericSimulationRelation<T>> init_simulation (Abstraction * _abs);
 
@@ -88,6 +96,16 @@ public:
 								label_dominance(labels,
 										compute_tau_labels_with_noop_dominance) 
     {}
+
+
+								
+    bool action_selection_pruning (const State & state, 
+				   std::vector<const Operator *> & applicable_operators,
+				   SearchProgress & search_progress) const;
+    void prune_dominated_by_parent (const State & state, 
+				   std::vector<const Operator *> & applicable_operators,
+				   SearchProgress & search_progress, bool parent_ids_stored) const;
+
  
     //Methods to use the dominance relation 
     bool pruned_state(const State &state) const;
