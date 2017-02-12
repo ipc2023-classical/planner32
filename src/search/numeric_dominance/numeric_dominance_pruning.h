@@ -48,6 +48,7 @@ class NumericDominancePruning : public PruneHeuristic {
   const double min_desactivation_ratio;
 
   const bool dump;
+  const bool exit_after_preprocessing;
   
   std::unique_ptr<SymVariables> vars; //The symbolic variables are declared here  
   std::unique_ptr<SymManager> mgr;    //The symbolic manager to handle mutex BDDs

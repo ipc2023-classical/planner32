@@ -43,7 +43,7 @@ NumericDominancePruning<T>::NumericDominancePruning(const Options &opts)
   truncate_value(opts.get<int>("truncate_value")), 
   min_insertions_desactivation(opts.get<int>("min_insertions")),
   min_desactivation_ratio(opts.get<double>("min_desactivation_ratio")),
-    dump(opts.get<bool>("dump")), 
+    dump(opts.get<bool>("dump")), exit_after_preprocessing(opts.get<bool>("exit_after_preprocessing")),
   vars(new SymVariables()), abstractionBuilder(opts.get<AbstractionBuilder *>("abs")),
   all_desactivated(false), activation_checked(false), 
   states_inserted(0), states_checked(0), states_pruned(0), deadends_pruned(0) {
@@ -116,6 +116,11 @@ void NumericDominancePruning<T>::initialize() {
 
 	}
         cout << "Completed preprocessing: " << g_timer() << endl;
+	
+	if (exit_after_preprocessing) {
+	    cout << "Exit after preprocessing." << endl;
+	    exit_with(EXIT_UNSOLVED_INCOMPLETE);
+	}
     }
 }
 
@@ -281,6 +286,10 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
     parser.add_option<bool>("dump",
             "Dumps the relation that has been found",
+            "false");
+
+    parser.add_option<bool>("exit_after_preprocessing",
+            "Exit after preprocessing",
             "false");
 
     parser.add_option<bool>("compute_tau_labels_with_noop_dominance",
