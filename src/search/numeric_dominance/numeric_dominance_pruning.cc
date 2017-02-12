@@ -112,7 +112,7 @@ void NumericDominancePruning<T>::initialize() {
 	    mgrParams.print_options();
 
 	    numeric_dominance_relation->precompute_bdds(vars.get(), !insert_dominated, 
-							use_quantified_dominance, use_ADDs);
+							use_quantified_dominance || trade_off_dominance, use_ADDs);
 
 	}
         cout << "Completed preprocessing: " << g_timer() << endl;
@@ -394,6 +394,7 @@ map<int, BDD> NumericDominancePruning<int>::getBDDMapToInsert(const State & stat
     assert(insert_dominated); 
     map<int, BDD> res = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state, 
 								       only_positive_dominance);
+
     for(auto & it : res) {
 	BDD & bdd = it.second;
 	if(remove_spurious_dominated_states){
@@ -403,6 +404,18 @@ map<int, BDD> NumericDominancePruning<int>::getBDDMapToInsert(const State & stat
 	if(prune_dominated_by_open){
 	    bdd -= vars->getStateBDD(state); //Remove the state
 	}
+    }
+
+    if(res.begin()->first < 0) {
+	map<int, BDD> new_res ; 
+	for (const auto & entry : res) {
+	    int value = entry.first;
+	    if( value < 0) {
+		value--;
+	    }
+	    new_res[value] = entry.second;
+	} 
+	return new_res;
     }
     return res;
 }
@@ -425,7 +438,7 @@ map<int, BDD> NumericDominancePruning<IntEpsilon>::getBDDMapToInsert(const State
 
 	int value = it.first.get_value();
 	if(value < 0 || it.first.get_epsilon() < 0) {
-	    value -= 1;
+	    value --;
 	}
 	if(!res.count(value)) {
 	    res[value] = bdd;
