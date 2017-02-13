@@ -375,8 +375,6 @@ vector<IntEpsilonSum> Abstraction::recompute_goal_distances_with_epsilon() const
     vector<vector<pair<int, IntEpsilonSum> > > backward_graph(num_states);
     for (int label_no = 0; label_no < num_labels; label_no++) {
         IntEpsilonSum label_cost = epsilon_if_zero<IntEpsilonSum>(get_label_cost_by_index(label_no));
-
-	cout << label_cost << endl;
 	assert(label_cost != IntEpsilonSum(0));
 
         const vector<AbstractTransition> &transitions = transitions_by_label[label_no];
