@@ -60,13 +60,14 @@ public:
 };
 
 
-class LabelMap{
+class LabelMap {
     //mapping from labels to labels for LTSs (hack to get rid of not useful labels)
     int num_valid_labels;
     std::vector<int> label_id;
     std::vector<int> old_label_id;
 public:
     LabelMap(Labels * labels){
+		//TODO: Ensure that all dead labels are removed
         num_valid_labels = 0;
         label_id.reserve(labels->get_size());
         old_label_id.reserve(labels->get_size());

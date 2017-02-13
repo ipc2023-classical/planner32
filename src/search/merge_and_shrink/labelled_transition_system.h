@@ -40,6 +40,7 @@ class LTSTransition {
   bool operator>=(const LTSTransition &other) const {
     return !(*this < other);
   }
+
 };
 
 //Alvaro: Class added to implement the simple simulation

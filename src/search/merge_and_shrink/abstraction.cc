@@ -15,6 +15,8 @@
 #include "../priority_queue.h"
 #include "../timer.h"
 #include "../utilities.h"
+#include "../numeric_dominance/int_epsilon.h"
+#include "../numeric_dominance/dijkstra_search_epsilon.h"
 
 #include <algorithm>
 #include <cassert>
@@ -367,6 +369,37 @@ void Abstraction::compute_goal_distances_general_cost() {
     }
     dijkstra_search(backward_graph, queue, goal_distances);
 }
+
+vector<IntEpsilonSum> Abstraction::recompute_goal_distances_with_epsilon() const {
+    vector<IntEpsilonSum> new_goal_distances (num_states, std::numeric_limits<int>::max()); 
+    vector<vector<pair<int, IntEpsilonSum> > > backward_graph(num_states);
+    for (int label_no = 0; label_no < num_labels; label_no++) {
+        IntEpsilonSum label_cost = epsilon_if_zero<IntEpsilonSum>(get_label_cost_by_index(label_no));
+
+	cout << label_cost << endl;
+	assert(label_cost != IntEpsilonSum(0));
+
+        const vector<AbstractTransition> &transitions = transitions_by_label[label_no];
+        for (int j = 0; j < transitions.size(); j++) {
+            const AbstractTransition &trans = transitions[j];
+            backward_graph[trans.target].push_back(
+		make_pair(trans.src, label_cost));
+        }
+    }
+
+    // TODO: Reuse the same queue for multiple computations to save speed?
+    //       Also see compute_init_distances_general_cost.
+    HeapQueue<IntEpsilonSum, int> queue;
+    for (AbstractStateRef state = 0; state < num_states; state++) {
+        if (goal_states[state]) {
+            new_goal_distances[state] = 0;
+            queue.push(0, state);
+        }
+    }
+    dijkstra_search_epsilon(backward_graph, queue, new_goal_distances, nullptr);
+    return new_goal_distances;
+}
+
 
 void AtomicAbstraction::apply_abstraction_to_lookup_table(
     const vector<AbstractStateRef> &abstraction_mapping) {
@@ -1655,7 +1688,9 @@ int Abstraction::prune_transitions_dominated_label_all(int label_no/*, const Lab
 	if(store_original_operators) vector<boost::dynamic_bitset<>> ().swap(transitions_by_label_based_on_operators[label_no]);
         clear_distances();
 	//->kill_label(label_map.get_id(label_no));
+
     }
+
     return num;
 }
 
@@ -2197,10 +2232,15 @@ CompositeAbstraction::CompositeAbstraction(const CompositeAbstraction & o)  :
     components[1] = o.components[1];
 }
 
-
-
-
-
-
-
-
+// bool Abstraction::assert_no_dead_labels() const {
+//     cout << "Transitions by label: " << transitions_by_label.size() << endl; 
+//     cout << "Num labels: " << labels->get_size() << endl; 
+//     for (int l = 0; l < transitions_by_label.size(); ++l) {
+// 	if((relevant_labels[l] || transitions_by_label[l].empty()) && labels->is_irrelevant(l)) {
+// 	    cout << "Label " << l << " is irrelevnat but " << relevant_labels[l]
+// 		 << " and " << transitions_by_label[l].empty() << endl;
+// 	}
+//     }
+    
+//     return true;
+// }

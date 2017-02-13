@@ -258,9 +258,6 @@ bool NumericDominanceRelation<T>::action_selection_pruning(const State & state,
     return false;
 }
 
-
-
-
 template <typename T> 
 void NumericDominanceRelation<T>::prune_dominated_by_parent (const State & state, 
 							     std::vector<const Operator *> & applicable_operators,
@@ -308,6 +305,7 @@ void NumericDominanceRelation<T>::prune_dominated_by_parent (const State & state
 							  total_value += val;
 						      }
 						  }
+
 						  relevant_simulations.clear();
 						  for(const auto & prepost : op->get_pre_post()){
 						      succ[prepost.var] = parent[prepost.var];

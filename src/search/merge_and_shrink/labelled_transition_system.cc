@@ -44,7 +44,6 @@ LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs, const La
 	      }*/
 	}
     }
-
 }
 
 void LabelledTransitionSystem::kill_transition(int src, int label, int target) {

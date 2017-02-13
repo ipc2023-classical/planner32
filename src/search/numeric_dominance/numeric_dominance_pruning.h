@@ -22,6 +22,7 @@ class NumericDominancePruning : public PruneHeuristic {
 
   bool initialized;
   const bool compute_tau_labels_with_noop_dominance;
+  const bool compute_tau_labels_as_self_loops_everywhere;
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
   const bool use_quantified_dominance;

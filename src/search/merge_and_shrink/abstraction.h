@@ -19,6 +19,7 @@ class SimulationRelation;
 class LabelledTransitionSystem;
 class LTSComplex;
 class DominanceRelation;
+class IntEpsilonSum; 
 
 typedef int AbstractStateRef;
 
@@ -153,6 +154,8 @@ public:
     int total_transitions() const;
     int total_transition_operators() const;
 
+    //bool assert_no_dead_labels() const ;
+
     // Two methods to identify the abstraction in output.
     // tag is a convience method that upper-cases the first letter of
     // description and appends ": ";
@@ -211,6 +214,8 @@ public:
     const std::vector<int> & get_goal_distances() const {
         return goal_distances;
     }
+
+    std::vector<IntEpsilonSum> recompute_goal_distances_with_epsilon() const;
 
     int get_goal_distance(int state) const {
         return goal_distances[state];

@@ -49,9 +49,7 @@ protected:
 	    std::cout << lts->size() << " states and " << lts->num_transitions() << " transitions" << std::endl;
 	}
 
-	
         label_dominance.init(_ltss, *this, labelMap);
-	
 	std::cout << "  Init numLDSim in " << t() << "s: " << std::flush;
 	do{
 	    num_iterations++;
@@ -97,10 +95,11 @@ public:
 
     NumericDominanceRelation(Labels * labels, 
 			     int truncate_value_, 
-			     bool compute_tau_labels_with_noop_dominance) : 
+			     bool compute_tau_labels_with_noop_dominance, 
+			     bool compute_tau_labels_as_self_loops_everywhere) : 
 								truncate_value(truncate_value_),
 								label_dominance(labels,
-										compute_tau_labels_with_noop_dominance) 
+										compute_tau_labels_with_noop_dominance,  compute_tau_labels_as_self_loops_everywhere) 
     {}
 
 

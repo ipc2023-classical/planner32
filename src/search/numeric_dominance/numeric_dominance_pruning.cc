@@ -30,6 +30,7 @@ NumericDominancePruning<T>::NumericDominancePruning(const Options &opts)
 : PruneHeuristic(opts), 
   mgrParams(opts), initialized(false),
   compute_tau_labels_with_noop_dominance(opts.get<bool>("compute_tau_labels_with_noop_dominance")),
+  compute_tau_labels_as_self_loops_everywhere(opts.get<bool>("compute_tau_labels_as_self_loops_everywhere")),
   remove_spurious_dominated_states(opts.get<bool>("remove_spurious")),
   insert_dominated(opts.get<bool>("insert_dominated")),
   use_quantified_dominance(opts.get<bool>("use_quantified_dominance")),
@@ -70,7 +71,9 @@ void NumericDominancePruning<T>::dump_options() const {
 
     cout <<  endl 
 	 << "compute_tau_labels_with_noop_dominance: " << 
-	compute_tau_labels_with_noop_dominance << endl
+	compute_tau_labels_with_noop_dominance << endl 	 
+	 << "compute_tau_labels_as_self_loops_everywhere: " << 
+	compute_tau_labels_as_self_loops_everywhere << endl
 	 << "truncate_value: " << truncate_value << endl;
 }
 
@@ -94,7 +97,8 @@ void NumericDominancePruning<T>::initialize() {
 	if(apply_pruning()) {
 	    ldSimulation->
 		compute_numeric_dominance_relation<T>(truncate_value, 
-						      compute_tau_labels_with_noop_dominance,
+						      compute_tau_labels_with_noop_dominance, 
+						      compute_tau_labels_as_self_loops_everywhere, 
 						      dump, numeric_dominance_relation);
 	}
 
@@ -295,6 +299,11 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     parser.add_option<bool>("compute_tau_labels_with_noop_dominance",
             "Use stronger notion of tau labels based on noop dominance",
             "false");
+
+
+    parser.add_option<bool>("compute_tau_labels_as_self_loops_everywhere",
+            "Use stronger notion of tau labels based on self loops everywhere",
+            "true");
 
 
     parser.add_option<bool>("remove_spurious",

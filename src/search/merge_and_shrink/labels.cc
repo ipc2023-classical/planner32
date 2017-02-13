@@ -107,6 +107,7 @@ void Labels::prune_irrelevant_labels(){
     }
 }
 
+
 bool Labels::applies_perfect_label_reduction() const {
     return label_reducer->applies_perfect_label_reduction();
-}
+    }

@@ -136,6 +136,7 @@ public:
     template <typename T> 
 	void compute_numeric_dominance_relation(int truncate_value, 
 						bool compute_tau_labels_with_noop_dominance, 
+						bool compute_tau_labels_as_self_loops_everywhere, 
 						bool dump, 
 						std::unique_ptr<NumericDominanceRelation<T>> & result) const;
 

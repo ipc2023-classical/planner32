@@ -9,7 +9,7 @@
 using namespace std;
 
 template <typename T>
-NumericLabelRelation<T>::NumericLabelRelation(Labels * _labels, bool compute_tau_labels_with_noop_dominance_) : compute_tau_labels_with_noop_dominance (compute_tau_labels_with_noop_dominance_),  labels (_labels), num_labels(_labels->get_size()){
+NumericLabelRelation<T>::NumericLabelRelation(Labels * _labels, bool compute_tau_labels_with_noop_dominance_, bool compute_tau_labels_as_self_loops_everywhere_) : compute_tau_labels_with_noop_dominance (compute_tau_labels_with_noop_dominance_),compute_tau_labels_as_self_loops_everywhere (compute_tau_labels_as_self_loops_everywhere_),  labels (_labels), num_labels(_labels->get_size()){
 
 }
 
@@ -96,8 +96,8 @@ void NumericLabelRelation<T>::init(const std::vector<LabelledTransitionSystem *>
 		tau_labels[dominates_noop_in[l]].push_back(l);
 	    } 
 	}
-    } else {
-	cout << "Compute tau labels as self-loops everywhere" << endl;
+    } else if (compute_tau_labels_as_self_loops_everywhere) {
+	int num_tau_labels = 0;
 	for(int l = 0; l < num_labels; l++) {
 	    int transition_system_relevant = -1;
 	    for (int lts_id = 0; lts_id < num_ltss; ++lts_id){
@@ -111,11 +111,16 @@ void NumericLabelRelation<T>::init(const std::vector<LabelledTransitionSystem *>
 		}
 	    }
 	    //TODO: check why there are labels irrelevant everywhere
-	    //assert(transition_system_relevant != -1);
+	    // assert(transition_system_relevant != -1);
 	    if(transition_system_relevant >= 0) {
+		num_tau_labels ++;
 		tau_labels[transition_system_relevant].push_back(l);
 	    }
 	}
+	cout << "Computed tau labels as self-loops everywhere: " << num_tau_labels  << " / " << num_labels << endl;
+
+    } else {
+     	cout << "No tau labels" << endl;
     }
 
     // for (int lts_id = 0; lts_id < lts.size(); ++lts_id) {
@@ -133,15 +138,16 @@ bool NumericLabelRelation<T>::update(const std::vector<LabelledTransitionSystem*
         changes |= update(i, lts[i], sim[i]);
     }
 
-    for (int lts_id = 0; lts_id < lts.size(); ++lts_id) {
-	tau_labels[lts_id].erase(remove_if(tau_labels[lts_id].begin(),
+    if(compute_tau_labels_with_noop_dominance) {
+	for (int lts_id = 0; lts_id < lts.size(); ++lts_id) {
+	    tau_labels[lts_id].erase(remove_if(tau_labels[lts_id].begin(),
 					   tau_labels[lts_id].end(), [&](int label) {
 					       return dominates_noop_in[label] != DOMINATES_IN_ALL &&
 						   dominates_noop_in[label] != lts_id;
-					   }),
-				 tau_labels[lts_id].end());
-    }
-				 
+					       }),
+				     tau_labels[lts_id].end());
+	}
+    }				 
 		
     return changes;
 }

@@ -3,7 +3,6 @@
 #include <cassert>
 using namespace std;
 
-
 bool IntEpsilon::operator< (const IntEpsilon & other) const {
     return value < other.value || 
 		   (value == other.value &&
@@ -58,7 +57,6 @@ IntEpsilon & IntEpsilon::operator-=(const IntEpsilon & other) {
     return *this;
 }
 
-
 IntEpsilon & IntEpsilon::operator+=(const int & other_value) {
     value += other_value;
     return *this;
@@ -83,4 +81,72 @@ ostream &operator<<(ostream &os, const IntEpsilon & other) {
 	os << "(-e)";	
     }
     return os; 
+}
+
+
+
+
+
+
+
+bool IntEpsilonSum::operator< (const IntEpsilonSum & other) const {
+    return value < other.value || 
+		   (value == other.value &&
+		    epsilon < other.epsilon);
+}
+
+bool IntEpsilonSum::operator<=(const IntEpsilonSum & other) const {
+    return value < other.value || 
+		   (value == other.value &&
+		    epsilon <= other.epsilon);
+}
+
+
+bool IntEpsilonSum::operator> (const IntEpsilonSum & other) const {
+    return value > other.value || 
+		   (value == other.value &&
+		    epsilon > other.epsilon);
+}
+
+bool IntEpsilonSum::operator>=(const IntEpsilonSum & other) const {
+    return value > other.value || 
+		   (value == other.value &&
+		    epsilon >= other.epsilon);
+}
+
+bool IntEpsilonSum::operator==(const IntEpsilonSum & other) const {
+    return value == other.value &&
+	epsilon == other.epsilon;
+}
+
+bool IntEpsilonSum::operator!=(const IntEpsilonSum & other) const {
+    return value != other.value || epsilon != other.epsilon;
+}
+
+IntEpsilonSum & IntEpsilonSum::operator+=(const IntEpsilonSum & other) {
+    value += other.value;
+    epsilon += other.epsilon;
+    return *this;
+}
+
+
+
+IntEpsilonSum & IntEpsilonSum::operator-=(const IntEpsilonSum & other) {
+    value -= other.value;
+    epsilon -= other.epsilon;
+    return *this;
+}
+
+
+IntEpsilon IntEpsilonSum::get_epsilon_negative() const {
+    int new_epsilon = 0; 
+
+    if(value == 0 && epsilon < 0) {
+	new_epsilon = -1;
+    }
+    return IntEpsilon(value, new_epsilon);
+}
+
+ostream &operator<<(ostream &os, const IntEpsilonSum & other) {
+    return os << other.value << "(" << other.epsilon << " e)";	
 }

@@ -5,6 +5,7 @@
 #include "../merge_and_shrink/labelled_transition_system.h" 
 #include "../priority_queue.h"
 #include "../debug.h"
+#include "dijkstra_search_epsilon.h"
 
 using namespace std;
 
@@ -18,6 +19,7 @@ NumericSimulationRelation<T>::NumericSimulationRelation(Abstraction * _abs,
 template <typename T>
 void NumericSimulationRelation<T>::init_goal_respecting() {
     assert(abs->are_distances_computed());
+    //assert(abs->no_dead_labels()); 
     int num_states = abs->size();
     //const std::vector <bool> & goal_states = abs->get_goal_states();
     const std::vector <int> & goal_distances = abs->get_goal_distances();
@@ -31,15 +33,37 @@ void NumericSimulationRelation<T>::init_goal_respecting() {
     }
 }
 
+
+template <>
+void NumericSimulationRelation<IntEpsilon>::init_goal_respecting() {
+    assert(abs->are_distances_computed());
+    //assert(abs->no_dead_labels()); 
+    int num_states = abs->size();
+    cout << "Recompute distances with epsilon" << endl;
+    std::vector <IntEpsilonSum> goal_distances = abs->recompute_goal_distances_with_epsilon();
+    relation.resize(num_states);
+    for(int s = 0; s < num_states; s++){
+        relation[s].resize(num_states);
+	for (int t = 0; t < num_states; t++){
+	    // qrel (t, s) = h*(t) - h*(s)
+	    IntEpsilonSum rel = (goal_distances[t] - goal_distances[s]);
+
+	    relation[s][t] = rel.get_epsilon_negative();
+	}
+    }
+}
+
 template <typename T>
 T NumericSimulationRelation<T>::compare_transitions(int lts_id, const LTSTransition & trs, 
 						   const LTSTransition & trt, 
-						    T tau_distance, const NumericLabelRelation<T> & label_dominance) const {
+						    T tau_distance, 
+						    const NumericLabelRelation<T> & label_dominance) const {
     if(label_dominance.may_dominate (trt.label, trs.label, lts_id) &&
        may_simulate(trt.target, trs.target)) {
+
 	return tau_distance + label_dominance.q_dominates(trt.label, trs.label, lts_id)
-	    + abs->get_label_cost_by_index(trs.label)
-	    - abs->get_label_cost_by_index(trt.label)
+	    + get_label_cost(trs.label)
+	    - get_label_cost(trt.label)
 	    + q_simulates(trt.target, trs.target);
     } else {
 	return std::numeric_limits<int>::lowest();
@@ -53,9 +77,10 @@ T NumericSimulationRelation<T>::compare_noop(int lts_id, const LTSTransition & t
 
     // Checking noop 
     if(may_simulate(t, trs.target) && label_dominance.may_dominated_by_noop(trs.label, lts_id)) {
+
 	return tau_distance + 
 	    q_simulates(t, trs.target) +
-	    abs->get_label_cost_by_index(trs.label) +
+	    get_label_cost(trs.label) +
 	    label_dominance.q_dominated_by_noop(trs.label, lts_id);
     } else {
 	return std::numeric_limits<int>::lowest();
@@ -84,28 +109,29 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
                     T previous_value = q_simulates(t, s);
 		    // cout << "prev: " << previous_value << endl;
 		    T lower_bound = minus_shortest_path_with_tau(t,s);
-		    // cout << "minimum value: " << previous_value << endl;		    
-
+		    
 		    assert(lower_bound <= previous_value);
 		    if(lower_bound == previous_value) {
 			continue;
 		    }
 
 		    T min_value = previous_value;
+		    if (lts->is_goal(t) || !lts->is_goal(s)) {
 
-		    if (lts->is_goal(t) || !lts->is_goal(s) ){
 			//Check if really t simulates s
 			//for each transition s--l->s':
 			// a) with noop t >= s' and l dominated by noop?
 			// b) exist t--l'-->t', t' >= s' and l dominated by l'?
 			lts->applyPostSrc(s, [&](const LTSTransition & trs) {
+
 				T max_value = std::numeric_limits<int>::lowest();
 
 				for (int t2 : reachable_with_tau[t]) {
-				    T tau_distance = minus_shortest_path_with_tau(t, t2);
+				    T tau_distance = minus_shortest_path_with_tau(t, t2);			    
 
 				    max_value = max(max_value, 
 						    compare_noop(lts_id, trs, t2, tau_distance, label_dominance));
+
 				    if (max_value >= min_value) {
 					return false; // Go to next transition
 				    }
@@ -113,6 +139,7 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 				    lts->applyPostSrc(t2,[&](const LTSTransition & trt) {
 					    max_value = max(max_value, 
 							    compare_transitions(lts_id, trs, trt, tau_distance, label_dominance));
+				    
 					    return max_value >= min_value; 
 					    //break if we have found a transition that simulates with the best result possible
 					});
@@ -158,9 +185,10 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 
 		    assert(min_value <= previous_value);
 		    if(min_value < previous_value) {
-			// cout << "Updating " << lts->get_names()[s] << " <= " << lts->get_names()[t]
-			//      << " with " << new_value << " before " << previous_value
-			//      << " minimum: " << minimum_value << endl;
+			    // cout << "Updating " << lts->get_names()[s] << " <= " << lts->get_names()[t]
+			    // 	 << " with " << min_value << " before " << previous_value
+			    // 	 << " minimum: " << minimum_value << endl;
+
 			update_value(t, s,  min_value);
 			changes = true;
 		    }
@@ -213,59 +241,6 @@ T NumericSimulationRelation<T>::q_simulates (const vector<int> & t, const vector
     return q_simulates(tid, sid);
 }
 
-
-//Copied from abstraction.cc (move somewhere else?)
-template <typename T, typename Queue>
-static void dijkstra_search_impl(
-    const vector<vector<pair<int, T> > > &graph,
-    Queue &queue,
-    vector<T> &distances,
-    vector<int> & states_reached) {
-    while (!queue.empty()) {
-        pair<T, int> top_pair = queue.pop();
-        T distance = top_pair.first;
-        int state = top_pair.second;
-        T state_distance = distances[state];
-	states_reached.push_back(state);
-        assert(state_distance <= distance);
-        if (state_distance < distance)
-            continue;
-        for (int i = 0; i < graph[state].size(); i++) {
-            const auto &transition = graph[state][i];
-            int successor = transition.first;
-            T cost = T(transition.second);
-            T successor_cost = state_distance + cost;
-            if (distances[successor] > successor_cost) {
-                distances[successor] = successor_cost;
-                queue.push(successor_cost, successor);
-            }
-        }
-    }
-}
-
-static void dijkstra_search(
-    const vector<vector<pair<int, int> > > &graph,
-    int initial_state,
-    vector<int> &distances,
-    vector<int> & states_reached) {
-    AdaptiveQueue<int, int> queue;
-    queue.push(0, initial_state);
-    dijkstra_search_impl(graph, queue, distances, states_reached);
-}
-
-
-static void dijkstra_search(
-    const vector<vector<pair<int, IntEpsilon> > > &graph,
-    int initial_state,
-    vector<IntEpsilon> &distances,
-    vector<int> & states_reached) {
-    HeapQueue<IntEpsilon, int> queue;
-    IntEpsilon initial_state_cost(0);
-    queue.push(initial_state_cost, initial_state);
-    dijkstra_search_impl(graph, queue, distances, states_reached);
-}
-
-
 template <typename T>
 void NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
 								     const NumericLabelRelation<T> & label_dominance) {
@@ -283,13 +258,11 @@ void NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const Label
     vector<vector<pair<int, T> > > tau_graph(num_states);
     for (int label_no : tau_labels) {
 	if(label_dominance.may_dominate_noop_in(label_no, lts_id)) {
-	    int lab_cost = abs->get_label_cost_by_index(label_no);
-	    T label_cost = T(lab_cost); 
-	    if (lab_cost == 0) {
-		set_epsilon(label_cost);
-	    } 
+	    T label_cost = epsilon_if_zero(T(get_label_cost (label_no)));
 
-	    label_cost += std::min(T(0),  -label_dominance.q_dominates_noop(label_no, lts_id));
+		if(label_dominance.get_compute_tau_labels_with_noop_dominance()) {
+	    	label_cost += std::min(T(0),  -label_dominance.q_dominates_noop(label_no, lts_id));
+        }
 	    
 	    for (const auto & trans : lts->get_transitions_label(label_no)) {
 		if(trans.src != trans.target) {
@@ -307,8 +280,23 @@ void NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const Label
 	distances.resize(num_states);
 	std::fill(distances.begin(), distances.end(), std::numeric_limits<int>::max());
 	distances[s] = 0;
-        
-	dijkstra_search(tau_graph, s, distances, reachable_with_tau[s]);
+	
+	dijkstra_search_epsilon(tau_graph, s, distances, reachable_with_tau[s]);
+
+#ifndef NDEBUG 
+	const std::vector <int> & goal_distances = abs->get_goal_distances();
+	for(int t : reachable_with_tau [s]) {
+	    if(T(goal_distances[s]) > distances[t] + T(goal_distances[t])) {
+		cout << endl;
+		cout << T(goal_distances[s])  << endl; 
+		cout << distances[t] << endl;
+		cout << T(goal_distances[t]) << endl;
+	    }
+	    assert(T(goal_distances[s]) <= distances[t] + T(goal_distances[t]));
+	    assert(s == t || distances[t] > 0);
+	}
+#endif
+
     }
 }
 
@@ -524,6 +512,11 @@ ADD NumericSimulationRelation<T>::getSimulatingADD(const State & state) const{
     int absstate = abs->get_abstract_state(state);
     if(absstate == -1) return vars->getADD(std::numeric_limits<int>::lowest());
     else return dominating_adds[absstate];
+}
+
+template <typename T>
+int NumericSimulationRelation<T>::get_label_cost (int label) const { 
+    return abs->get_label_cost_by_index(label);
 }
 
 

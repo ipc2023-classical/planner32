@@ -101,15 +101,16 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
 template<typename T> 
 void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
 						      bool compute_tau_labels_with_noop_dominance, 
+						      bool compute_tau_labels_as_self_loops_everywhere, 
 						      bool dump, 
 						      unique_ptr<NumericDominanceRelation<T>> & result) const{
     result = 
 	make_unique<NumericDominanceRelation<T>>(labels.get(), 
 						 truncate_value, 
-						 compute_tau_labels_with_noop_dominance);
+						 compute_tau_labels_with_noop_dominance, 
+						 compute_tau_labels_as_self_loops_everywhere);
 
     LabelMap labelMap (labels.get());
-
 
     vector<LabelledTransitionSystem *> ltss_simple;
     vector<LTSComplex *> ltss_complex;
@@ -136,6 +137,7 @@ void LDSimulation::compute_numeric_dominance_relation(int truncate_value,
 template
 void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
 						      bool compute_tau_labels_with_noop_dominance, 
+						      bool compute_tau_labels_as_self_loops_everywhere, 
 						      bool dump, 
 						      unique_ptr<NumericDominanceRelation<int>> & result) const; 
 
@@ -143,6 +145,7 @@ void LDSimulation::compute_numeric_dominance_relation(int truncate_value,
 template 
 void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
 						      bool compute_tau_labels_with_noop_dominance, 
+						      bool compute_tau_labels_as_self_loops_everywhere, 
 						      bool dump, 
 						      unique_ptr<NumericDominanceRelation<IntEpsilon>> & result) const; 
 
@@ -201,6 +204,7 @@ int LDSimulation::remove_useless_abstractions(vector<Abstraction *> & abstractio
 	    useless_vars.insert(end(useless_vars), begin(abstractions[i]->get_varset()), 
 				end(abstractions[i]->get_varset()));
 	    abstractions[i]->release_memory();
+	    //TODO: check if I should do labels->set_irrelevant_for_all_labels(abstractions[i]);
 	    delete abstractions[i];
 	    abstractions[i] = nullptr;
 	    

@@ -40,6 +40,8 @@ protected:
     std::vector<ADD> dominated_adds, dominating_adds;
     std::vector<std::map<T, BDD> > dominated_bdd_maps, dominating_bdd_maps;
 
+    int get_label_cost (int label) const;
+
     T compare_noop(int lts_id, const LTSTransition & trs, int t,
 		     T tau_distance, 
 		     const NumericLabelRelation<T> & label_dominance) const;
@@ -79,6 +81,7 @@ public:
 	    std::cout << s << std::endl;
 	    std::cout << relation.size() << std::endl;
 	}
+	
 	assert(s < relation.size());
 	assert(t < relation[s].size());
 	assert(s!=t || relation[s][t] == 0);
@@ -118,6 +121,8 @@ public:
     inline T minus_shortest_path_with_tau(int from, int to) {
 	assert(from < distances_with_tau.size());
 	assert(to < distances_with_tau[from].size());
+	assert((from != to && distances_with_tau[from][to] > 0) ||
+	       (from == to && distances_with_tau[from][to] == 0));
 	return distances_with_tau[from][to] == std::numeric_limits<int>::max() 
 	    ? std::numeric_limits<int>::lowest() 
 	    : - distances_with_tau[from][to];

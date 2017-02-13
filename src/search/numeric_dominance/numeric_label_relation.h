@@ -23,6 +23,7 @@ template <typename T> class NumericSimulationRelation;
 template <typename T>
 class NumericLabelRelation {
     const int compute_tau_labels_with_noop_dominance; 
+    const int compute_tau_labels_as_self_loops_everywhere; 
 
     Labels * labels;
     int num_labels;
@@ -172,7 +173,7 @@ class NumericLabelRelation {
     /* 		    int lts) const;  */
 
 public:
-    NumericLabelRelation(Labels * labels, bool compute_tau_labels_with_noop_dominance);
+    NumericLabelRelation(Labels * labels, bool compute_tau_labels_with_noop_dominance, bool compute_tau_labels_as_self_loops_everywhere);
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
     void init(const std::vector<LabelledTransitionSystem *> & lts, 
@@ -199,12 +200,14 @@ public:
 	if(dominates_in.empty()) {
 	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
 		if(lts_id != lts && get_lqrel(l1, l2, lts_id) == std::numeric_limits<int>::lowest() ) {
+		    assert(num_ltss > 1);
 		    return false;
 		}
 	    }
 	    return true;
 	}
-
+	
+	assert(num_ltss > 1 || dominates_in[l1][l2] == DOMINATES_IN_ALL || (dominates_in[l1][l2] == lts));
         return dominates_in[l1][l2] == DOMINATES_IN_ALL || (dominates_in[l1][l2] == lts);
     }
 
@@ -229,9 +232,11 @@ public:
 		    total_sum += get_lqrel(l1, l2, lts_id);
 		}
 	    }
+
+	    assert(num_ltss > 0 || total_sum == T(0));
     
 	    return total_sum;    
-	}else {
+	} else {
 	    assert(false);
 	    return std::numeric_limits<int>::lowest();
 	}
@@ -280,6 +285,10 @@ public:
 	bool result = tau_labels_changed[lts];
 	tau_labels_changed[lts] = false;
 	return result;
+    }
+
+    bool get_compute_tau_labels_with_noop_dominance() const {
+		return compute_tau_labels_with_noop_dominance;
     }
 
     void dump(const LabelledTransitionSystem * lts, int lts_id) const;

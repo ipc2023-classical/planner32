@@ -77,9 +77,10 @@ void Label::set_irrelevant_for(Abstraction * abstraction){
 bool Label::is_relevant_for(Abstraction * abstraction) const {
     return relevant_for.count(abstraction) > 0;
 }
+
 bool Label::is_irrelevant() const{    
     for (auto abs : relevant_for){
-	if (abs->get_transitions_for_label(id).empty()){
+	if (abs->get_transitions_for_label(id).empty()){ 
 	    return true;
 	}
     }

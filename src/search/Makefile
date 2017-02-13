@@ -126,6 +126,7 @@ HEADERS += numeric_dominance/numeric_simulation_relation.h \
            numeric_dominance/numeric_label_relation.h \
            numeric_dominance/numeric_dominance_pruning.h \
            numeric_dominance/int_epsilon.h \
+           numeric_dominance/dijkstra_search_epsilon.h \
 
 
 HEADERS += landmarks/exploration.h \
