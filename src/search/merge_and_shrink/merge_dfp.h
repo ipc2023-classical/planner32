@@ -28,7 +28,7 @@ public:
     // merge.  If specified (> 0), the pair returned should fit the
     // constraint: a1.size()*a2.size()<=limit
     virtual std::pair<int, int> get_next(const std::vector<Abstraction *> &all_abstractions, 
-					 int limit_abstract_states_merge = 0, 
+					 int limit_abstract_states_merge = 0, int min_limit_abstract_states_merge = 0, 
 					 int limit_transitions_merge = 0);
 
     virtual std::string name() const;

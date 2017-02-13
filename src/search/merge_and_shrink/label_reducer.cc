@@ -93,7 +93,6 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
         return;
     }
 
-
     // Make sure that we start with an index not out of range for
     // all_abstractions
     size_t system_order_index = 0;
@@ -150,6 +149,8 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
             }
         }
     }
+
+    cout << "Reduce labels" << endl; 
 
     for (size_t i = 0; i < local_equivalence_relations.size(); ++i)
         delete local_equivalence_relations[i];

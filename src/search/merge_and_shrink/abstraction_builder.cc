@@ -69,7 +69,7 @@ void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost co
     int remaining_time = max(0, min<int>(limit_seconds_mas, limit_seconds_total - g_timer()));
 
 
-    ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, 
+    ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, min_limit_absstates_merge,   
 			     limit_transitions_merge, original_merge,
 			     shrink_strategy.get(), forbid_lr, 
 			     remaining_time, limit_memory_kb_total, 
@@ -191,6 +191,7 @@ AbsBuilderMasSimulation::AbsBuilderMasSimulation(const Options &opts) :
 			merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), 
 			original_merge(opts.get<bool>("original_merge")),				   
 			limit_absstates_merge(opts.get<int>("limit_merge")),
+			min_limit_absstates_merge(opts.get<int>("min_limit_merge")),
 			limit_transitions_merge(opts.get<int>("limit_transitions_merge")), 
 			intermediate_simulations(opts.get<bool>("intermediate_simulations")),
 			incremental_simulations(opts.get<bool>("incremental_simulations")),
@@ -239,6 +240,7 @@ AbsBuilderDefault::AbsBuilderDefault(const Options &opts) :
     AbstractionBuilder(opts), 
     merge_strategy(opts.get<MergeStrategy *>("merge_strategy")), original_merge(opts.get<bool>("original_merge")),				   
     limit_absstates_merge(opts.get<int>("limit_merge")),
+    min_limit_absstates_merge(opts.get<int>("min_limit_merge")),
     limit_transitions_merge(opts.get<int>("limit_transitions_merge")), 
     limit_absstates_shrink(opts.get<int>("limit_shrink")),
 
@@ -388,6 +390,12 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
 			   "limit on the number of abstract states after the merge"
 			   "By default: 1, does not perform any merge",
 			   "50000");
+
+
+    parser.add_option<int>("min_limit_merge",
+			   "minimum limit on the number of abstract states after the merge"
+			   "By default: 1, does not perform any merge",
+			   "0");
 
 
     parser.add_option<bool>("original_merge",
@@ -571,6 +579,14 @@ static AbstractionBuilder *_parse_default(OptionParser &parser) {
 			   "By default: 100000",
 			   "100000");
 
+
+
+    parser.add_option<int>("min_limit_merge",
+			   "minimum limit on the number of abstract states after the merge to apply transitions merge"
+			   "By default: 0",
+			   "0");
+
+
     parser.add_option<int>("limit_shrink",
 			   "limit on the number of abstract states for shrinking",
 			   "100000");
@@ -637,9 +653,9 @@ void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_typ
    // 1) Incremental simulations without shrinking or label reduction
 
     cout << "1) Incremental simulations without shrinking or label reduction. Max states: "
-	 << limit_absstates_merge << " transitions: " << limit_transitions_merge  << endl;
+	 << limit_absstates_merge << " transitions: " << limit_transitions_merge  << " Min states: " <<  min_limit_absstates_merge << endl;
 
-    ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, 
+    ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, min_limit_absstates_merge,
 			     limit_transitions_merge, /*original_merge*/ true,
 			     nullptr, /*forbid_lr*/ true, 
 			     remaining_time, limit_memory_kb_total, 
@@ -668,7 +684,7 @@ void AbsBuilderDefault::build_abstraction (bool unit_cost, OperatorCost cost_typ
 
     remaining_time = max(0, min<int>(limit_seconds_mas, limit_seconds_total - g_timer()));
 
-    ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, 
+    ldSim->build_abstraction(merge_strategy.get(), limit_absstates_merge, min_limit_absstates_merge, 
 			     limit_transitions_merge, original_merge,
 			     bisim.get(), /*forbid_lr*/ false, 
 			     remaining_time, limit_memory_kb_total, 

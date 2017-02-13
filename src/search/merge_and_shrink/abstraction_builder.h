@@ -104,6 +104,7 @@ class AbsBuilderDefault : public AbstractionBuilder {
     std::unique_ptr<MergeStrategy> merge_strategy;
     const bool original_merge;
     const int limit_absstates_merge;
+    const int min_limit_absstates_merge;
     const int limit_transitions_merge; 
 
     const int limit_absstates_shrink; 
@@ -150,6 +151,7 @@ class AbsBuilderMasSimulation : public AbstractionBuilder{
     std::unique_ptr<MergeStrategy> merge_strategy;
     const bool original_merge;
     const int limit_absstates_merge;
+    const int min_limit_absstates_merge;
     const int limit_transitions_merge;
 
     bool intermediate_simulations;

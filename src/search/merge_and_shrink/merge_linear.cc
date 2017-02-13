@@ -20,7 +20,7 @@ MergeLinear::MergeLinear(const Options &opts)
 // If specified (> 0), the pair returned should fit the constraint:
 // a1.size()*a2.size()<=limit
 pair<int, int> MergeLinear::get_next(const std::vector<Abstraction *> &all_abstractions, 
-				     int limit_abstract_states_merge, 
+				     int limit_abstract_states_merge, int /*min_limit_abstract_states_merge*/, 
 				     int /*limit_transitions_merge*/) {
     assert(!done() && !order.done());
 

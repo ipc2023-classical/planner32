@@ -406,7 +406,7 @@ int LDSimulation::remove_useless_atomic_abstractions(std::vector<Abstraction* > 
     return total;
 }
 
-void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_absstates_merge, 
+void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_absstates_merge, int min_limit_absstates_merge, 
 				     int limit_transitions_merge, bool original_merge, 
 				     ShrinkStrategy * shrink_strategy, bool forbid_lr, 
 				     int limit_seconds, int limit_memory_kb,  
@@ -430,8 +430,9 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	Abstraction::build_atomic_abstractions(all_abstractions, labels.get());
 	remaining_abstractions = all_abstractions.size();
 
-	if(!useless_vars.empty()) 
+	if(!useless_vars.empty()) {
 	    remaining_abstractions -= remove_useless_atomic_abstractions(abstractions);
+	}
     } else {
 	all_abstractions.resize(g_variable_domain.size(), nullptr);
 	for (auto a : abstractions) {
@@ -487,7 +488,10 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
     } else if (shrink_strategy) {
 	if(!forbid_lr){
 	    DEBUG_MAS(cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;);
-	    labels->reduce(make_pair(0, 1), all_abstractions); // With the reduction methods we use here, this should just apply label reduction on all abstractions
+	    cout << "Reduce labels: " << labels->get_size() << " t: " << t() << endl;
+	    labels->reduce(make_pair(0, 1), all_abstractions);
+	    // With the reduction methods we use here, 
+	    //this should just apply label reduction on all abstractions
 	    DEBUG_MAS(cout << "Normalize: " << t() << endl;);
 	    for (auto abs : all_abstractions) {
 		if(abs){
@@ -524,7 +528,7 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	    " memory: " << get_peak_memory_in_kb()  << "/" << limit_memory_kb << " KB" << endl; 
 
         pair<int, int> next_systems = original_merge ? merge_strategy->get_next(all_abstractions) : 
-	    merge_strategy->get_next(all_abstractions, limit_absstates_merge, limit_transitions_merge);
+	    merge_strategy->get_next(all_abstractions, limit_absstates_merge, min_limit_absstates_merge, limit_transitions_merge);
         int system_one = next_systems.first;
         if(system_one == -1){
             break; //No pairs to be merged under the limit
@@ -537,9 +541,9 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
         assert(other_abstraction);
 
 	if(original_merge){
-	    if((limit_absstates_merge &&  
-		abstraction->size() * other_abstraction->size() > limit_absstates_merge) || 
-	       (limit_transitions_merge && abstraction->estimate_transitions(other_abstraction) > limit_transitions_merge)) {
+	    if((limit_absstates_merge && abstraction->size() * other_abstraction->size() > limit_absstates_merge) || 
+	       (limit_transitions_merge && abstraction->estimate_transitions(other_abstraction) > limit_transitions_merge
+		&& !(min_limit_absstates_merge && abstraction->size() * other_abstraction->size() <= min_limit_absstates_merge))) {
 		break;
 	    }
 	}
