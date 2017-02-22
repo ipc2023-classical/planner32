@@ -40,7 +40,6 @@ void NumericSimulationRelation<T>::init_goal_respecting() {
 
 	}
     }
-    cout << "End goal respecting" << endl;
 }
 
 
@@ -109,12 +108,12 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
     if(precompute_shortest_path_with_tau(lts, lts_id, label_dominance)) {
 	for (int s = 0; s < lts->size(); s++) {
             for (int t = 0; t < lts->size(); t++) { //for each pair of states t, s
-		if (goal_distances_with_tau[t] == std::numeric_limits<int>::max()) {
-		    if (!lts->is_goal(t) && lts->is_goal(s)) {
-			relation[s][t] =  min(relation[s][t], -goal_distances_with_tau[t]);
+		if (!lts->is_goal(t) && lts->is_goal(s)) {
+		    if (goal_distances_with_tau[t] == std::numeric_limits<int>::max()) {
+			update_value(t, s,  std::numeric_limits<int>::lowest());
+		    } else {
+			update_value(t, s,  min(relation[s][t], -goal_distances_with_tau[t]));
 		    }
-		}  else {
-		    relation[s][t] = std::numeric_limits<int>::lowest();
 		}
 
 	    }
