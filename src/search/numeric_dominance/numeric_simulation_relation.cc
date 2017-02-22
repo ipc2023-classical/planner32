@@ -1,5 +1,4 @@
 #include "numeric_simulation_relation.h"
-
 #include "numeric_label_relation.h" 
 #include "../merge_and_shrink/abstraction.h" 
 #include "../merge_and_shrink/labelled_transition_system.h" 
@@ -23,14 +22,25 @@ void NumericSimulationRelation<T>::init_goal_respecting() {
     int num_states = abs->size();
     //const std::vector <bool> & goal_states = abs->get_goal_states();
     const std::vector <int> & goal_distances = abs->get_goal_distances();
+
     relation.resize(num_states);
     for(int s = 0; s < num_states; s++){
         relation[s].resize(num_states);
 	for (int t = 0; t < num_states; t++){
 	    // qrel (t, s) = h*(t) - h*(s)
+	    // if (!abs->is_goal_state(t) && abs->is_goal_state(s)) {
+	    // 	relation[s][t] = goal_distances_with_tau[t] ;
+	    // } else {
+	    // 	relation[s][t] = goal_distances[t] - goal_distances[s];
+	    // }
+
+	    //Here we have not computed tau distances yet (because
+	    //with dominated by noop version may change)
 	    relation[s][t] = goal_distances[t] - goal_distances[s];
+
 	}
     }
+    cout << "End goal respecting" << endl;
 }
 
 
@@ -44,11 +54,14 @@ void NumericSimulationRelation<IntEpsilon>::init_goal_respecting() {
     relation.resize(num_states);
     for(int s = 0; s < num_states; s++){
         relation[s].resize(num_states);
-	for (int t = 0; t < num_states; t++){
+	for (int t = 0; t < num_states; t++) {
 	    // qrel (t, s) = h*(t) - h*(s)
-	    IntEpsilonSum rel = (goal_distances[t] - goal_distances[s]);
-
-	    relation[s][t] = rel.get_epsilon_negative();
+	    // if (!abs->is_goal_state(t) && abs->is_goal_state(s)) {
+	    // 	relation[s][t] = goal_distances_with_tau[t];
+	    // } else {
+		IntEpsilonSum rel = (goal_distances[t] - goal_distances[s]);
+		relation[s][t] = rel.get_epsilon_negative();
+	    // }
 	}
     }
 }
@@ -93,10 +106,26 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 				       const NumericLabelRelation<T> & label_dominance) {
     int num_iterations = 0;
     bool changes = true;
-    precompute_shortest_path_with_tau(lts, lts_id, label_dominance);
+    if(precompute_shortest_path_with_tau(lts, lts_id, label_dominance)) {
+	for (int s = 0; s < lts->size(); s++) {
+            for (int t = 0; t < lts->size(); t++) { //for each pair of states t, s
+		if (goal_distances_with_tau[t] == std::numeric_limits<int>::max()) {
+		    if (!lts->is_goal(t) && lts->is_goal(s)) {
+			relation[s][t] =  min(relation[s][t], -goal_distances_with_tau[t]);
+		    }
+		}  else {
+		    relation[s][t] = std::numeric_limits<int>::lowest();
+		}
+
+	    }
+	}
+    }
     // for (int s = 0; s < lts->size(); s++) {	
     // 	cout << g_fact_names[lts_id][s] << endl;
     // }
+
+
+    
 
     while (changes) {
 	num_iterations ++;
@@ -116,7 +145,7 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 		    }
 
 		    T min_value = previous_value;
-		    if (lts->is_goal(t) || !lts->is_goal(s)) {
+		    // if (lts->is_goal(t) || !lts->is_goal(s)) {
 
 			//Check if really t simulates s
 			//for each transition s--l->s':
@@ -179,9 +208,9 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 
 			min_value = std::max(min_value, lower_bound);
 
-		    } else {
-			min_value = lower_bound;
-		    }
+		    // } else {
+		    // 	min_value = lower_bound;
+		    // }
 
 		    assert(min_value <= previous_value);
 		    if(min_value < previous_value) {
@@ -242,11 +271,11 @@ T NumericSimulationRelation<T>::q_simulates (const vector<int> & t, const vector
 }
 
 template <typename T>
-void NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
+bool NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
 								     const NumericLabelRelation<T> & label_dominance) {
 
     if(!label_dominance.have_tau_labels_changed(lts_id) && 
-       !distances_with_tau.empty()) return;
+       !distances_with_tau.empty()) return false;
     const vector<int> & tau_labels = label_dominance.get_tau_labels(lts_id);
 	
     //cout << "Number of tau labels: " << tau_labels.size() << endl;
@@ -274,6 +303,8 @@ void NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const Label
 
     distances_with_tau.resize(num_states);
     reachable_with_tau.resize(num_states);
+    goal_distances_with_tau.resize(num_states, std::numeric_limits<int>::max());
+
     for(int s = 0; s < num_states; ++s) {
 	//Perform Dijkstra search from s
 	auto & distances = distances_with_tau [s];
@@ -282,6 +313,13 @@ void NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const Label
 	distances[s] = 0;
 	
 	dijkstra_search_epsilon(tau_graph, s, distances, reachable_with_tau[s]);
+
+
+	for(int t = 0; t < num_states; t++) {
+	    if(lts->is_goal(t)) {
+		goal_distances_with_tau[s] = min(goal_distances_with_tau[s], distances[t]);
+	    }
+	}
 
 #ifndef NDEBUG 
 	const std::vector <int> & goal_distances = abs->get_goal_distances();
@@ -298,6 +336,8 @@ void NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const Label
 #endif
 
     }
+
+    return true;
 }
 
 template <typename T>

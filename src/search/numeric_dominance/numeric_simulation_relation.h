@@ -22,6 +22,7 @@ protected:
     
     std::vector<int> tau_labels;
     std::vector<std::vector<T> > distances_with_tau;
+    std::vector<T> goal_distances_with_tau;
 
     //List of states for which distances_with_tau is not infinity
     std::vector<std::vector<int> > reachable_with_tau;
@@ -128,7 +129,7 @@ public:
 	    : - distances_with_tau[from][to];
     }
 
-    void precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
+    bool precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
 					   const NumericLabelRelation<T> & label_dominance);
 
     void dump(const std::vector<std::string> & names) const;
