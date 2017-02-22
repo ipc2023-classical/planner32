@@ -58,6 +58,10 @@ bool Labels::is_label_reduced(int label_no) const {
     return get_label_by_index(label_no)->is_reduced();
 }
 
+int Labels::get_label_cost(int label_no) const {
+    return get_label_by_index(label_no)->get_cost();
+}
+
 void Labels::dump() const {
     cout << "no of labels: " << labels.size() << endl;
     for (size_t i = 0; i < labels.size(); ++i) {

@@ -57,16 +57,18 @@ public:
     void reset_relevant_for (const std::vector<Abstraction *> &  abstractions); 
 
     bool applies_perfect_label_reduction() const;
+    int get_label_cost(int label_no) const;
 };
 
 
 class LabelMap {
+    const Labels * labels;
     //mapping from labels to labels for LTSs (hack to get rid of not useful labels)
     int num_valid_labels;
     std::vector<int> label_id;
     std::vector<int> old_label_id;
 public:
-    LabelMap(Labels * labels){
+     LabelMap(Labels * _labels) : labels(_labels){
 		//TODO: Ensure that all dead labels are removed
         num_valid_labels = 0;
         label_id.reserve(labels->get_size());
@@ -91,6 +93,10 @@ public:
     int get_num_labels() const{
         return num_valid_labels;
     }
+    int get_cost(int l) const{
+        return labels->get_label_cost(get_old_id(l));
+    }
+
 };
 
 #endif

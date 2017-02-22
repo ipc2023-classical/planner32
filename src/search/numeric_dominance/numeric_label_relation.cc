@@ -24,6 +24,7 @@ void NumericLabelRelation<T>::init(const std::vector<LabelledTransitionSystem *>
 	      << " labels " << lts.size() << " systems." << endl;
 
 
+    std::vector<int> ().swap(cost_of_label);
     std::vector<std::vector<int> >().swap(position_of_label);
     std::vector<std::vector<std::vector<T> > >().swap(lqrel);
     std::vector<std::vector<T> >().swap(simulates_irrelevant);
@@ -34,6 +35,11 @@ void NumericLabelRelation<T>::init(const std::vector<LabelledTransitionSystem *>
     simulates_irrelevant.resize(lts.size());
     simulated_by_irrelevant.resize(lts.size());
     lqrel.resize(lts.size());
+
+    cost_of_label.resize(num_labels);
+    for(int l = 0; l < num_labels; l++) {
+	cost_of_label[l] = labelMap.get_cost(l);
+    }
 
     for (int i = 0; i < num_ltss; ++i){
         position_of_label[i].resize(num_labels, -1);

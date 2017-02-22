@@ -41,7 +41,6 @@ protected:
     std::vector<ADD> dominated_adds, dominating_adds;
     std::vector<std::map<T, BDD> > dominated_bdd_maps, dominating_bdd_maps;
 
-    int get_label_cost (int label) const;
 
     T compare_noop(int lts_id, const LTSTransition & trs, int t,
 		     T tau_distance, 

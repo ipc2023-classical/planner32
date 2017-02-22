@@ -74,8 +74,8 @@ T NumericSimulationRelation<T>::compare_transitions(int lts_id, const LTSTransit
        may_simulate(trt.target, trs.target)) {
 
 	return tau_distance + label_dominance.q_dominates(trt.label, trs.label, lts_id)
-	    + get_label_cost(trs.label)
-	    - get_label_cost(trt.label)
+	    + label_dominance.get_label_cost(trs.label)
+	    - label_dominance.get_label_cost(trt.label)
 	    + q_simulates(trt.target, trs.target);
     } else {
 	return std::numeric_limits<int>::lowest();
@@ -92,7 +92,7 @@ T NumericSimulationRelation<T>::compare_noop(int lts_id, const LTSTransition & t
 
 	return tau_distance + 
 	    q_simulates(t, trs.target) +
-	    get_label_cost(trs.label) +
+	    label_dominance.get_label_cost(trs.label) +
 	    label_dominance.q_dominated_by_noop(trs.label, lts_id);
     } else {
 	return std::numeric_limits<int>::lowest();
@@ -286,7 +286,7 @@ bool NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const Label
     vector<vector<pair<int, T> > > tau_graph(num_states);
     for (int label_no : tau_labels) {
 	if(label_dominance.may_dominate_noop_in(label_no, lts_id)) {
-	    T label_cost = epsilon_if_zero(T(get_label_cost (label_no)));
+	    T label_cost = epsilon_if_zero(T(label_dominance.get_label_cost (label_no)));
 
 		if(label_dominance.get_compute_tau_labels_with_noop_dominance()) {
 	    	label_cost += std::min(T(0),  -label_dominance.q_dominates_noop(label_no, lts_id));
@@ -551,11 +551,6 @@ ADD NumericSimulationRelation<T>::getSimulatingADD(const State & state) const{
     int absstate = abs->get_abstract_state(state);
     if(absstate == -1) return vars->getADD(std::numeric_limits<int>::lowest());
     else return dominating_adds[absstate];
-}
-
-template <typename T>
-int NumericSimulationRelation<T>::get_label_cost (int label) const { 
-    return abs->get_label_cost_by_index(label);
 }
 
 

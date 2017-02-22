@@ -36,6 +36,7 @@ class NumericLabelRelation {
 
     //For each lts, matrix indicating whether l1 simulates l2, noop
     //simulates l or l simulates noop
+    std::vector<int> cost_of_label;
     std::vector<std::vector<int> > position_of_label; //position that label l takes on lts
     std::vector<std::vector<int> > irrelevant_labels_lts;
     std::vector<std::vector<std::vector<T> > > lqrel;
@@ -279,6 +280,10 @@ public:
 
     const std::vector<int> & get_tau_labels(int lts) const {
 	return tau_labels[lts];
+    }
+
+    int get_label_cost (int label) const {
+	return cost_of_label[label];
     }
 
     bool have_tau_labels_changed (int lts) const {
