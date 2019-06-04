@@ -145,6 +145,15 @@ public:
     static void add_options_to_parser(OptionParser &parser);
 
     void release_memory(); 
+
+  Labels * get_labels(){
+        return labels.get();
+    }
+
+    const std::vector<Abstraction *> & get_abstractions () const {
+        return abstractions;
+    }
+    
 };
 
 

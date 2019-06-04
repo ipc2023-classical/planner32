@@ -137,6 +137,7 @@ class LabelledTransitionSystem {
       }
       return false;
   }
+  std::vector<int> compute_label_equivalence_groups();
 };
 
 #endif

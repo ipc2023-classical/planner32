@@ -76,3 +76,48 @@ void LabelledTransitionSystem::kill_label(int l) {
     relevant_labels.erase(remove(begin(relevant_labels), end(relevant_labels), l), end(relevant_labels));
     irrelevant_labels.erase(remove(begin(irrelevant_labels), end(irrelevant_labels), l), end(irrelevant_labels));   
 }
+
+
+vector<int> LabelledTransitionSystem::compute_label_equivalence_groups() {
+    //Ensure that transitions from label are sorted
+    for(int l : relevant_labels) {
+        std::sort(transitions_label[l].begin(),
+                  transitions_label[l].end(),
+                  [](const LTSTransition & tr, const LTSTransition & tr2) -> bool {
+                      return tr.src < tr2.src || (tr.src == tr2.src && tr.target < tr2.target);
+                  });
+    }
+    
+    //All labels go to group 0 by default (irrelevant labels group)
+    vector<int> label_to_equivalence_group (transitions_label.size(), 0);
+    std::vector<int> representative_label_from_group(1);
+    for(int l : relevant_labels) {
+        int candidate_group = 1;
+        for (; candidate_group < representative_label_from_group.size(); ++candidate_group) {
+            // Pick a label from the candidate group to check if both labels have the same transitions
+            int l2 = representative_label_from_group[candidate_group];
+
+            if (transitions_label[l].size() == transitions_label[l2].size() &&
+                std::equal(transitions_label[l].begin(),
+                           transitions_label[l].end(),
+                           transitions_label[l2].begin(),
+                           [](const LTSTransition & tr, const LTSTransition & tr2) {
+                               return tr.src == tr2.src && tr.target == tr2.target;
+                           })) {
+                //We have found an equivalent label group
+                break;
+            }          
+        }
+
+        label_to_equivalence_group[l] = candidate_group;
+        if (candidate_group == representative_label_from_group.size()) {
+            representative_label_from_group.push_back(l);
+        }
+    }
+    
+    return label_to_equivalence_group;
+}
+
+
+
+
