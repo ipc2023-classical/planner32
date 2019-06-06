@@ -3,11 +3,9 @@ heuristics = {"lmcut" : "lmcut()", "blind" : "blind()"}
 
 pruning_dds = {"lmcut" : "bdd_map", "blind" : "bdd"}
 
-pruning_types = {"expbelt" : "expansion",
-                 "genbelt" : "generation", 
-                 "par" : "parent, min_desactivation_ratio=0, min_insertions=infinity", 
-                 "exp" : "expansion, min_desactivation_ratio=0, min_insertions=infinity",
-                 "gen" : "generation, min_desactivation_ratio=0, min_insertions=infinity",
+pruning_types = {"par" : "parent", 
+                 "exp" : "expansion",
+                 "gen" : "generation",
 }
 
 optionals_sim = {"inc" :  "intermediate_simulations=true, incremental_simulations=true", 
@@ -15,12 +13,11 @@ optionals_sim = {"inc" :  "intermediate_simulations=true, incremental_simulation
 
 optionals_prune = {"nospu" : "remove_spurious=false"}
 
-simulation_type = {"sim" : "simulation_type=SIMPLE, label_dominance_type=NONE",
-                   "bisim" : "simulation_type=NONE, label_dominance_type=NONE", 
-                   "ldsim" : "simulation_type=SIMPLE, label_dominance_type=NORMAL", 
-                   "noopsim" :  "simulation_type=SIMPLE, label_dominance_type=NOOP" }
-
-
+simulation_type = {"sim" : ["simulation_type=SIMPLE, label_dominance_type=NONE"],
+                   "bisim" : ["simulation_type=NONE, label_dominance_type=NONE"], 
+                   "ldsim" : ["simulation_type=SIMPLE, label_dominance_type=NORMAL"], 
+                   "noopsim" :  ["simulation_type=SIMPLE, label_dominance_type=NOOP"]
+}
 
 numeric_pruning_types = {"parsucc" : "prune_successors=true, prune_dominated_by_parent=true, prune_dominated_by_closed=false, prune_dominated_by_open=false",
                          "par" : "prune_successors=false, prune_dominated_by_parent=true, prune_dominated_by_closed=false, prune_dominated_by_open=false", 
@@ -86,27 +83,6 @@ def get_optionals_prune(opt):
 merge_strategies = { "dfp" : "merge_dfp()"
 }
 
-def get_simulation_config (s):
-    parts = s.split("-")
-    h, simtype, merge, shrink, ptype, opt = parts[0], parts[1], parts[2], parts[3], parts[4],  parts[5:]
-
-    heuristic = heuristics [h]
-    pruning_dd = pruning_dds [h]
-    pruning_type = pruning_types[ptype]
-    merge = get_merge(merge)
-    shrink = shrinking[shrink]
-    default = "compute_final_simulation=true, switch_off_label_dominance=infinity"
-    optional_sim = get_optionals_sim(opt)
-    optional_pr = get_optionals_prune(opt)
-    
-    builder_params = ", ".join([default, merge] + optional_sim  )
-    simulation_params = ", ".join(["pruning_dd=%s" % pruning_dd, "pruning_type=%s" %  pruning_type] + optional_pr  )
-    config_pruning = "prune=simulation(%s, abs=builder_massim(%s))" % (simulation_params, builder_params)
-
-    config = "astar(%s, %s)" % (heuristic, config_pruning)
-    return config
-
-
 
 
 
@@ -131,6 +107,29 @@ def get_optionals_prune(opt):
     return res
 
 
+
+def get_simulation_config (s):
+    parts = s.split("-")
+    h, simtype, merge, shrink, ptype, opt = parts[0], parts[1], parts[2], parts[3], parts[4],  parts[5:]
+
+    heuristic = heuristics [h]
+    pruning_dd = pruning_dds [h]
+    pruning_type = pruning_types[ptype]
+    merge = get_merge(merge)
+    shrink = shrinking[shrink]
+    default = "compute_final_simulation=true, switch_off_label_dominance=infinity"
+    optional_sim = get_optionals_sim(opt)
+    optional_pr = get_optionals_prune(opt)
+    
+    builder_params = ", ".join(simulation_type[simtype] + [default, merge] + optional_sim  )
+    simulation_params = ", ".join( ["pruning_dd=%s" % pruning_dd, "pruning_type=%s" %  pruning_type] + optional_pr  )
+    config_pruning = "prune=simulation(%s, abs=builder_massim(%s))" % (simulation_params, builder_params)
+
+    config = "astar(%s, %s)" % (heuristic, config_pruning)
+    return config
+
+
+
 def get_numeric_simulation_config (s):
     parts = s.split("-")
     h, simtype, trval, merge, shrink, ptype, opt = parts[0], parts[1], parts[2], parts[3], parts[4],  parts[5], parts[6:]
@@ -149,8 +148,6 @@ def get_numeric_simulation_config (s):
         optional_pr += ["compute_tau_labels_with_noop_dominance=true", "compute_tau_labels_as_self_loops_everywhere=false"]
     else:
         optional_pr += ["compute_tau_labels_with_noop_dominance=false", "compute_tau_labels_as_self_loops_everywhere=true"]
-
-
 
     builder_params = ", ".join([default, merge] + optional_sim  )
     simulation_params = ", ".join(numeric_simulation_type[simtype] + [pruning_dd, "pruning_type=%s" %  pruning_type] + optional_pr  )

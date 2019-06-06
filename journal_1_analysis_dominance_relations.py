@@ -4,11 +4,12 @@ import sys
 
 
 if len(sys.argv) > 1:
-    print (get_numeric_simulation_config(sys.argv[1]))
+    print (get_simulation_config(sys.argv[1]))
     exit()
     
 # Experiment #1: simulation type and pruning types
-merge_strategies = ["atomic", "dfp10k", "dfp50k", "dfp100k", "dfp200k", "dfp100states", "dfp1kstates", "dfp10kstates"]
+merge_strategies = ["atomic", "dfp50k"] #["atomic", "dfp10k", "dfp50k", "dfp100k", "dfp200k", "dfp100states", "dfp1kstates", "dfp10kstates"]
+
 heuristic = "blind"
 pruning_type = "gen"
 sh = "bissh"
