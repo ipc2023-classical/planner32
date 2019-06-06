@@ -1,11 +1,8 @@
+import configs
 from configs_simulation import *
 
 import sys
 
-
-if len(sys.argv) > 1:
-    print (get_numeric_simulation_config(sys.argv[1]))
-    exit()
     
 # Experiment #1: simulation type and pruning types
 merge_strategies = ["atomic", "dfp50k"] #["atomic", "dfp10k", "dfp50k", "dfp100k", "dfp200k", "dfp100states", "dfp1kstates", "dfp10kstates"]
@@ -14,15 +11,18 @@ heuristic = "blind"
 pruning_type = "gen"
 sh = "bissh"
 trval = 10
+
+CONFIGS = []
 for mer in merge_strategies: 
     for sim in ["sim", "bisim", "ldsim", "noopsim"]:
         config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
-        print ("{} {}".format(config, get_simulation_config(config)))
+        CONFIGS.append(configs.Config(config, config, get_simulation_config(config), 'optimal'))
 
-    for opt in [["nooptau"], [""]]:
+    for opt in [["nooptau"], []]:
         for sim in ["qpos", "qtrade", "qrel", "qual"]:
             config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type] + opt))
-            print ("{} {}".format(config, get_numeric_simulation_config(config)))
+            CONFIGS.append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal'))
+
 
 
         

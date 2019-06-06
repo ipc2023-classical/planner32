@@ -13,10 +13,9 @@ class Config:
 
 
 
-import configs_numeric_dominance
-import configs_qualitative_dominance
+import journal_1_analysis_dominance_relations
 
-CONFIGS = []
+CONFIGS = journal_1_analysis_dominance_relations.CONFIGS
 
 
 for conf in CONFIGS:
