@@ -4,7 +4,7 @@ import sys
 
 
 if len(sys.argv) > 1:
-    print (get_simulation_config(sys.argv[1]))
+    print (get_numeric_simulation_config(sys.argv[1]))
     exit()
     
 # Experiment #1: simulation type and pruning types
@@ -19,9 +19,10 @@ for mer in merge_strategies:
         config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
         print ("{} {}".format(config, get_simulation_config(config)))
 
-    for sim in ["qpos", "qtrade", "qrel", "qual"]:
-        config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type]))
-        print ("{} {}".format(config, get_numeric_simulation_config(config)))
+    for opt in [["nooptau"], [""]]:
+        for sim in ["qpos", "qtrade", "qrel", "qual"]:
+            config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type] + opt))
+            print ("{} {}".format(config, get_numeric_simulation_config(config)))
 
 
         
