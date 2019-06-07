@@ -13,9 +13,9 @@ import configs
 
 def get_suite(suite_type):
     if suite_type == 'optimal':
-        return 'suites.suite_optimal_strips_with_ipc14()'
+        return 'suites.suite_optimal_strips()'
     else:
-        return 'suites.suite_satisficing_strips_with_ipc14()'
+        return 'suites.suite_satisficing_strips()'
 
 def get_queue(machines):
     if (machines == 'old_servers'):
@@ -38,7 +38,7 @@ def get_script(config, REVISION, MACHINES):
 import os\n\
 import subprocess\n\
 \n\
-import downward.suites as suites\n\
+import suites\n\
 \n\
 from lab.steps import Step\n\
 from downward.checkouts import Translator, Preprocessor, Planner\n\
