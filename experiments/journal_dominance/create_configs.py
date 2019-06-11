@@ -49,9 +49,9 @@ from lab.environments import OracleGridEngineEnvironment\n\
 \n\
 REVISION = '" + REVISION + "'\n\
 \n\
-EXPPATH = '/mnt/data_server/torralba/satisficing-dominance/results/" + MACHINES + "/' + REVISION  + '/" + config.folder + "/'\n\
+EXPPATH = '/mnt/data_server/torralba/dominance-journal/results/" + MACHINES + "/' + REVISION  + '/" + config.folder + "/'\n\
 \n\
-REPO = '/mnt/data_server/torralba/satisficing-dominance/fd_simulation/'\n\
+REPO = '/mnt/data_server/torralba/dominance-journal/fd_simulation/'\n\
 \n\
 ENV = " + QUEUES + "\n\
 \n\
@@ -61,13 +61,13 @@ LIMITS={'search_time': 1800,  'search_memory' : 4096}\n\
 \n\
 COMBINATIONS = [(Translator(repo=REPO), Preprocessor(repo=REPO), Planner(repo=REPO, rev=REVISION))]\n\
 \n\
-exp = DownwardExperiment(path=EXPPATH, repo=REPO, environment=ENV, combinations=COMBINATIONS, limits=LIMITS, cache_dir='/mnt/data_server/torralba/satisficing-dominance/lab-data/')\n\
+exp = DownwardExperiment(path=EXPPATH, repo=REPO, environment=ENV, combinations=COMBINATIONS, limits=LIMITS, cache_dir='/mnt/data_server/torralba/dominance-journal/lab-data/')\n\
 \n\
 exp.add_search_parser(REPO + '/lab_parser.py')\n\
 \n\
 exp.add_config('" + config.nick + "' + REVISION, " + str(config.config) + ")\n\
 \n\
-exp.add_suite(" + SUITE + ", benchmark_dir=REPO + '/benchmarks/')\n\
+exp.add_suite(" + SUITE + ", benchmark_dir='/mnt/data_server/torralba/downward-benchmarks/')\n\
 \n\
 def remove_work_tag(run):\n\
     \"\"\"Remove \"WORK-\" from the configs.\"\"\"\n\
@@ -79,7 +79,7 @@ def remove_work_tag(run):\n\
     return run\n\
 \n\
 # Make a report containing absolute numbers (this is the most common report).\n\
-exp.add_report(AbsoluteReport(attributes=ATTRIBUTES), '/mnt/data_server/torralba/satisficing-dominance/reports/" + config.folder + "-rev=' + REVISION)\n\
+exp.add_report(AbsoluteReport(attributes=ATTRIBUTES), '/mnt/data_server/torralba/dominance-journal/reports/" + config.folder + "-rev=' + REVISION)\n\
 \n\
 # Parse the commandline and show or run experiment steps.\n\
 exp()"
