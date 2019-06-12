@@ -30,7 +30,7 @@ exp = DownwardExperiment(path=EXPPATH, repo=REPO, environment=ENV, combinations=
 
 exp.add_search_parser(REPO + '/lab_parser.py')
 
-exp.add_config('blind-bisim-dfp50k-bissh-gen' + REVISION, ['--search', 'astar(blind())'])
+exp.add_config('blind' + REVISION, ['--search', 'astar(blind())'])
 
 exp.add_suite(suites.suite_optimal_strips(), benchmark_dir='/mnt/data_server/torralba/downward-benchmarks/')
 
@@ -44,7 +44,7 @@ def remove_work_tag(run):
     return run
 
 # Make a report containing absolute numbers (this is the most common report).
-exp.add_report(AbsoluteReport(attributes=ATTRIBUTES), '/mnt/data_server/torralba/dominance-journal/reports/blind-bisim-dfp50k-bissh-gen-rev=' + REVISION)
+exp.add_report(AbsoluteReport(attributes=ATTRIBUTES), '/mnt/data_server/torralba/dominance-journal/reports/blind-rev=' + REVISION)
 
 # Parse the commandline and show or run experiment steps.
 exp()

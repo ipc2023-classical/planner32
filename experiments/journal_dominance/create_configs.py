@@ -103,7 +103,7 @@ if __name__ == '__main__':
         if exc.errno == errno.EEXIST and os.path.isdir(folder):
             pass
         else: raise
-    for config in configs.CONFIGS:
+    for config in configs.CONFIGS["journal1"]:
         data = get_script(config, revision, machines)
         name = folder + config.folder + ".py"
         with open(name, "w") as file:
