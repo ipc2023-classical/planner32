@@ -29,8 +29,8 @@ def get_queue(machines):
         exit(1)
 
 
-def get_script(config, REVISION, MACHINES):
-    QUEUES = get_queue(MACHINES)
+def get_script(config):
+    QUEUES = get_queue(config.machines)
     SUITE = get_suite(config.type)
 
     return "#! /usr/bin/env python\n\
@@ -47,9 +47,9 @@ from downward.reports.absolute import AbsoluteReport\n\
 \n\
 from lab.environments import OracleGridEngineEnvironment\n\
 \n\
-REVISION = '" + REVISION + "'\n\
+REVISION = '" + config.revision + "'\n\
 \n\
-EXPPATH = '/mnt/data_server/torralba/dominance-journal/results/" + MACHINES + "/' + REVISION  + '/" + config.folder + "/'\n\
+EXPPATH = '/mnt/data_server/torralba/dominance-journal/results/" + config.machines + "/' + REVISION  + '/" + config.folder + "/'\n\
 \n\
 REPO = '/mnt/data_server/torralba/dominance-journal/fd_simulation/'\n\
 \n\
@@ -86,14 +86,15 @@ exp()"
 
 
 if __name__ == '__main__':
-    if (len(sys.argv) < 3):
-        print "please specify output folder, revision, and machines"
+    if (len(sys.argv) < 2):
+        print ("please specify experiment and output folder")
+        print ("\n  ".join(configs.CONFIGS.keys()))
+        
         exit()
     
-    folder = sys.argv[1]
-    revision = sys.argv[2]
-    machines = sys.argv[3]
-    
+    experiment = sys.argv[1]
+    folder = sys.argv[2]
+  
     if (not folder.endswith('/')):
         folder = folder + '/'
     print "writing lab scripts to this subfolder: " + folder
@@ -103,8 +104,13 @@ if __name__ == '__main__':
         if exc.errno == errno.EEXIST and os.path.isdir(folder):
             pass
         else: raise
-    for config in configs.CONFIGS["journal1"]:
-        data = get_script(config, revision, machines)
+        
+    for config in configs.CONFIGS[experiment]:
+        data = get_script(config)
+
+        EXPPATH = '/mnt/data_server/torralba/dominance-journal/results/{}/{}/{}'.format(config.machines, config.revision, config.folder)
+        if os.path.isdir(EXPPATH):
+            continue
         name = folder + config.folder + ".py"
         with open(name, "w") as file:
             file.write(data)

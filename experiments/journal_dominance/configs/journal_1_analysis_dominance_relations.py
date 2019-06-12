@@ -3,7 +3,10 @@ from configs_simulation import *
 
 import sys
 
-    
+
+REVISION = "b8314abb922f"
+SERVERS = "new_servers" 
+
 # Experiment #1: simulation type and pruning types
 merge_strategies = ["atomic", "dfp50k"] #["atomic", "dfp10k", "dfp50k", "dfp100k", "dfp200k", "dfp100states", "dfp1kstates", "dfp10kstates"]
 
@@ -16,12 +19,12 @@ CONFIGS = []
 for mer in merge_strategies: 
     for sim in ["sim", "bisim", "ldsim", "noopsim"]:
         config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
-        CONFIGS.append(configs.Config(config, config, get_simulation_config(config), 'optimal'))
+        CONFIGS.append(configs.Config(config, config, get_simulation_config(config), 'optimal', REVISION, SERVERS))
 
     for opt in [["nooptau"], []]:
         for sim in ["qpos", "qtrade", "qrel", "qual"]:
             config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type] + opt))
-            CONFIGS.append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal'))
+            CONFIGS.append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
 
 
 
