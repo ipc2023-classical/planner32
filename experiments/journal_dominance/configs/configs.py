@@ -15,7 +15,7 @@ class Config:
 
 import journal_1_analysis_dominance_relations
 
-CONFIGS = journal_1_analysis_dominance_relations.CONFIGS
+CONFIGS = {"journal1" : journal_1_analysis_dominance_relations.CONFIGS}
 
 
 for conf in CONFIGS:
