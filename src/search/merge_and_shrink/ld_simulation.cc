@@ -168,6 +168,13 @@ void LDSimulation::init_atomic_abstractions() {
     cout << "Init atomic abstractions" << endl;
     Abstraction::build_atomic_abstractions(abstractions, labels.get());
     if(!useless_vars.empty()) remove_useless_atomic_abstractions(abstractions);
+
+   for (auto abs : abstractions) {
+        // normalize here is necessary, as otherwise compute_distances might remove more transitions than it should (e.g., in nomystery-opt11:p06)
+        abs->normalize();
+        abs->compute_distances();
+    }
+
     remove_dead_labels(abstractions);
 }
 

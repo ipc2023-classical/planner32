@@ -49,9 +49,8 @@ void AbsBuilderPDB::build_abstraction (bool unit_cost, OperatorCost cost_type,
 void AbsBuilderAtomic::build_abstraction (bool unit_cost, OperatorCost cost_type, 
 					  std::unique_ptr<LDSimulation> & ldSim, 
 					  std::vector<std::unique_ptr<Abstraction> > & /*abstractions*/) const {
-    init_ldsim(unit_cost, cost_type, ldSim);
-
     if(!ldSim) {
+        init_ldsim(unit_cost, cost_type, ldSim);
 	ldSim->init_atomic_abstractions();
     }
 
@@ -64,6 +63,7 @@ void AbsBuilderMasSimulation::build_abstraction (bool unit_cost, OperatorCost co
 
     if(!ldSim) {
 	init_ldsim(unit_cost, cost_type, ldSim);
+        ldSim->init_atomic_abstractions();
     }
 
     int remaining_time = max(0, min<int>(limit_seconds_mas, limit_seconds_total - g_timer()));
