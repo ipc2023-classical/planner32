@@ -403,10 +403,12 @@ endif
 
 endif # LP code
 
-CUDD_ROOT = cudd-3.0.0/cplusplus/.libs/libobj.a
+CUDD_ROOT = cudd-3.0.0/cudd/.libs/libcudd.a
 
 $(CUDD_ROOT):
-	cd cudd-3.0.0 && make cplusplus
+	cd cudd-3.0.0 && ./configure --enable-obj --build=i686-pc-linux-gnu "CFLAGS=-m32 -Wall -Wextra -g -O3" "CXXFLAGS=-m32 -Wall -Wextra -std=c++0x -g -O3" "LDFLAGS=-m32" && make && make cplusplus
+
+
 
 $(TARGET_RELEASE) $(OBJECTS_RELEASE): $(CUDD_ROOT)
 $(TARGET_DEBUG) $(OBJECTS_DEBUG): $(CUDD_ROOT)
@@ -414,8 +416,7 @@ $(TARGET_PROFILE) $(OBJECTS_PROFILE): $(CUDD_ROOT)
 
 CUDD_CCOPT = -Icudd-3.0.0/cudd -Icudd-3.0.0/cplusplus
 
-CUDD_LINKOPT = cudd-3.0.0/cplusplus/.libs/libobj.a \
-   cudd-3.0.0/cudd/.libs/libcudd.a \
+CUDD_LINKOPT = cudd-3.0.0/cudd/.libs/libcudd.a \
    cudd-3.0.0/dddmp/.libs/libdddmp.a 
 
 #CUDD Includes
