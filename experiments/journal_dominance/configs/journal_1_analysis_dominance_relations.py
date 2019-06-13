@@ -5,7 +5,7 @@ import sys
 
 from collections import defaultdict
 
-REVISION = "49616ae8e93f"
+REVISION = "5a3b399a5ef0"
 SERVERS = "new_servers" 
 
 # Experiment #1: simulation type and pruning types
