@@ -49,9 +49,9 @@ bool SymAstar::init(SymBDExp * exp, SymManager * manager, bool forward){
     open_list.init(this, mgr);
     closed->init(this, mgr);
 
-    if(storeBDDsToDisk) {
-	mgr->getVars()->print();
-    }
+    // if(storeBDDsToDisk) {
+    //     mgr->getVars()->print();
+    // }
 
     f = open_list.minNextG(g);
     cout << "Init f to " << f << endl;
@@ -481,13 +481,13 @@ bool SymAstar::expand_cost(int maxTime, int maxNodes){
     assert(nodeCount(S) <= maxNodes);
     int nodesStep = nodeCount(S);
 
-    if(storeBDDsToDisk) {
-	stringstream ss;
-	for(int i = 0; i < S.size(); i++){
-	    ss << "hbdd" << g << "_" << i;
-	    S[i].write(ss.str());
-	}
-    }
+    // if(storeBDDsToDisk) {
+    //     stringstream ss;
+    //     for(int i = 0; i < S.size(); i++){
+    //         ss << "hbdd" << g << "_" << i;
+    //         S[i].write(ss.str());
+    //     }
+    // }
 
     double statesStep = mgr->stateCount(S);
     Timer image_time;
@@ -999,69 +999,69 @@ bool SymAstar::isBetter(const SymAstar & other) const{
 	 nextStepTime() < other.nextStepTime());
 }
 
-void SymAstar::write(const string & dir) const { 
-    ofstream file(dir+ "data.txt");
-    file << "fw: " << fw << endl;
-    file << "f: " << f << endl;
-    file << "g: " << g << endl;
-    file << "lastStepCost: " << lastStepCost << endl;
-    file << "estCost: " << endl; estimationCost.write(file);
-    file << "estZero: " << endl; estimationZero.write(file);
-    //file << "estDisjCost: " << endl; estimationDisjCost.write(file);
-    //file << "estDisjZero: " << endl; estimationDisjZero.write(file);
+// void SymAstar::write(const string & dir) const { 
+//     ofstream file(dir+ "data.txt");
+//     file << "fw: " << fw << endl;
+//     file << "f: " << f << endl;
+//     file << "g: " << g << endl;
+//     file << "lastStepCost: " << lastStepCost << endl;
+//     file << "estCost: " << endl; estimationCost.write(file);
+//     file << "estZero: " << endl; estimationZero.write(file);
+//     //file << "estDisjCost: " << endl; estimationDisjCost.write(file);
+//     //file << "estDisjZero: " << endl; estimationDisjZero.write(file);
 
-    mgr->getVars()->writeBucket(dir + "Sfilter", file, Sfilter);
-    mgr->getVars()->writeBucket(dir + "Smerge", file, Smerge);
-    mgr->getVars()->writeBucket(dir + "Szero", file, Szero);
-    mgr->getVars()->writeBucket(dir + "S", file, S);
+//     mgr->getVars()->writeBucket(dir + "Sfilter", file, Sfilter);
+//     mgr->getVars()->writeBucket(dir + "Smerge", file, Smerge);
+//     mgr->getVars()->writeBucket(dir + "Szero", file, Szero);
+//     mgr->getVars()->writeBucket(dir + "S", file, S);
     
-    //open_list.write(file);
-    // mgr->getVars()->writeMapBucket(dir + "_open", file, open);
-    // mgr->getVars()->writeMapBucket(dir + "_reopen", file, reopen);
+//     //open_list.write(file);
+//     // mgr->getVars()->writeMapBucket(dir + "_open", file, open);
+//     // mgr->getVars()->writeMapBucket(dir + "_reopen", file, reopen);
 
-    closed->write(dir, file);
+//     closed->write(dir, file);
 
-    file.close();
-}
+//     file.close();
+// }
 
 
-void SymAstar::init(SymBDExp * exp, SymManager * manager, const string & dir){
-    bdExp = exp;
-    mgr = manager;
-    cout << "   Open file: " << dir << "data.txt" << endl;
-    ifstream file(dir + "data.txt");
-    cout << "   Read data" << endl;
-    fw = getData<bool>(file, ":");
-    f = getData<int>(file, ":");
-    g = getData<int>(file, ":");
-    lastStepCost = getData<bool>(file, ":");
-    cout << "   Read estimations" << endl;
-    string aux;
-    getline(file, aux);
-    estimationCost.read(file);
-    getline(file, aux);
-    estimationZero.read(file);
-    //getline(file, aux);
-    //estimationDisjCost.read(file);
-    //getline(file, aux);
-    //estimationDisjZero.read(file);
+// void SymAstar::init(SymBDExp * exp, SymManager * manager, const string & dir){
+//     bdExp = exp;
+//     mgr = manager;
+//     cout << "   Open file: " << dir << "data.txt" << endl;
+//     ifstream file(dir + "data.txt");
+//     cout << "   Read data" << endl;
+//     fw = getData<bool>(file, ":");
+//     f = getData<int>(file, ":");
+//     g = getData<int>(file, ":");
+//     lastStepCost = getData<bool>(file, ":");
+//     cout << "   Read estimations" << endl;
+//     string aux;
+//     getline(file, aux);
+//     estimationCost.read(file);
+//     getline(file, aux);
+//     estimationZero.read(file);
+//     //getline(file, aux);
+//     //estimationDisjCost.read(file);
+//     //getline(file, aux);
+//     //estimationDisjZero.read(file);
 
-    cout << "   Read frontier buckets" << endl;
-    mgr->getVars()->readBucket(file, Sfilter);
-    mgr->getVars()->readBucket(file, Smerge);
-    mgr->getVars()->readBucket(file, Szero);
-    mgr->getVars()->readBucket(file, S);
+//     cout << "   Read frontier buckets" << endl;
+//     mgr->getVars()->readBucket(file, Sfilter);
+//     mgr->getVars()->readBucket(file, Smerge);
+//     mgr->getVars()->readBucket(file, Szero);
+//     mgr->getVars()->readBucket(file, S);
 
-    //open_list.read(file);
-    // cout << "   Read open" << endl;
-    // mgr->getVars()->readMapBucket(file, open);
-    // cout << "   Read reopen" << endl;
-    // mgr->getVars()->readMapBucket(file, reopen);
+//     //open_list.read(file);
+//     // cout << "   Read open" << endl;
+//     // mgr->getVars()->readMapBucket(file, open);
+//     // cout << "   Read reopen" << endl;
+//     // mgr->getVars()->readMapBucket(file, reopen);
 
-    cout << "   Read closed" << endl;
-    open_list.init(this, mgr);
-    closed->init(this, mgr, dir, file);
-}
+//     cout << "   Read closed" << endl;
+//     open_list.init(this, mgr);
+//     closed->init(this, mgr, dir, file);
+// }
 
 void SymAstar::violated(TruncatedReason reason, double ellapsed_seconds, int maxTime, int maxNodes){
   //DEBUG_MSG(

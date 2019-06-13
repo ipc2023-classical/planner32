@@ -270,15 +270,16 @@ void LDSimulation::complete_heuristic(MergeStrategy * merge_strategy, ShrinkStra
 	if(!all_abstractions[i]) used_vars.push_back(i);
     }
 
-    merge_strategy->init(all_abstractions);
-    merge_strategy->remove_useless_vars (used_vars);
-    
+    if (merge_strategy){
+        merge_strategy->init(all_abstractions);
+        merge_strategy->remove_useless_vars (used_vars);
+    }
     if(abstractions.size() > 1){
 	labels->reduce(make_pair(0, 1), all_abstractions); 
 // With the reduction methods we use here, this should just apply label reduction on all abstractions
     }
 
-    while (!merge_strategy->done() && remaining_abstractions > 1 && 
+    while (merge_strategy && !merge_strategy->done() && remaining_abstractions > 1 && 
 	   t_mas() < limit_seconds && get_peak_memory_in_kb() < limit_memory_kb ) {
 
 	cout << endl << "Remaining: " << remaining_abstractions <<
@@ -472,9 +473,10 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 	if(!all_abstractions[i]) used_vars.push_back(i);
     }
 
-    merge_strategy->init(all_abstractions);
-    merge_strategy->remove_useless_vars (used_vars);
-
+    if (merge_strategy){
+        merge_strategy->init(all_abstractions);
+        merge_strategy->remove_useless_vars (used_vars);
+    }
 
     // compute initial simulations, based on atomic abstractions
     if (intermediate_simulations) {
@@ -538,8 +540,10 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 
     DEBUG_MAS(cout << "Merging abstractions..." << endl;);
 
-    merge_strategy->remove_useless_vars (useless_vars);
-    while (!merge_strategy->done() && t() <= limit_seconds && 
+    if(merge_strategy){
+        merge_strategy->remove_useless_vars (useless_vars);
+    }
+    while (merge_strategy && !merge_strategy->done() && t() <= limit_seconds && 
 	   get_peak_memory_in_kb() < limit_memory_kb && 
 	   remaining_abstractions > 1) {
 	

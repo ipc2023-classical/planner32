@@ -481,29 +481,29 @@ ADD SymAstarClosed::getHeuristic(int previousMaxH /*= -1*/) const {
 
 
 
-void SymAstarClosed::write(const string & fname, ofstream & file) const{
-    file << "hNotClosed: " << hNotClosed << endl;
-    file << "fNotClosed: " << fNotClosed << endl;
-    mgr->getVars()->writeMapBucket(fname + "zeroCostClosed", file, zeroCostClosed);
-    mgr->getVars()->writeMap(fname + "_closed" , file, closed);
-    closedTotal.write(fname + "_closedTotal");
-}
+// void SymAstarClosed::write(const string & fname, ofstream & file) const{
+//     file << "hNotClosed: " << hNotClosed << endl;
+//     file << "fNotClosed: " << fNotClosed << endl;
+//     mgr->getVars()->writeMapBucket(fname + "zeroCostClosed", file, zeroCostClosed);
+//     mgr->getVars()->writeMap(fname + "_closed" , file, closed);
+//     closedTotal.write(fname + "_closedTotal");
+//}
 
-void SymAstarClosed::init(SymAstar * exp, SymManager * manager, const string & fname, ifstream & file){
-    exploration = exp;
-    mgr = manager;
-    set<int>().swap(h_values);
-    map<int, BDD>().swap(closedUpTo);
-    map <int, vector<BDD>>().swap(zeroCostClosed);
-    map<int, BDD>().swap(closed);    
-    closedTotal = mgr->zeroBDD();
+// void SymAstarClosed::init(SymAstar * exp, SymManager * manager, const string & fname, ifstream & file){
+//     exploration = exp;
+//     mgr = manager;
+//     set<int>().swap(h_values);
+//     map<int, BDD>().swap(closedUpTo);
+//     map <int, vector<BDD>>().swap(zeroCostClosed);
+//     map<int, BDD>().swap(closed);    
+//     closedTotal = mgr->zeroBDD();
 
-    hNotClosed = getData<int> (file, ":");
-    fNotClosed = getData<int>(file, ":");
-    mgr->getVars()->readMapBucket(file, zeroCostClosed);
-    mgr->getVars()->readMap(file, closed);
-    closedTotal = mgr->getVars()->readBDD(fname + "_closedTotal");
-}
+//     hNotClosed = getData<int> (file, ":");
+//     fNotClosed = getData<int>(file, ":");
+//     mgr->getVars()->readMapBucket(file, zeroCostClosed);
+//     mgr->getVars()->readMap(file, closed);
+//     closedTotal = mgr->getVars()->readBDD(fname + "_closedTotal");
+// }
 
 void SymAstarClosed::cleanEvalOrig() {
     DEBUG_MSG(cout << "Clean eval orig " << endl;); 

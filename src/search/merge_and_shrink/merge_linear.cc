@@ -28,6 +28,15 @@ pair<int, int> MergeLinear::get_next(const std::vector<Abstraction *> &all_abstr
     if (need_first_index) {
         need_first_index = false;
         first = order.next();
+        //This may happen if some variables are eliminated due to being irrelevant
+        while (!all_abstractions[first] && !done() && !order.done()) {
+            first = order.next();
+            remaining_merges--;
+        }
+        if (!all_abstractions[first]) {
+            return make_pair(-1, -1);
+        }
+        
         cout << "First variable: " << first << endl;
     } else {
         // The most recent composite abstraction is appended at the end of
@@ -35,6 +44,15 @@ pair<int, int> MergeLinear::get_next(const std::vector<Abstraction *> &all_abstr
         first = all_abstractions.size() - 1;
     }
     int second = order.next();
+
+    while (!all_abstractions[second] && !done() && !order.done()) {
+        cout << "Skipping var " << second << endl;
+        second = order.next();
+        remaining_merges--;
+    }
+    if (!all_abstractions[second]) {
+        return make_pair(-1, -1);
+    }
 
     cout << "Next variable: " << second << endl;
     assert(all_abstractions[first]);

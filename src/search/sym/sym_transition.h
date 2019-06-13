@@ -3,8 +3,6 @@
 
 #include "../operator.h"
 #include "sym_variables.h"
-//#include "../cudd-2.5.0/cudd/cudd.h"
-//#include "../cudd-2.5.0/obj/cuddObj.hh"
 
 #include <set>
 #include <vector>

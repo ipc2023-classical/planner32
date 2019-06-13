@@ -1,6 +1,7 @@
 #include "merge_strategy.h"
 
 #include "../globals.h"
+#include "../plugin.h"
 
 #include <iostream>
 
@@ -18,3 +19,11 @@ void MergeStrategy::dump_options() const {
     cout << "Merge strategy: " << name() << endl;
     dump_strategy_specific_options();
 }
+
+
+
+static MergeStrategy *_parse(OptionParser &) {
+    return nullptr;
+}
+
+static Plugin<MergeStrategy> _plugin("none", _parse);

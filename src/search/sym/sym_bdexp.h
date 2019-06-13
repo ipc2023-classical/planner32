@@ -169,9 +169,9 @@ class SymBDExp {
   void getPlan(const BDD & cut, int g, int h, std::vector <const Operator *> & path) const;
 
   //Two methods useful for debugging: store/load into/from a file
-  void write(const std::string & filename) const;
-  SymBDExp(SymController * engine, const SymParamsSearch & params, 
-	   Dir dir, const std::string & filename, SymHNode * node);
+  /* void write(const std::string & filename) const; */
+  /* SymBDExp(SymController * engine, const SymParamsSearch & params,  */
+  /*          Dir dir, const std::string & filename, SymHNode * node); */
 };
 
 #endif
