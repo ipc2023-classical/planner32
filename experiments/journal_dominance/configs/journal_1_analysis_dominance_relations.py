@@ -5,7 +5,7 @@ import sys
 
 from collections import defaultdict
 
-REVISION = "b8314abb922f"
+REVISION = "49616ae8e93f"
 SERVERS = "new_servers" 
 
 # Experiment #1: simulation type and pruning types
@@ -17,7 +17,9 @@ sh = "bissh"
 trval = 10
 
 CONFIGS = defaultdict(list)
-for mer in merge_strategies: 
+for mer in merge_strategies:
+    CONFIGS["journal1-{}".format(mer)].append(configs.Config('blind', 'blind', "astar(blind())", 'optimal', 'd559b7e49375', SERVERS))
+    
     for sim in ["sim", "bisim", "ldsim", "noopsim"]:
         config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
         CONFIGS["journal1-{}".format(mer)].append(configs.Config(config, config, get_simulation_config(config), 'optimal', REVISION, SERVERS))
