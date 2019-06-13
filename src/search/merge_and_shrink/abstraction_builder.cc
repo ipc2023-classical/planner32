@@ -422,7 +422,7 @@ static AbstractionBuilder *_parse_massim(OptionParser &parser) {
     parser.add_option<MergeStrategy *>(
 	"merge_strategy",
 	"merge strategy; choose between merge_linear and merge_dfp",
-	"merge_linear");
+	"none");
 
     parser.add_option<bool>("complex_lts",
 			    "Use the complex method for LTS representation",
@@ -506,7 +506,7 @@ static AbstractionBuilder *_parse_mas(OptionParser &parser) {
     parser.add_option<MergeStrategy *>(
 	"merge_strategy",
 	"merge strategy; choose between merge_linear and merge_dfp",
-	"merge_dfp");
+	"none");
 
     parser.add_option<bool>("shrink_after_merge",
                             "If true, performs the shrinking after merge instead of before",
@@ -566,7 +566,7 @@ static AbstractionBuilder *_parse_default(OptionParser &parser) {
     parser.add_option<MergeStrategy *>(
 	"merge_strategy",
 	"merge strategy; choose between merge_linear and merge_dfp",
-	"merge_dfp");
+	"none");
 
 
     parser.add_option<int>("num_abstractions",
