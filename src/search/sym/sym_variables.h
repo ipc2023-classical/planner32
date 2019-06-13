@@ -1,7 +1,7 @@
 #ifndef SYM_VARIABLES_H
 #define SYM_VARIABLES_H
 
-#include "../cudd-2.5.0/include/cuddObj.hh"
+#include "cuddObj.hh"
 
 #include "../timer.h"
 #include "../globals.h"
@@ -51,27 +51,27 @@ class SymVariables{
 
  public:
   void init(const std::vector <int> & v_order, const SymParamsMgr & params);
-  BDD readBDD(const std::string & filename) const;
-  void readBucket(std::ifstream & filenames,
-		  std::vector<BDD> & bucket) const;
-  void writeBucket(const std::string & filename,
-		   std::ofstream & filenames,
-		   const std::vector<BDD> & bucket) const;
+  /* BDD readBDD(const std::string & filename) const; */
+  /* void readBucket(std::ifstream & filenames, */
+  /*       	  std::vector<BDD> & bucket) const; */
+  /* void writeBucket(const std::string & filename, */
+  /*       	   std::ofstream & filenames, */
+  /*       	   const std::vector<BDD> & bucket) const; */
 
-  void writeMap(const std::string & fname,
-		std::ofstream & filenames,
-		const std::map<int, BDD> & m) const;
+  /* void writeMap(const std::string & fname, */
+  /*       	std::ofstream & filenames, */
+  /*       	const std::map<int, BDD> & m) const; */
   
-  void readMap(std::ifstream & filenames,
-	       std::map<int, BDD> & m) const;
+  /* void readMap(std::ifstream & filenames, */
+  /*              std::map<int, BDD> & m) const; */
 
 
-  void writeMapBucket(const std::string & fname,
-		      std::ofstream & filenames,
-		      const std::map<int, std::vector<BDD>> & mb) const;
+  /* void writeMapBucket(const std::string & fname, */
+  /*       	      std::ofstream & filenames, */
+  /*       	      const std::map<int, std::vector<BDD>> & mb) const; */
 
-  void readMapBucket(std::ifstream & filenames,
-		     std::map<int, std::vector<BDD>> & mb) const;
+  /* void readMapBucket(std::ifstream & filenames, */
+  /*       	     std::map<int, std::vector<BDD>> & mb) const; */
 
   //State getStateFrom(const BDD & bdd) const;
   BDD getStateBDD(const State & state) const ;

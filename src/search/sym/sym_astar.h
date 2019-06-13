@@ -376,8 +376,8 @@ class SymAstar : public SymExploration  {
   BDD getExpanded() const;
   void getNotExpanded(Bucket & res) const;
 
-  void write(const std::string & file) const;
-  void init(SymBDExp * exp, SymManager * manager,  const std::string & file);
+  /* void write(const std::string & file) const; */
+  /* void init(SymBDExp * exp, SymManager * manager,  const std::string & file); */
 
   void filterMutex (Bucket & bucket) {
       mgr->filterMutex(bucket, fw, initialization());

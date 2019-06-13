@@ -266,33 +266,33 @@ SymAstar * SymBDExp::selectBestDirection(bool skipUseful) const{
 }
 
 
-void SymBDExp::write(const string & filename) const {
-  fw->write(filename + "fw");
-  bw->write(filename + "bw");
-  //  hnode->getManager().write(filename + "mgr");
-}
+// void SymBDExp::write(const string & filename) const {
+//   fw->write(filename + "fw");
+//   bw->write(filename + "bw");
+//   //  hnode->getManager().write(filename + "mgr");
+// }
 
-SymBDExp::SymBDExp(SymController * engine, const SymParamsSearch & params,
-		   Dir dir, const string & filename, SymHNode * node) : 
-  hnode(nullptr), parent(nullptr), 
-  fw(new SymAstar(engine, params)),
-  bw(new SymAstar(engine, params)),
-  searchDir(dir), mayRelax(true),  fMainDiagonal (-1)
-{
-  hnode = node;
+// SymBDExp::SymBDExp(SymController * engine, const SymParamsSearch & params,
+// 		   Dir dir, const string & filename, SymHNode * node) : 
+//   hnode(nullptr), parent(nullptr), 
+//   fw(new SymAstar(engine, params)),
+//   bw(new SymAstar(engine, params)),
+//   searchDir(dir), mayRelax(true),  fMainDiagonal (-1)
+// {
+//   hnode = node;
 
-  cout << "Loading fw: " << endl;
-  fw->init(this, hnode->getManager(), filename + "fw");
-  cout << "Loading bw: " << endl;
-  bw->init(this, hnode->getManager(), filename + "bw");
-  cout << "Loaded: " << *this << endl;
+//   cout << "Loading fw: " << endl;
+//   fw->init(this, hnode->getManager(), filename + "fw");
+//   cout << "Loading bw: " << endl;
+//   bw->init(this, hnode->getManager(), filename + "bw");
+//   cout << "Loaded: " << *this << endl;
 
-  fw->setPerfectHeuristic(bw->getClosed());
-  bw->setPerfectHeuristic(fw->getClosed());
-  //hnode->getManager().read(filename + "mgr");  
-  hnode->getManager()->init_mutex(g_mutex_groups, false, true);
-  hnode->getManager()->init_transitions();
-}
+//   fw->setPerfectHeuristic(bw->getClosed());
+//   bw->setPerfectHeuristic(fw->getClosed());
+//   //hnode->getManager().read(filename + "mgr");  
+//   hnode->getManager()->init_mutex(g_mutex_groups, false, true);
+//   hnode->getManager()->init_transitions();
+// }
 
 bool SymBDExp::finished() const{
   return (searchDir == Dir::BW || fw->finished()) 

@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 
-#include "../../cudd-2.5.0/include/cuddObj.hh"
+#include "cuddObj.hh"
 
 
 class SymManager;

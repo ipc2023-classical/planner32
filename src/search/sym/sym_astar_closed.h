@@ -172,8 +172,8 @@ public:
 	return !children.empty();
     }
 
-    void write(const std::string & fname, std::ofstream & file) const;
-    void init(SymAstar * exp, SymManager * manager, const std::string & fname, std::ifstream & file); 
+    /* void write(const std::string & fname, std::ofstream & file) const; */
+    /* void init(SymAstar * exp, SymManager * manager, const std::string & fname, std::ifstream & file);  */
 
     ADD getHeuristic(int previousMaxH = -1) const;
     void getHeuristic(std::vector<ADD> & heuristics,

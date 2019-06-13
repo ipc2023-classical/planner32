@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include "sym_util.h"
+#include "../utilities.h"
 
 using namespace std;
 
@@ -164,78 +165,78 @@ double SymVariables::numStates() const{
     return numStates(validBDD);
 }
 
-void SymVariables::writeBucket(const string & fname,
-			       ofstream & filenames,
-			       const vector<BDD> & bucket) const{
-  for(int i = 0; i < bucket.size(); ++i){
-    stringstream file;
-    file << fname << "_" << i;
-    bucket[i].write(file.str());
-    filenames << file.str() << endl;
-  }
-  filenames << endl;
-}
+// void SymVariables::writeBucket(const string & fname,
+// 			       ofstream & filenames,
+// 			       const vector<BDD> & bucket) const{
+//   for(int i = 0; i < bucket.size(); ++i){
+//     stringstream file;
+//     file << fname << "_" << i;
+//     bucket[i].write(file.str());
+//     filenames << file.str() << endl;
+//   }
+//   filenames << endl;
+// }
 
-void SymVariables::readBucket(ifstream & filenames, vector<BDD> & bucket) const{
-  string line;
-  while ( getline (filenames, line) && !line.empty()){
-    bucket.push_back(_manager->read_file(line));
-  }
-}
+// void SymVariables::readBucket(ifstream & filenames, vector<BDD> & bucket) const{
+//   string line;
+//   while ( getline (filenames, line) && !line.empty()){
+//     bucket.push_back(_manager->read_file(line));
+//   }
+// }
 
 
-void SymVariables::writeMapBucket(const string & fname,
-				  ofstream & filenames,
-				  const map<int, vector<BDD>> & mb) const{
-  for(const auto & entry : mb){
-    filenames << entry.first << endl;
-    stringstream file;
-    file << fname << entry.first;
-    writeBucket(file.str(), filenames, entry.second);
-  }
-  filenames << -1 << endl;
-}
+// void SymVariables::writeMapBucket(const string & fname,
+// 				  ofstream & filenames,
+// 				  const map<int, vector<BDD>> & mb) const{
+//   for(const auto & entry : mb){
+//     filenames << entry.first << endl;
+//     stringstream file;
+//     file << fname << entry.first;
+//     writeBucket(file.str(), filenames, entry.second);
+//   }
+//   filenames << -1 << endl;
+// }
 
-void SymVariables::readMapBucket(ifstream & filenames, map<int, vector<BDD>> & data) const{
-  int key = getData<int>(filenames, "");
-  while(key != -1){
-    vector<BDD> bucket;
-    readBucket(filenames, bucket);
-    data[key] = bucket;
-    key = getData<int>(filenames, "");
-  }
+// void SymVariables::readMapBucket(ifstream & filenames, map<int, vector<BDD>> & data) const{
+//   int key = getData<int>(filenames, "");
+//   while(key != -1){
+//     vector<BDD> bucket;
+//     readBucket(filenames, bucket);
+//     data[key] = bucket;
+//     key = getData<int>(filenames, "");
+//   }
   
-}
+// }
 
 
-void SymVariables::writeMap(const string & fname,
-			    ofstream & filenames,
-			    const map<int, BDD> & m) const{
-  for(const auto & entry : m){
-    filenames << entry.first << endl;
-    stringstream file;
-    file << fname << entry.first;
-    filenames << file.str() << endl;
-    entry.second.write(file.str());
-  }
-  filenames << -1 << endl;
-}
+// void SymVariables::writeMap(const string & fname,
+// 			    ofstream & filenames,
+// 			    const map<int, BDD> & m) const{
+//   for(const auto & entry : m){
+//     filenames << entry.first << endl;
+//     stringstream file;
+//     file << fname << entry.first;
+//     filenames << file.str() << endl;
+//     entry.second.write(file.str());
+//   }
+//   filenames << -1 << endl;
+// }
 
-void SymVariables::readMap(ifstream & filenames, 
-			   map<int, BDD> & data) const{
-  int key = getData<int>(filenames, "");
-  string filename;
-  while(key != -1){
-    getline(filenames, filename);
-    data[key] = readBDD(filename);
-    key = getData<int>(filenames, "");
-  }  
-}
+// void SymVariables::readMap(ifstream & filenames, 
+// 			   map<int, BDD> & data) const{
+//   int key = getData<int>(filenames, "");
+//   string filename;
+//   while(key != -1){
+//     getline(filenames, filename);
+//     data[key] = readBDD(filename);
+//     key = getData<int>(filenames, "");
+//   }  
+// }
 
-BDD SymVariables::readBDD(const string & filename) const{
-  cout << "Read BDD: " << filename << endl;
-  return _manager->read_file(filename);
-}
+// BDD SymVariables::readBDD(const string & filename) const{
+//   cout << "Read BDD: " << filename << endl;
+//   return _manager->read_file(filename);
+// }
 
 BDD SymVariables::generateBDDVar(const std::vector<int> & _bddVars, int value) const{
   BDD res = _manager->bddOne();
@@ -297,10 +298,10 @@ exceptionError(string /*message*/)
 }
 
 
-// void
-// exitOutOfMemory(size_t) {
-//     utils::exit_with(utils::ExitCode::OUT_OF_MEMORY);
-// }
+void
+exitOutOfMemory(size_t) {
+    exit_with(ExitCode::EXIT_OUT_OF_MEMORY);
+}
 void SymVariables::print() {
     ofstream file("variables.txt");
     
