@@ -25,7 +25,7 @@ class DominancePruningSimulation : public PruneHeuristic {
   const SymParamsMgr mgrParams; //Parameters for SymManager configuration.
 
   bool initialized;
-  const bool remove_spurious_dominated_states;
+  bool remove_spurious_dominated_states;
   const bool insert_dominated;
   const PruningType pruning_type;
 

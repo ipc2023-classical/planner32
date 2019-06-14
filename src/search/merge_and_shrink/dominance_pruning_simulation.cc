@@ -188,8 +188,14 @@ BDD DominancePruningSimulation::getBDDToInsert(const State &state){
     if(insert_dominated){
         BDD res = ldSimulation->get_dominance_relation().getSimulatedBDD(vars.get(), state);
         if(remove_spurious_dominated_states){
-            res = mgr->filter_mutex(res, true, 1000000, true);
-            res = mgr->filter_mutex(res, false, 1000000, true);
+            try{
+                res = mgr->filter_mutex(res, true, 1000000, true);
+                res = mgr->filter_mutex(res, false, 1000000, true);
+            }catch(BDDError) {
+                cout << "Disabling removal of spurious dominated states" << endl;
+                //If it is not possible, do not remove spurious states
+                remove_spurious_dominated_states = false;
+            }
         }
         if(pruning_type == PruningType::Generation){
             res -= vars->getStateBDD(state); //Remove the state
