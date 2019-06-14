@@ -258,6 +258,20 @@ int SimulationRelation::num_equivalences() const{
     return num;
 }
 
+
+
+bool SimulationRelation::is_identity() const{
+    for(int i = 0; i < relation.size(); ++i) {
+        for(int j = i+1; j < relation.size(); ++j) {
+            if(simulates(i, j) || simulates(j, i)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
 int SimulationRelation::num_simulations(bool ignore_equivalences) const{
     int res = 0;
     if(ignore_equivalences){

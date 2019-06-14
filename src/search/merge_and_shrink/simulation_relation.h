@@ -56,6 +56,8 @@ public:
         return relation[s][t];
     }
 
+    bool is_identity () const;
+
     inline bool similar (int s, int t) const {
         return relation[s][t] && relation[t][s];
     }
