@@ -26,6 +26,9 @@ regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P
            re.compile("First pruned node after checking (?P<dom_checked_before_first_pruned>(\d+)) and inserting (?P<dom_inserted_before_first_pruned>(\d+))")
 ]
 
+
+
+
 type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig_ops' : int, 
             'dead_ops_by_stored' : int, 'perc_dead_ops_by_stored' : float, 
             'lts_num' : int, 'lts_total_size' : int,  'lts_max_size' : int, 'lts_total_trsize' : int, 'lts_max_trsize' : int, 
@@ -44,6 +47,7 @@ def parse_regexps (content, props):
                     props[item] = type_atr[item](data[item])
                 break
 
+    props["did_prune"] = 1 if "dom_checked_before_first_pruned" in props else 0
 
 
 
