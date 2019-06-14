@@ -86,9 +86,9 @@ exp()"
 
 
 if __name__ == '__main__':
-    if (len(sys.argv) < 2):
+    if (len(sys.argv) < 3):
         print ("please specify experiment and output folder")
-        print ("\n  ".join(configs.CONFIGS.keys()))
+        print ("\n".join(configs.CONFIGS.keys()))
         
         exit()
     

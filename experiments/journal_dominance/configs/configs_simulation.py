@@ -1,7 +1,10 @@
 
 heuristics = {"lmcut" : "lmcut()", "blind" : "blind()"}
 
-pruning_dds = {"lmcut" : "bdd_map", "blind" : "bdd"}
+def pruning_dds (h, ptype):
+    if h == "blind" and ptype != "gen":
+        return "bdd"
+    return "bdd_map"
 
 pruning_types = {"par" : "parent", 
                  "exp" : "expansion",
@@ -113,7 +116,7 @@ def get_simulation_config (s):
     h, simtype, merge, shrink, ptype, opt = parts[0], parts[1], parts[2], parts[3], parts[4],  parts[5:]
 
     heuristic = heuristics [h]
-    pruning_dd = pruning_dds [h]
+    pruning_dd = pruning_dds (h, ptype)
     pruning_type = pruning_types[ptype]
     merge = get_merge(merge)
     shrink = shrinking[shrink]
