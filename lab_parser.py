@@ -22,7 +22,8 @@ regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P
            re.compile("Simulation pruning (?P<pruning_desactivated>(.*)): (?P<pruned_desactivated>(\d+)) pruned (?P<checked_desactivated>(\d+)) checked (?P<inserted_desactivated>(\d+)) inserted (?P<deadends_desactivated>(\d+)) deadends"),
            re.compile("Numeric LDSim computed(?P<time_numeric_ldsimulation> (.*))"),
            re.compile("Numeric LDSim outer iterations: (?P<outer_iterations_numeric_ldsimulation>(.*))"),
-           re.compile("Numeric LDSim inner iterations: (?P<inner_iterations_numeric_ldsimulation>(.*))")
+           re.compile("Numeric LDSim inner iterations: (?P<inner_iterations_numeric_ldsimulation>(.*))"),
+           re.compile("First pruned node after checking (?P<dom_checked_before_first_pruned>(\d+)) and inserting (?P<dom_inserted_before_first_pruned>(\d+))")
 ]
 
 type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig_ops' : int, 

@@ -137,6 +137,9 @@ bool DominancePruningSimulation::prune_generation(const State &state, int g, con
     //a) Check if state is in a BDD with g.closed <= g
     states_checked ++;
     if (check(state, g)){
+        if (states_pruned == 0) {
+            cout << "First node pruned after checking " << states_checked << " and inserting " << states_inserted << endl;
+        }
         states_pruned ++;
         return true;
     }
@@ -173,6 +176,10 @@ bool DominancePruningSimulation::prune_expansion (const State &state, int g){
     //a) Check if state is in a BDD with g.closed <= g
     states_checked++;
     if(check(state, g)){
+        if (states_pruned == 0) {
+            cout << "First node pruned after checking " << states_checked << " and inserting " << states_inserted << endl;
+        }
+
         states_pruned ++;
         return true;
     }
