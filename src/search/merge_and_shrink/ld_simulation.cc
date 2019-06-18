@@ -200,17 +200,21 @@ void LDSimulation::remove_dead_labels(vector<Abstraction *> & abstractions){
     for (auto abs : abstractions) {
 	if(abs) abs->get_dead_labels(dead_labels, new_dead_labels);
     }
-    
+
     if(new_dead_labels.size() > 0){
+        set<Abstraction *> recompute_distances;
 	cout << "Removing dead labels: " << new_dead_labels.size() << endl;
 	for(auto l : new_dead_labels){
 	    for (auto abs : abstractions) {
-		if(abs) abs->prune_transitions_dominated_label_all(l);
+		if(abs && abs->prune_transitions_dominated_label_all(l) > 0) {
+                    recompute_distances.insert(abs);
+                }
 	    }
 	}
 
-	for (auto abs : abstractions) {
-	    if(abs) abs->reset_lts();
+	for (auto abs : recompute_distances) {
+            abs->compute_distances();
+	    abs->reset_lts();
 	}
     }
 }
