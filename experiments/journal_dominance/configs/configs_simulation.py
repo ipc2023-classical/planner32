@@ -30,9 +30,9 @@ numeric_pruning_types = {"parsucc" : "prune_successors=true, prune_dominated_by_
 
 numeric_simulation_type = {
     "qual"  : ["use_quantified_dominance=false"],
-    "qtrade" : ["trade_off_dominance=true"],
-    "qpos" : ["only_positive_dominance=true"],
-    "qrel" : []
+    "qtrade" : ["use_quantified_dominance=true, trade_off_dominance=true"],
+    "qpos" : ["use_quantified_dominance=true, only_positive_dominance=true"],
+    "qrel" : ["use_quantified_dominance=true"]
 }
 
 
@@ -138,7 +138,7 @@ def get_numeric_simulation_config (s):
     h, simtype, trval, merge, shrink, ptype, opt = parts[0], parts[1], parts[2], parts[3], parts[4],  parts[5], parts[6:]
 
     heuristic = heuristics [h]
-    pruning_dd = "use_single_bdd=true" if h == "blind" else "use_single_bdd=false"
+    pruning_dd = "use_single_bdd=true" if h == "blind" and ptype != "gen" and  simtype == "qual"  else "use_single_bdd=false"
     
     pruning_type = numeric_pruning_types[ptype]
     merge = get_merge(merge)

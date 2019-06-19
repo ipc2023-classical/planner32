@@ -374,25 +374,30 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "1000");
 
     Options opts = parser.parse();
-
    
     if (parser.dry_run()) {
         return 0;
     } else {
 	if (opts.get<bool> ("use_adds")) {
 	    return nullptr; //new NumericDominancePruningADD (opts);
-	} else if (opts.get<bool> ("use_quantified_dominance") || !opts.get<bool> ("use_single_bdd")) {
-	    if(g_min_action_cost == 0) {
-		return new NumericDominancePruningBDDMap<IntEpsilon> (opts);
-	    } else {
-		return new NumericDominancePruningBDDMap<int> (opts);
-	    }
-	} else {
+	} else if (opts.get<bool> ("use_single_bdd")) {
+            if (opts.get<bool> ("use_quantified_dominance") ||
+                opts.get<bool> ("prune_dominated_by_open")) {
+                cerr << "Error: you cannot use use_single_bdd and use_quantified_dominance or prune_dominated_by_open" << endl;
+                exit_with(EXIT_INPUT_ERROR);
+            }
 	    if(g_min_action_cost == 0) {
 		return new NumericDominancePruningBDD<IntEpsilon> (opts);
 	    } else {
 		return new NumericDominancePruningBDD<int> (opts);
 	    }
+	} else {
+            if(g_min_action_cost == 0) {
+		return new NumericDominancePruningBDDMap<IntEpsilon> (opts);
+	    } else {
+		return new NumericDominancePruningBDDMap<int> (opts);
+	    }
+	    
 	}
     }
 }
@@ -413,8 +418,9 @@ map<int, BDD> NumericDominancePruning<int>::getBDDMapToInsert(const State & stat
     map<int, BDD> res = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state, 
 								       only_positive_dominance);
 
-    for(auto & it : res) {
-	BDD & bdd = it.second;
+
+    for(auto it = res.begin(); it != res.end(); ) {
+	BDD & bdd = it->second;
 	if(remove_spurious_dominated_states){
 	    bdd = mgr->filter_mutex(bdd, true, 1000000, true);
 	    bdd = mgr->filter_mutex(bdd, false, 1000000, true);
@@ -422,7 +428,14 @@ map<int, BDD> NumericDominancePruning<int>::getBDDMapToInsert(const State & stat
 	if(prune_dominated_by_open){
 	    bdd -= vars->getStateBDD(state); //Remove the state
 	}
+
+        if (bdd.IsZero()) {
+            res.erase(it++);
+        } else {
+            ++it;
+        }
     }
+
 
     if(res.begin()->first < 0) {
 	map<int, BDD> new_res ; 
@@ -454,6 +467,10 @@ map<int, BDD> NumericDominancePruning<IntEpsilon>::getBDDMapToInsert(const State
 	    bdd -= vars->getStateBDD(state); //Remove the state
 	}
 
+        if (bdd.IsZero()) {
+            continue;
+        }
+
 	int value = it.first.get_value();
 	if(value < 0 || it.first.get_epsilon() < 0) {
 	    value --;
@@ -467,25 +484,6 @@ map<int, BDD> NumericDominancePruning<IntEpsilon>::getBDDMapToInsert(const State
 
     return res;
 }
-
-template <typename T> 
-map<int, BDD> NumericDominancePruning<T>::getBDDMapToInsert(const State & state){
-    assert(insert_dominated); 
-    map<T, BDD> res = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state);
-    for(auto & it : res) {
-	BDD & bdd = it.second;
-	if(remove_spurious_dominated_states){
-	    bdd = mgr->filter_mutex(bdd, true, 1000000, true);
-	    bdd = mgr->filter_mutex(bdd, false, 1000000, true);
-	}
-	if(prune_dominated_by_open){
-	    bdd -= vars->getStateBDD(state); //Remove the state
-	}
-    }
-    return res;
-}
-
-
 
 
 template <typename T>
