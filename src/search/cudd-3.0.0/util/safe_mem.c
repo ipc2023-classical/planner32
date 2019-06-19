@@ -90,6 +90,10 @@ void
 MMout_of_memory(size_t size)
 {
     (void) fflush(stdout);
+    (void) fprintf(stdout,
+                   "\nCUDD: out of memory allocating %" PRIszt " bytes\n",
+		   (size_t) size);
+
     (void) fprintf(stderr,
                    "\nCUDD: out of memory allocating %" PRIszt " bytes\n",
 		   (size_t) size);

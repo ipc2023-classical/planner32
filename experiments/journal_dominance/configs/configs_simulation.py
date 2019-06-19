@@ -104,9 +104,9 @@ def get_optionals_prune(opt):
         if o in optionals_prune:
             res.append(optionals_prune[o])
     if "belt" in opt:
-        res.append("min_desactivation_ratio=0, min_insertions=infinity")
-    else:
         res.append("min_desactivation_ratio=0, min_insertions=1000")
+    else:
+        res.append("min_desactivation_ratio=0, min_insertions=infinity")
     return res
 
 

@@ -68,7 +68,14 @@ def parse_numeric_dominance (content, props):
         elif l == "------": 
             check = True
             
-
+def fix_error (content, props):
+    if not props["error"].startswith("unexplained"):
+        return
+    for l in content.split("\n"):
+        if l.startswith("Peak memory: Failed to allocate memory. Released memory buffer.") or l.startswith("CUDD: out of memory allocating"):
+            props["error"] = "out-of-memory"
+            return
+    
 
 
 # def real_search_time(content, props ):
