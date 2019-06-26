@@ -169,5 +169,7 @@ eval.add_function(parse_regexps)
 
 eval.add_function(parse_numeric_dominance)
 
+eval.add_function(fix_error)
+
 
 eval.parse()
