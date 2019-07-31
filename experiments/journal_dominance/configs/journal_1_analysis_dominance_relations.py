@@ -5,11 +5,12 @@ import sys
 
 from collections import defaultdict
 
-REVISION = "6320039e08bb"
+REVISION = "a0e7d6949d1b"
 SERVERS = "new_servers" 
 
+
 # Experiment #1: simulation type and pruning types
-merge_strategies = ["atomic", "dfp50k"] #["atomic", "dfp10k", "dfp50k", "dfp100k", "dfp200k", "dfp100states", "dfp1kstates", "dfp10kstates"]
+merge_strategies = ["atomic", "dfp50k"]
 
 heuristic = "blind"
 sh = "bissh"

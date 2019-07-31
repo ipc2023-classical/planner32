@@ -104,8 +104,9 @@ if __name__ == '__main__':
         if exc.errno == errno.EEXIST and os.path.isdir(folder):
             pass
         else: raise
-        
-    for config in configs.CONFIGS[experiment]:
+    CONFIGS_TO_PROCESS = configs.get_configs(experiment)
+    for config in CONFIGS_TO_PROCESS:
+        print config
         data = get_script(config)
 
         EXPPATH = '/mnt/data_server/torralba/dominance-journal/results/{}/{}/{}'.format(config.machines, config.revision, config.folder)

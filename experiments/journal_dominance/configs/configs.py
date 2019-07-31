@@ -19,10 +19,22 @@ import journal_1_analysis_dominance_relations
 
 
 
+
 CONFIGS = {}
 for config_list in [journal_1_analysis_dominance_relations.CONFIGS]:
     for k in config_list:
         CONFIGS[k] = config_list[k]
+
+
+def get_configs(experiment):
+    if experiment == "all":
+        res = []
+        for a in CONFIGS:
+            for d in CONFIGS[a]:
+                res.append(d)
+        return res
+    else:
+        return CONFIGS[experiment]
 
 
 
