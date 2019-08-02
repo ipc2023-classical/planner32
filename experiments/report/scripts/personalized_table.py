@@ -67,6 +67,10 @@ class PersonalizedTableReport(PlanningReport):
                     instances_with_data [(domain, problem)] += 1
 
         selected_instances = set([(domain, problem) for (domain, problem) in instances_with_data if instances_with_data [(domain, problem)] == len(self.algorithms)*len(self.attributes)])
+
+        selected_domains = set([domain_mapping(domain) for (domain, problem) in selected_instances])
+
+        print ("Selected instances: {} in {} domains.".format( len(selected_instances), len(selected_domains)))
                
         # end for
         lines = [turn_list_into_table_row(['% '] + [col.header for col in self.columns])]

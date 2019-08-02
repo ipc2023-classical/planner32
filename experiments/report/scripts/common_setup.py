@@ -16,6 +16,7 @@ from downward.reports.compare import ComparativeReport
 from downward.reports.scatter import ScatterPlotReport
 
 from relativescatter import RelativeScatterPlotReport
+from cumulative import CumulativePlotReport
 
 
 def parse_args():
@@ -441,7 +442,7 @@ class ReportExperiment(FastDownwardExperiment):
         self.add_step(
             "publish-comparison-tables", publish_comparison_tables)
 
-    def add_scatter_plot_step(self, relative=False, attributes=None, _configs = [], _configpairs =[], category="domain"):
+    def add_scatter_plot_step(self, relative=False, attributes=None, _configs = [], _configpairs =[], category="domain", algo_to_print = {}):
         """Add step creating (relative) scatter plots for all revision pairs.
 
         Create a scatter plot for each combination of attribute,
@@ -464,8 +465,13 @@ class ReportExperiment(FastDownwardExperiment):
         if attributes is None:
             attributes = self.DEFAULT_SCATTER_PLOT_ATTRIBUTES
 
+        def name_algo(alg):
+            if alg in algo_to_print:
+                return algo_to_print[alg]
+            return alg
+            
         def make_scatter_plot(algo1, algo2, attribute):
-            name = "-".join([self.name, algo1, algo2, attribute])
+            name = "-".join([attribute, name_algo(algo1), name_algo(algo2)])
             print "Make scatter plot for", name, algo1, algo2
             report = report_class(
                 filter_algorithm=[algo1, algo2],
@@ -473,7 +479,7 @@ class ReportExperiment(FastDownwardExperiment):
                 get_category=lambda run1, run2:  run1[category])
             report(
                 self.eval_dir,
-                os.path.join(scatter_dir, algo1 + "-" + algo2, name))
+                os.path.join(scatter_dir, name))
 
         def make_scatter_plots():
             configpaircombinations = _configpairs + list(itertools.combinations(_configs, 2))
@@ -484,6 +490,30 @@ class ReportExperiment(FastDownwardExperiment):
 
         self.add_step(step_name, make_scatter_plots)
 
+
+    def add_cumulative_plot_step(self, attribute, algorithms):
+        """Add step creating (relative) scatter plots for all revision pairs.
+
+        Create a scatter plot for each combination of attribute,
+        configuration and revisions pair. If *attributes* is not
+        specified, a list of common scatter plot attributes is used.
+        For portfolios all attributes except "cost", "coverage" and
+        "plan_length" will be ignored. ::
+
+            exp.add_scatter_plot_step(attributes=["expansions"])
+
+        """
+
+        def make_cumulative_plot():
+            name = "-".join([self.name, attribute])
+            print "Make cumulative plot for", self.name, attribute
+            report = CumulativePlotReport(
+                filter_algorithm=algorithms, format="tex",
+                attributes=[attribute])
+            report(self.eval_dir, os.path.join("cumulative", name))
+
+
+        self.add_step("make-cumulative-plot", make_cumulative_plot)
 
 
 # def 

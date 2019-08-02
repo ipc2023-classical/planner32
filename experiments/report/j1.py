@@ -24,6 +24,7 @@ sys.path.insert(1, './scripts')
 from common_setup import ReportExperiment, fix_algorithm, joint_domains
 from domain_comparison import DomainComparisonReport
 from personalized_table import PersonalizedTableReport, ColumnCompare
+from cumulative import CumulativePlotReport
 
 
 exp = ReportExperiment("report")
@@ -52,7 +53,21 @@ exp.add_scatter_plot_step(relative=False,
                                           ("blind-ldsim-dfp50k-bissh-exp", "blind-ldsim-dfp50k-bissh-gen"),
                                           ( "blind-ldsim-atomic-bissh-exp",  "blind-ldsim-dfp50k-bissh-exp"),
                                           ( "blind-ldsim-atomic-bissh-gen",  "blind-ldsim-dfp50k-bissh-gen"),
-                          ])
+                                          ("blind", "blind-qrel-atomic-bissh-gen"),
+                                          ("blind-ldsim-atomic-bissh-gen", "blind-qrel-atomic-bissh-gen"),
+                          ],
+                          algo_to_print= {
+                              'blind' : 'blind', 
+                              'blind-bisim-atomic-bissh-gen':    'bisim',
+                              'blind-sim-atomic-bissh-gen':      'sim',
+                              'blind-noopsim-atomic-bissh-gen':  'noopsim', 
+                              'blind-ldsim-atomic-bissh-gen':    'ldsim',
+                              "blind-qual-10-atomic-bissh-gen":  "qual10",
+                              "blind-qpos-10-atomic-bissh-gen":  "qpos10",
+                              "blind-qrel-10-atomic-bissh-gen":  "qrel10",
+                              "blind-qtrade-10-atomic-bissh-gen": "qtrade10"
+                          },
+)
 
 
 alg_list_atomic = [ 'blind',
@@ -68,10 +83,10 @@ alg_list_atomic = [ 'blind',
 exp.add_report(
     PersonalizedTableReport(
         filter_algorithm=alg_list_atomic,
-        filter_run=(lambda x :  x["algorithm"] == "blind" and ("expansions_until_last_jump" not in x or x["expansions_until_last_jump"] < 1000)), 
-        columns = [ ColumnCompare("$>$ blind", 'expansions_until_last_jump', lambda x : "blind", lambda x, y : x < y),
-                    ColumnCompare("$>$ blind x 2", 'expansions_until_last_jump', lambda x : "blind", lambda x, y : x*2 < y),
-                    ColumnCompare("$>$ blind x 10", 'expansions_until_last_jump', lambda x : "blind", lambda x, y : x*10 < y),
+        #filter_run=(lambda x :  x["algorithm"] == "blind" and ("expansions_until_last_jump" not in x or x["expansions_until_last_jump"] < 1000)), 
+        columns = [ ColumnCompare("$>$ blind", 'expansions_until_last_jump', lambda x : 'blind', lambda x, y : x < y),
+                    ColumnCompare("$>$ blind x 2", 'expansions_until_last_jump', lambda x : 'blind', lambda x, y : x*2 < y),
+                    ColumnCompare("$>$ blind x 10", 'expansions_until_last_jump', lambda x : 'blind', lambda x, y : x*10 < y),
                     ColumnCompare("$>$ -1", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], lambda x, y : x < y),
                     ColumnCompare("$>$ -1 x2", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], lambda x, y : x*2 < y),
                     ColumnCompare("$>$ -1 x10", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], lambda x, y : x*10 < y),
@@ -107,7 +122,7 @@ alg_list_dfp = [ 'blind',
 exp.add_report(
     PersonalizedTableReport(
         filter_algorithm=alg_list_dfp,
-        filter_run=(lambda x :  x["algorithm"] == "blind" and ("expansions_until_last_jump" not in x or x["expansions_until_last_jump"] < 1000)), 
+#        filter_run=(lambda x :  x["algorithm"] == "blind" and ("expansions_until_last_jump" not in x or x["expansions_until_last_jump"] < 1000)), 
         columns = [ ColumnCompare("$>$ bisim", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x < y),
                     ColumnCompare("$>$ bisim x 2", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x*2 < y),
                     ColumnCompare("$>$ bisim x 10", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x*10 < y),
@@ -131,6 +146,8 @@ exp.add_report(
     outfile=os.path.join(exp.eval_dir, 'comparison-dfp50k-expansions_until_last_jump.tex'),
 )
 
+
+exp.add_cumulative_plot_step('search_time', ['blind', 'blind-bisim-dfp50k-bissh-gen'])
 
 exp.run_steps()
 
