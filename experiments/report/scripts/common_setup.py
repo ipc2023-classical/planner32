@@ -441,7 +441,7 @@ class ReportExperiment(FastDownwardExperiment):
         self.add_step(
             "publish-comparison-tables", publish_comparison_tables)
 
-    def add_scatter_plot_step(self, relative=False, attributes=None):
+    def add_scatter_plot_step(self, relative=False, attributes=None, _configs = [], _configpairs =[], category="domain"):
         """Add step creating (relative) scatter plots for all revision pairs.
 
         Create a scatter plot for each combination of attribute,
@@ -464,24 +464,23 @@ class ReportExperiment(FastDownwardExperiment):
         if attributes is None:
             attributes = self.DEFAULT_SCATTER_PLOT_ATTRIBUTES
 
-        def make_scatter_plot(config_nick, rev1, rev2, attribute):
-            name = "-".join([self.name, rev1, rev2, attribute, config_nick])
-            print "Make scatter plot for", name
-            algo1 = "{}-{}".format(rev1, config_nick)
-            algo2 = "{}-{}".format(rev2, config_nick)
+        def make_scatter_plot(algo1, algo2, attribute):
+            name = "-".join([self.name, algo1, algo2, attribute])
+            print "Make scatter plot for", name, algo1, algo2
             report = report_class(
-                filter_config=[algo1, algo2],
+                filter_algorithm=[algo1, algo2],
                 attributes=[attribute],
-                get_category=lambda run1, run2: run1["domain"],
-                legend_location=(1.3, 0.5))
+                get_category=lambda run1, run2:  run1[category])
             report(
                 self.eval_dir,
-                os.path.join(scatter_dir, rev1 + "-" + rev2, name))
+                os.path.join(scatter_dir, algo1 + "-" + algo2, name))
 
-        def make_scatter_plots(configs):
-            for config in configs:
-                for attribute in self.get_supported_attributes(config.nick, attributes):
-                        make_scatter_plot(config.nick, rev1, rev2, attribute)
+        def make_scatter_plots():
+            configpaircombinations = _configpairs + list(itertools.combinations(_configs, 2))
+            for algo1, algo2 in configpaircombinations:
+                for attribute in self.get_supported_attributes(algo1, attributes):
+                    if attribute in self.get_supported_attributes(algo2, attributes):
+                        make_scatter_plot(algo1, algo2, attribute)
 
         self.add_step(step_name, make_scatter_plots)
 
