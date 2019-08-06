@@ -38,7 +38,8 @@ type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig
             'inner_iterations_numeric_ldsimulation' : int,
             "total_simulation_time" : lambda x : max(0.01, float(x)),
             "total_abstraction_time" : lambda x : max(0.01, float(x)), "final_abstractions" : int,
-            "useless_vars" : int, "total_simulations" : int, "only_simulations" : int, "similarity_equivalences" : int,           
+            "useless_vars" : int, "total_simulations" : int, "only_simulations" : int, "similarity_equivalences" : int,
+            'dom_inserted_before_first_pruned' : int,  'dom_checked_before_first_pruned' : int
         }
 
 def parse_regexps (content, props):
