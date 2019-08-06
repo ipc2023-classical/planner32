@@ -43,8 +43,11 @@ attributes = list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES)
 
 exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=all_configs))
 
+
 exp.add_scatter_plot_step([
-    ("ASD", ScatterPlotReport(filter_algorithm=["blind", "blind-ldsim-atomic-bissh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"], format='tex',))
+    ("report-eval/scatter/expansions-base-vs-ldsim-atomic", ScatterPlotReport(filter_algorithm=["blind", "blind-ldsim-atomic-bissh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"],)),
+    ("report-eval/scatter/simulationtime-ldsim-vs-qrel-atomic", ScatterPlotReport(filter_algorithm=["blind-qrel-10-atomic-bissh-gen", "blind-ldsim-atomic-bissh-gen"], attributes=["time_numeric_ldsimulation"], get_category=lambda run1, run2:  run1["domain_category"],))
+    
 ]
 )
     

@@ -8,16 +8,17 @@ eval = Parser()
 
 
 regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P<lts_total_size>(\d+)) Total trsize: (?P<lts_total_trsize>(\d+)) Max size: (?P<lts_max_size>(\d+)) Max trsize: (?P<lts_max_trsize>(\d+))"),
-           re.compile("Init LDSim in (?P<time_init_ldsim>(\d+))s: .*"), 
+           re.compile(".*Init LDSim in (?P<time_init_ldsim>(.*))s:.*"),
+           re.compile("LDSim computed (?P<time_ldsim>(.*))"),
            re.compile("Dead operators due to dead labels: (?P<dead_ops_by_labels>(\d+)) / (?P<orig_ops>(\d+)) \((?P<perc_dead_ops_by_labels>(\d*[.\d+]*))\%\)"), 
            re.compile("Dead operators detected by storing original operators: (?P<dead_ops_by_stored>(\d+)) / (?P<orig_ops>(\d+)) \((?P<perc_dead_ops_by_stored>(\d*[.\d+]*))\%\)"), 
            re.compile("Simulation pruning (?P<pruning_desactivated>(.*)): (?P<pruned_desactivated>(\d+)) pruned (?P<checked_desactivated>(\d+)) checked (?P<inserted_desactivated>(\d+)) inserted (?P<deadends_desactivated>(\d+)) deadends"),
-           re.compile("Numeric LDSim computed(?P<time_numeric_ldsimulation> (.*))"),
+           re.compile("Numeric LDSim computed(?P<time_ldsim> (.*))"),
            re.compile("Numeric LDSim outer iterations: (?P<outer_iterations_numeric_ldsimulation>(.*))"),
            re.compile("Numeric LDSim inner iterations: (?P<inner_iterations_numeric_ldsimulation>(.*))"),
            re.compile("First node pruned after checking (?P<dom_checked_before_first_pruned>(\d+)) and inserting (?P<dom_inserted_before_first_pruned>(\d+))"),
-           re.compile("Done initializing simulation heuristic [(?P<total_simulation_time>(.*))s]"),
-           re.compile('Done initializing merge-and-shrink heuristic [(?P<total_abstraction_time>(.*))s]'),
+           re.compile("Done initializing simulation heuristic \[(?P<total_simulation_time>(.*))s\]"),
+           re.compile('Done initializing merge-and-shrink heuristic \[(?P<total_abstraction_time>(.*))s\]'),
            re.compile('Final abstractions: (?P<final_abstractions>(\d+))'),
            re.compile('Useless vars: (?P<useless_vars>(\d+))'),
            re.compile('Total simulations: (?P<total_simulations>(\d+))'),
@@ -33,13 +34,14 @@ type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig
             'lts_num' : int, 'lts_total_size' : int,  'lts_max_size' : int, 'lts_total_trsize' : int, 'lts_max_trsize' : int, 
             'pruning_desactivated' : (lambda x : 1 if "desactivated" == x else 0 ), 
             'pruned_desactivated' : int, 'checked_desactivated' : int, 'inserted_desactivated' : int, 'deadends_desactivated' : int,
-            'time_numeric_ldsimulation' : lambda x : max(0.01, float(x)),
+            'time_init_ldsim' : lambda x : max(0.01, float(x)),
             'outer_iterations_numeric_ldsimulation' : int,
             'inner_iterations_numeric_ldsimulation' : int,
             "total_simulation_time" : lambda x : max(0.01, float(x)),
             "total_abstraction_time" : lambda x : max(0.01, float(x)), "final_abstractions" : int,
             "useless_vars" : int, "total_simulations" : int, "only_simulations" : int, "similarity_equivalences" : int,
-            'dom_inserted_before_first_pruned' : int,  'dom_checked_before_first_pruned' : int
+            'dom_inserted_before_first_pruned' : int,  'dom_checked_before_first_pruned' : int,
+            'time_ldsim' : lambda x : max(0.01, float(x)),
         }
 
 def parse_regexps (content, props):
