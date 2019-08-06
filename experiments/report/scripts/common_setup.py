@@ -442,53 +442,48 @@ class ReportExperiment(FastDownwardExperiment):
         self.add_step(
             "publish-comparison-tables", publish_comparison_tables)
 
-    def add_scatter_plot_step(self, relative=False, attributes=None, _configs = [], _configpairs =[], category="domain", algo_to_print = {}):
-        """Add step creating (relative) scatter plots for all revision pairs.
+    # def add_scatter_plot_step(self, relative=False, attributes=None, _configs = [], _configpairs =[], category="domain"):
+    #     """Add step creating (relative) scatter plots for all revision pairs.
 
-        Create a scatter plot for each combination of attribute,
-        configuration and revisions pair. If *attributes* is not
-        specified, a list of common scatter plot attributes is used.
-        For portfolios all attributes except "cost", "coverage" and
-        "plan_length" will be ignored. ::
+    #     Create a scatter plot for each combination of attribute,
+    #     configuration and revisions pair. If *attributes* is not
+    #     specified, a list of common scatter plot attributes is used.
+    #     For portfolios all attributes except "cost", "coverage" and
+    #     "plan_length" will be ignored. ::
 
-            exp.add_scatter_plot_step(attributes=["expansions"])
+    #         exp.add_scatter_plot_step(attributes=["expansions"])
 
-        """
-        if relative:
-            report_class = RelativeScatterPlotReport
-            scatter_dir = os.path.join(self.eval_dir, "scatter-relative")
-            step_name = "make-relative-scatter-plots"
-        else:
-            report_class = ScatterPlotReport
-            scatter_dir = os.path.join(self.eval_dir, "scatter-absolute")
-            step_name = "make-absolute-scatter-plots"
-        if attributes is None:
-            attributes = self.DEFAULT_SCATTER_PLOT_ATTRIBUTES
+    #     """
+    #     if relative:
+    #         report_class = RelativeScatterPlotReport
+    #         scatter_dir = os.path.join(self.eval_dir, "scatter-relative")
+    #         step_name = "make-relative-scatter-plots"
+    #     else:
+    #         report_class = ScatterPlotReport
+    #         scatter_dir = os.path.join(self.eval_dir, "scatter-absolute")
+    #         step_name = "make-absolute-scatter-plots"
+    #     if attributes is None:
+    #         attributes = self.DEFAULT_SCATTER_PLOT_ATTRIBUTES
 
-        def name_algo(alg):
-            if alg in algo_to_print:
-                return algo_to_print[alg]
-            return alg
-            
-        def make_scatter_plot(algo1, algo2, attribute):
-            name = "-".join([attribute, name_algo(algo1), name_algo(algo2)])
-            print "Make scatter plot for", name, algo1, algo2
-            report = report_class(
-                filter_algorithm=[algo1, algo2],
-                attributes=[attribute],
-                get_category=lambda run1, run2:  run1[category])
-            report(
-                self.eval_dir,
-                os.path.join(scatter_dir, name))
+    #     def make_scatter_plot(algo1, algo2, attribute):
+    #         name = "-".join([attribute, algo1, algo2])
+    #         print "Make scatter plot for", name, algo1, algo2
+    #         report = report_class(
+    #             filter_algorithm=[algo1, algo2],
+    #             attributes=[attribute], format='tex',
+    #             get_category=lambda run1, run2:  run1[category])
+    #         report(
+    #             self.eval_dir,
+    #             os.path.join(scatter_dir, name))
 
+
+    def add_scatter_plot_step(self, scatter_plots):
+        """Add step creating scatter plots. """
         def make_scatter_plots():
-            configpaircombinations = _configpairs + list(itertools.combinations(_configs, 2))
-            for algo1, algo2 in configpaircombinations:
-                for attribute in self.get_supported_attributes(algo1, attributes):
-                    if attribute in self.get_supported_attributes(algo2, attributes):
-                        make_scatter_plot(algo1, algo2, attribute)
+            for (path, scplot) in scatter_plots:
+                scplot(self.eval_dir, path)
 
-        self.add_step(step_name, make_scatter_plots)
+        self.add_step("make-absolute-scatter-plots", make_scatter_plots)
 
 
     def add_cumulative_plot_step(self, attribute, algorithms):

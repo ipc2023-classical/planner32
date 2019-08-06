@@ -89,11 +89,12 @@ class PersonalizedTableReport(PlanningReport):
 
 
 class ColumnCompare:
-    def __init__(self, _header, _attribute, _algo_map, _comparison):
+    def __init__(self, _header, _attribute, _algo_map, _comparison, _printList=False):
         self.header = _header
         self.attribute = _attribute
         self.algo_map = _algo_map
         self.comparison = _comparison
+        self.printList = _printList
 
     def __call__(self, domain_and_algo_to_data, selected_instances, algo1):
         algo2 = self.algo_map(algo1)
@@ -108,5 +109,9 @@ class ColumnCompare:
                 num_algo1_better += 1
 
             num_domains_algo1_better = len(domains_algo1_better)
+
+        if self.printList:
+            print (domains_algo1_better)
+            
 
         return "--" if algo1 == algo2 else "{} ({})".format(num_algo1_better, num_domains_algo1_better)

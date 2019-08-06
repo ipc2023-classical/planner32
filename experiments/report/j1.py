@@ -43,37 +43,31 @@ attributes = list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES)
 
 exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=all_configs))
 
-exp.add_scatter_plot_step(relative=False,
-                          attributes=["expansions_until_last_jump"], category="domain_category",
-                          _configpairs = [("blind", "blind-ldsim-atomic-bissh-exp"),
-                                          ("blind", "blind-ldsim-atomic-bissh-gen"),
-                                          ("blind-ldsim-atomic-bissh-exp", "blind-ldsim-atomic-bissh-gen"),
-                                          ("blind", "blind-ldsim-dfp50k-bissh-exp"),
-                                          ("blind", "blind-ldsim-dfp50k-bissh-gen"),
-                                          ("blind-ldsim-dfp50k-bissh-exp", "blind-ldsim-dfp50k-bissh-gen"),
-                                          ( "blind-ldsim-atomic-bissh-exp",  "blind-ldsim-dfp50k-bissh-exp"),
-                                          ( "blind-ldsim-atomic-bissh-gen",  "blind-ldsim-dfp50k-bissh-gen"),
-                                          ("blind", "blind-qrel-atomic-bissh-gen"),
-                                          ("blind-ldsim-atomic-bissh-gen", "blind-qrel-atomic-bissh-gen"),
-                          ],
-                          algo_to_print= {
-                              'blind' : 'blind', 
-                              'blind-bisim-atomic-bissh-gen':    'bisim',
-                              'blind-sim-atomic-bissh-gen':      'sim',
-                              'blind-noopsim-atomic-bissh-gen':  'noopsim', 
-                              'blind-ldsim-atomic-bissh-gen':    'ldsim',
-                              "blind-qual-10-atomic-bissh-gen":  "qual10",
-                              "blind-qpos-10-atomic-bissh-gen":  "qpos10",
-                              "blind-qrel-10-atomic-bissh-gen":  "qrel10",
-                              "blind-qtrade-10-atomic-bissh-gen": "qtrade10"
-                          },
+exp.add_scatter_plot_step([
+    ("ASD", ScatterPlotReport(filter_algorithm=["blind", "blind-ldsim-atomic-bissh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"], format='tex',))
+]
 )
+    
+# , ,
+#     _configpairs = [
+#         (),
+#         ("blind-ldsim-atomic-bissh-exp", "blind-ldsim-atomic-bissh-gen"),
+#         ("blind", "blind-qrel-10-atomic-bissh-gen"),
+#         ("blind-ldsim-atomic-bissh-gen", "blind-qrel-10-atomic-bissh-gen"),                              
+#         ("blind", "blind-ldsim-dfp50k-bissh-gen"),
+#         ("blind-ldsim-dfp50k-bissh-exp", "blind-ldsim-dfp50k-bissh-gen"),
+#         ("blind", "blind-qrel-10-dfp50k-bissh-gen"),
+#         ("blind-ldsim-dfp50k-bissh-gen", "blind-qrel-10-dfp50k-bissh-gen"),
+#         ("blind-ldsim-dfp50k-bissh-exp", "blind-ldsim-dfp50k-bissh-gen"),
+#         ("blind-ldsim-atomic-bissh-gen",  "blind-ldsim-dfp50k-bissh-gen"),
+#     ],
+# )
 
 
 alg_list_atomic = [ 'blind',
              'blind-bisim-atomic-bissh-gen',
              'blind-sim-atomic-bissh-gen',
-             'blind-noopsim-atomic-bissh-gen', 
+             'blind-noopsim-atomic-bissh-gen',
              'blind-ldsim-atomic-bissh-gen',
              "blind-qual-10-atomic-bissh-gen",
              "blind-qpos-10-atomic-bissh-gen",
@@ -109,6 +103,7 @@ exp.add_report(
 
 
 
+
 alg_list_dfp = [ 'blind',
              'blind-bisim-dfp50k-bissh-gen',
              'blind-sim-dfp50k-bissh-gen',
@@ -125,7 +120,7 @@ exp.add_report(
 #        filter_run=(lambda x :  x["algorithm"] == "blind" and ("expansions_until_last_jump" not in x or x["expansions_until_last_jump"] < 1000)), 
         columns = [ ColumnCompare("$>$ bisim", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x < y),
                     ColumnCompare("$>$ bisim x 2", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x*2 < y),
-                    ColumnCompare("$>$ bisim x 10", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x*10 < y),
+                    ColumnCompare("$>$ bisim x 10", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x*10 < y, _printList=True),
                     ColumnCompare("$>$ -1", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], lambda x, y : x < y),
                     ColumnCompare("$>$ -1 x2", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], lambda x, y : x*2 < y),
                     ColumnCompare("$>$ -1 x10", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], lambda x, y : x*10 < y),
