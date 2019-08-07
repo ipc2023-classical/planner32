@@ -43,7 +43,7 @@ type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig
             "useless_vars" : int, "total_simulations" : int, "only_simulations" : int, "similarity_equivalences" : int,
             'dom_inserted_before_first_pruned' : int,  'dom_checked_before_first_pruned' : int,
             'time_ldsim' : lambda x : max(0.01, float(x)),
-            'time_completed_preprocessing' : max(0.01, float(x)),
+            'time_completed_preprocessing' : lambda x : max(0.01, float(x)),
         }
 
 def parse_regexps (content, props):
