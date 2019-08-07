@@ -13,7 +13,7 @@ SERVERS = "new_servers"
 merge_strategies = ["atomic", "dfp50k"]
 
 heuristic = "blind"
-sh = "bissh"
+sh = "nosh"
 trval = 10
 
 CONFIGS = defaultdict(list)
@@ -26,7 +26,7 @@ for pruning_type in ["exp", "gen"]:
         CONFIG_NAME = "journal1-{}-{}".format(mer, pruning_type)
         CONFIGS[CONFIG_NAME].append(blind_config)
     
-        for sim in ["sim", "bisim", "ldsim", "noopsim"]:
+        for sim in ["sim", "bisim", "ldsim", "noopsim", "ldsimalt"]:
             config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', REVISION, SERVERS))
 

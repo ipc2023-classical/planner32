@@ -18,7 +18,8 @@ optionals_prune = {"nospu" : "remove_spurious=false"}
 
 simulation_type = {"sim" : ["simulation_type=SIMPLE, label_dominance_type=NONE"],
                    "bisim" : ["simulation_type=NONE, label_dominance_type=NONE"], 
-                   "ldsim" : ["simulation_type=SIMPLE, label_dominance_type=NORMAL"], 
+                   "ldsim" : ["simulation_type=SIMPLE, label_dominance_type=NORMAL"],
+                   "ldsimalt" : ["simulation_type=SIMPLE, label_dominance_type=ALTERNATIVE"], 
                    "noopsim" :  ["simulation_type=SIMPLE, label_dominance_type=NOOP"]
 }
 
@@ -124,7 +125,7 @@ def get_simulation_config (s):
     optional_sim = get_optionals_sim(opt)
     optional_pr = get_optionals_prune(opt)
     
-    builder_params = ", ".join(simulation_type[simtype] + [default, merge] + optional_sim  )
+    builder_params = ", ".join(simulation_type[simtype] + [default, merge, shrink] + optional_sim  )
     simulation_params = ", ".join( ["pruning_dd=%s" % pruning_dd, "pruning_type=%s" %  pruning_type] + optional_pr  )
     config_pruning = "prune=simulation(%s, abs=builder_massim(%s))" % (simulation_params, builder_params)
 
