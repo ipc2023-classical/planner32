@@ -26,10 +26,13 @@ for pruning_type in ["exp", "gen"]:
         CONFIG_NAME = "journal1-{}-{}".format(mer, pruning_type)
         CONFIGS[CONFIG_NAME].append(blind_config)
     
-        for sim in ["sim", "bisim", "ldsim", "noopsim", "ldsimalt"]:
+        for sim in ["sim", "bisim", "ldsim", "noopsim"]:
             config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', REVISION, SERVERS))
 
         for sim in ["qpos", "qtrade", "qrel", "qual"]:
             config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type]))
             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
+
+        for sim in ["ldsimalt"]: 
+            CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', '20a3772abe90', SERVERS))

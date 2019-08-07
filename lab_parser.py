@@ -84,8 +84,11 @@ def fix_error (content, props):
         if l.startswith("Peak memory: Failed to allocate memory. Released memory buffer.") or l.startswith("CUDD: out of memory allocating"):
             props["error"] = "out-of-memory"
             return
-    
 
+
+def set_algorithm_prop (content, props):
+    if "algorithm" not in props:
+        props["algorithm"] = props["config_nick"]
 
 # def real_search_time(content, props ):
 #     if props['domain'][-4:] == "-por":
@@ -179,6 +182,7 @@ eval.add_function(parse_regexps)
 eval.add_function(parse_numeric_dominance)
 
 eval.add_function(fix_error)
+eval.add_function(set_algorithm_prop)
 
 
 eval.parse()

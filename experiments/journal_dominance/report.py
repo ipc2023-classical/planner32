@@ -15,7 +15,7 @@ from downward.experiment import DownwardExperiment
 from downward.reports.absolute import AbsoluteReport
 
 
-NAME = "journal1-atomic-exp"
+NAME = "all"
 
 sys.path.append('configs')
 import configs
