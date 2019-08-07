@@ -34,5 +34,6 @@ for pruning_type in ["exp", "gen"]:
             config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type]))
             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
 
-        for sim in ["ldsimalt"]: 
+        for sim in ["ldsimalt"]:
+            config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', '20a3772abe90', SERVERS))
