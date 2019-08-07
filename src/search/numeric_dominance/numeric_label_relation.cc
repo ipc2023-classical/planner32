@@ -162,13 +162,14 @@ template <typename T>
 bool NumericLabelRelation<T>::update(int lts_i, const LabelledTransitionSystem * lts,  
 				     const NumericSimulationRelation<T> & sim){
     bool changes = false;
+    cout << "UPDATE " << lts_i << " " << lts->get_relevant_labels().size() << endl;
     for(int l2 : lts->get_relevant_labels()) {
 	assert(lts->is_relevant_label(l2));
         for(int l1 : lts->get_relevant_labels()) {
 	    assert(lts->is_relevant_label(l1));
             if(l1 != l2 && may_simulate(l1, l2, lts_i)){
 		T min_value = std::numeric_limits<int>::max();
-                //std::cout << "Check " << l1 << " " << l2 << std::endl;
+                // std::cout << "Check " << l1 << " " << l2 << std::endl;
                 //std::cout << "Num transitions: " << lts->get_transitions_label(l1).size()
                 //		    << " " << lts->get_transitions_label(l2).size() << std::endl;
                 //Check if it really simulates

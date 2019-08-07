@@ -58,3 +58,5 @@
 ^output
 ^output.sas
 ^sas_plan
+^experiments/report/report-eval
+^experiments/properties

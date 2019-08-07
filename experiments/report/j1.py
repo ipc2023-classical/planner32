@@ -32,25 +32,26 @@ exp = ReportExperiment("report")
 exp.add_fetcher('../properties/journal1-all/', postprocess_functions=[fix_algorithm, joint_domains])
 
 
-all_configs=[
-    'blind-ldsim-atomic-bissh-exp',
-    'blind',
+exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing"],filter_algorithm=[
+    #'blind',
+    #'blind-ldsim-atomic-bissh-exp',
     'blind-ldsim-atomic-bissh-gen',
-]
-
-
-attributes = list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES)
-
-exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=all_configs))
+    'blind-qrel-10-atomic-bissh-gen',
+]))
 
 
 exp.add_scatter_plot_step([
     # ("report-eval/scatter/expansions-base-vs-ldsim-atomic", ScatterPlotReport(filter_algorithm=["blind", "blind-ldsim-atomic-bissh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"],)),
     # ("report-eval/scatter/simulationtime-ldsim-vs-qrel-atomic", ScatterPlotReport(filter_algorithm=["blind-qrel-10-atomic-bissh-gen", "blind-ldsim-atomic-bissh-gen"], attributes=["time_ldsim"], get_category=lambda run1, run2:  run1["domain_category"],)),
-    ("report-eval/scatter/totalsimulationtime-ldsim-vs-qrel-atomic", ScatterPlotReport(filter_algorithm=["blind-qrel-10-atomic-bissh-gen", "blind-ldsim-atomic-bissh-gen"], attributes=["total_simulation_time"], get_category=lambda run1, run2:  run1["domain_category"],))
+    ("report-eval/scatter/preprocessingtime-ldsim-vs-qrel-atomic", ScatterPlotReport(filter_algorithm=["blind-ldsim-atomic-bissh-gen", "blind-qrel-10-atomic-bissh-gen"], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],)),
+    ("report-eval/scatter/preprocessingtime-noopsim-vs-qrel-atomic", ScatterPlotReport(filter_algorithm=['blind-noopsim-atomic-bissh-gen', "blind-qrel-10-atomic-bissh-gen"], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],)),
+    ("report-eval/scatter/preprocessingtime-noopsim-vs-ldsim-atomic", ScatterPlotReport(filter_algorithm=['blind-noopsim-atomic-bissh-gen', "blind-ldsim-atomic-bissh-gen"], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],)), 
+    ("report-eval/scatter/preprocessingtimebylabel-ldsim-atomic", ScatterPlotReport(filter_algorithm=["blind-ldsim-atomic-bissh-gen"], attributes=["labels", "time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],))
 
-    
+
 ]
+                                       
+
 )
     
 # , ,

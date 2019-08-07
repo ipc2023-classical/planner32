@@ -166,11 +166,21 @@ double DominanceRelation::num_states_problem() const {
 
 void DominanceRelation::dump_statistics(bool expensive) const {
     int num_equi = num_equivalences();
-    int num_sims = num_simulations();  
-    
+    int num_sims = num_simulations();
+
+    int num_vars = 0;
+    int num_vars_with_simulations = 0;
+    for(int i = 0; i < simulations.size(); i++){
+        if(simulations[i]->num_simulations(true) > 0){
+            num_vars_with_simulations ++;
+        }
+        num_vars++;
+    }
+
     cout << "Total Simulations: " << num_sims + num_equi*2  << endl;
     cout << "Similarity equivalences: " << num_equi  << endl;
     cout << "Only Simulations: " << num_sims << endl;
+    cout << "Simulations Found in " << num_vars_with_simulations << " out of " << num_vars << " variables" << endl;
     
     if(expensive){
 	double num_pairs = num_st_pairs();

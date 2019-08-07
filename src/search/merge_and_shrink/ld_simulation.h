@@ -20,7 +20,7 @@ class LTSComplex;
 template <typename T> class NumericDominanceRelation;
 
 enum class LabelDominanceType {
-    NONE, NOOP, NORMAL
+    NONE, NOOP, NORMAL, ALTERNATIVE
 };
 enum class SimulationType {
     NONE, SIMPLE, COMPLEX

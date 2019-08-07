@@ -16,6 +16,7 @@
 #include "label_relation.h"
 #include "label_relation_identity.h"
 #include "label_relation_noop.h"
+#include "alternative_label_relation.h"
 
 #include "../numeric_dominance/numeric_dominance_relation.h"
 #include "../numeric_dominance/int_epsilon.h"
@@ -27,13 +28,14 @@ std::ostream & operator<<(std::ostream &os, const LabelDominanceType & type){
     case LabelDominanceType::NONE: return os << "none";
     case LabelDominanceType::NOOP: return os << "noop";
     case LabelDominanceType::NORMAL: return os << "normal";
+    case LabelDominanceType::ALTERNATIVE: return os << "alternative";
     default:
 	std::cerr << "Name of LabelDominanceType not known";
 	exit(-1);
     }
 } 
 const std::vector<std::string> LabelDominanceTypeValues {
-    "NONE", "NOOP", "NORMAL"
+    "NONE", "NOOP", "NORMAL", "ALTERNATIVE"
 	};
 
 std::ostream & operator<<(std::ostream &os, const SimulationType & type){
@@ -72,7 +74,11 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
 	case LabelDominanceType::NONE:
 	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationIdentity>(labels.get())); 
 	case LabelDominanceType::NOOP: 
-	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationNoop>(labels.get())); 
+	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationNoop>(labels.get()));
+
+        case LabelDominanceType::ALTERNATIVE: 
+	    return unique_ptr<DominanceRelation>(new DominanceRelationSimple<AlternativeLabelRelation>(labels.get())); 
+
 	case LabelDominanceType::NORMAL: 
 	    if (labels->get_size() > switch_off_label_dominance) {
 		return unique_ptr<DominanceRelation>(new DominanceRelationSimple<LabelRelationNoop>(labels.get()));

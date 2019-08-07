@@ -7,6 +7,7 @@
 #include "labelled_transition_system.h"
 #include "lts_complex.h"
 #include "label_relation.h"
+#include "alternative_label_relation.h"
 #include "label_relation_identity.h"
 #include "label_relation_noop.h"
 #include "abstraction.h"
@@ -103,3 +104,4 @@ DominanceRelationSimple<LR>::init_simulation_incremental (CompositeAbstraction *
 template class DominanceRelationSimple<LabelRelation>;
 template class DominanceRelationSimple<LabelRelationIdentity>;
 template class DominanceRelationSimple<LabelRelationNoop>;
+template class DominanceRelationSimple<AlternativeLabelRelation>;
