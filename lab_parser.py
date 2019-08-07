@@ -23,7 +23,8 @@ regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P
            re.compile('Useless vars: (?P<useless_vars>(\d+))'),
            re.compile('Total simulations: (?P<total_simulations>(\d+))'),
            re.compile('Only simulations: (?P<only_simulations>(\d+))'),
-           re.compile('Similarity equivalences: (?P<similarity_equivalences>(\d+))')
+           re.compile('Similarity equivalences: (?P<similarity_equivalences>(\d+))'),
+           re.compile('Completed preprocessing: (?P<time_completed_preprocessing>(.*))'),
 ]
 
 
@@ -42,6 +43,7 @@ type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig
             "useless_vars" : int, "total_simulations" : int, "only_simulations" : int, "similarity_equivalences" : int,
             'dom_inserted_before_first_pruned' : int,  'dom_checked_before_first_pruned' : int,
             'time_ldsim' : lambda x : max(0.01, float(x)),
+            'time_completed_preprocessing' : max(0.01, float(x)),
         }
 
 def parse_regexps (content, props):
