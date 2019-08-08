@@ -66,7 +66,6 @@ void AlternativeLabelRelation::init(const std::vector<LabelledTransitionSystem *
 
 	for(int j = 0; j < num_relevant_labels; j++) {
 	    lrel[i][j].resize(num_relevant_labels, true);
-	    lrel[i][j][j] = 0;
 	}
     }
 
@@ -113,7 +112,7 @@ bool AlternativeLabelRelation::update(int lts_i, const LabelledTransitionSystem 
                                       const SimulationRelation & sim){
 
     bool changes = false;
-    cout << "UPDATE " << lts_i << " " << lts->get_relevant_labels().size() << endl;
+    //cout << "UPDATE " << lts_i << " " << lts->get_relevant_labels().size() << endl;
     for(int l2 : lts->get_relevant_labels()) {
         for(int l1 : lts->get_relevant_labels()){
             if(l1 != l2 && simulates(l1, l2, lts_i)){

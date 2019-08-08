@@ -50,7 +50,7 @@ class AlternativeLabelRelation {
 	    if(pos2 != -1) {
 		return simulated_by_irrelevant[lts][pos2];
 	    }else {
-		return 0; //Both are irrelevant
+		return true; //Both are irrelevant
 	    }    
 	}
     }
@@ -132,7 +132,7 @@ class AlternativeLabelRelation {
 	if(position_of_label[lts][l] >= 0) {
 	    return simulated_by_irrelevant[lts][position_of_label[lts][l]];
 	} else {
-	    return 0;
+	    return true;
 	}
     }
 
@@ -140,7 +140,7 @@ class AlternativeLabelRelation {
 	if(position_of_label[lts][l] >= 0) {
 	    return simulates_irrelevant[lts][position_of_label[lts][l]];
 	} else {
-	    return 0;
+	    return true;
 	}
     }
 
