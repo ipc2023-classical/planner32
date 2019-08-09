@@ -27,9 +27,6 @@ regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P
            re.compile('Completed preprocessing: (?P<time_completed_preprocessing>(.*))'),
 ]
 
-
-
-
 type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig_ops' : int, 
             'dead_ops_by_stored' : int, 'perc_dead_ops_by_stored' : float, 
             'lts_num' : int, 'lts_total_size' : int,  'lts_max_size' : int, 'lts_total_trsize' : int, 'lts_max_trsize' : int, 
@@ -67,11 +64,13 @@ def parse_numeric_dominance (content, props):
 
     for l in content.split("\n"):
         if check: 
-            if l != "Init partitions": 
+            if l == "Init partitions": 
                 props['min_negative_dominance'] = min_val 
-                props['max_positive_dominance'] = max_val 
+                props['max_positive_dominance'] = max_val
+                props["has_positive_dominance"] = 1 if (max_val > 0) else 0
+                props["has_negative_dominance"] = 1 if (min_val < 0) and (min_val > -100000000) else 0
                 return
-            if ":" in l: 
+            if ":" in l and not "infinity" in l: 
                 min_val = min(min_val, int(l.split(":").trim()))
                 max_val = max(max_val, int(l.split(":").trim()))
         elif l == "------": 
@@ -88,7 +87,7 @@ def fix_error (content, props):
 
 def set_algorithm_prop (content, props):
     if "algorithm" not in props:
-        props["algorithm"] = props["config_nick"]
+        props["algorithm"] = props["experiment_name"]
 
 # def real_search_time(content, props ):
 #     if props['domain'][-4:] == "-por":
