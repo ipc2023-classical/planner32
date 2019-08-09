@@ -53,7 +53,6 @@ def parse_regexps (content, props):
             if mx:
                 data = mx.groupdict()
                 for item in data:
-                    print (item)
                     props[item] = type_atr[item](data[item])
                 break
 

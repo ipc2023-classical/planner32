@@ -22,7 +22,8 @@ blind_config = configs.Config('blind', 'blind', "astar(blind())", 'optimal', '63
 
 
 for pruning_type in ["gen"]:
-    for mer in merge_strategies:
+    for mer in ["atomic"]:
+        sh = "bissh"
         CONFIG_NAME = "journal1-{}-{}".format(mer, pruning_type)
         CONFIGS[CONFIG_NAME].append(blind_config)
     
@@ -34,33 +35,35 @@ for pruning_type in ["gen"]:
             config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type]))
             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
 
+        sh = "nosh"
+
         for sim in ["ldsimalt"]:
             config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', '3cd5f7562de1', SERVERS))
 
 
 
-for pruning_type in ["exp"]:
-    for mer in merge_strategies:
-        CONFIG_NAME = "journal1-{}-{}".format(mer, pruning_type)
-        CONFIGS[CONFIG_NAME].append(blind_config)
+# for pruning_type in ["exp"]:
+#     for mer in merge_strategies:
+#         CONFIG_NAME = "journal1-{}-{}".format(mer, pruning_type)
+#         CONFIGS[CONFIG_NAME].append(blind_config)
     
-        for sim in ["qrel"]:
-            config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type]))
-            CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
+#         for sim in ["qrel"]:
+#             config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type]))
+#             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
 
-        for sim in ["ldsimalt"]:
-            config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
-            CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', '20a3772abe90', SERVERS))
+#         for sim in ["ldsimalt"]:
+#             config = "-".join(map(str, [heuristic, sim, mer, sh, pruning_type]))
+#             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', '20a3772abe90', SERVERS))
 
 
 
-for trval in [0, 1, 2, 5, 100, 1000]:
-    for mer in merge_strategies:
-        CONFIG_NAME = "journal1-{}-{}".format(mer, pruning_type)
-        CONFIGS[CONFIG_NAME].append(blind_config)
+# for trval in [0, 1, 2, 5, 100, 1000]:
+#     for mer in merge_strategies:
+#         CONFIG_NAME = "journal1-{}-{}".format(mer, pruning_type)
+#         CONFIGS[CONFIG_NAME].append(blind_config)
     
-        for sim in ["qpos", "qrel", "qual"]:
-            config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type]))
-            CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
+#         for sim in ["qpos", "qrel", "qual"]:
+#             config = "-".join(map(str, [heuristic, sim, trval, mer, sh, pruning_type]))
+#             CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
 
