@@ -21,8 +21,8 @@ regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P
            re.compile('Done initializing merge-and-shrink heuristic \[(?P<total_abstraction_time>(.*))s\]'),
            re.compile('Final abstractions: (?P<final_abstractions>(\d+))'),
            re.compile('Useless vars: (?P<useless_vars>(\d+))'),
-           re.compile('Total simulations: (?P<total_simulations>(\d+))'),
-           re.compile('Only simulations: (?P<only_simulations>(\d+))'),
+           re.compile('Total Simulations: (?P<total_simulations>(\d+))'),
+           re.compile('Only Simulations: (?P<only_simulations>(\d+))'),
            re.compile('Similarity equivalences: (?P<similarity_equivalences>(\d+))'),
            re.compile('Completed preprocessing: (?P<time_completed_preprocessing>(.*))'),
 ]
@@ -53,6 +53,7 @@ def parse_regexps (content, props):
             if mx:
                 data = mx.groupdict()
                 for item in data:
+                    print (item)
                     props[item] = type_atr[item](data[item])
                 break
 
