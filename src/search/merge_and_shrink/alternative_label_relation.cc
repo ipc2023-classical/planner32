@@ -147,6 +147,7 @@ bool AlternativeLabelRelation::update(int lts_i, const LabelledTransitionSystem 
             for(auto tr : lts->get_transitions_label(l2)){
                 if(!sim.simulates(tr.src, tr.target)) {
                     changes |= set_not_simulated_by_irrelevant(l2, lts_i);
+                    break;
                 }
             }
         }
@@ -163,6 +164,7 @@ bool AlternativeLabelRelation::update(int lts_i, const LabelledTransitionSystem 
                 }
                 if(!found) {
                     changes |= set_not_simulates_irrelevant(l2, lts_i);
+                    break;
                 }
             }
         }
@@ -200,13 +202,6 @@ std::vector<int> AlternativeLabelRelation::get_labels_dominated_in_all() const{
 
         // PIET-edit: Here we remove one of the two labels dominating each other in all LTSs.
         for (int l2 = 0; l2 < dominates_in.size(); ++l2){
-	    //cout << " with : " << l2 << " " << dominates_in[l2][l] << "  " << dominates_in[l][l2];
-	    // if ((l == 118 && l2 == 279) || (l2 == 118 && l == 279)) {
-	    // 	cout << "HERE: " << dominates_in[l2][l] << " " << dominates_in[l][l2] << endl;
-	    // 	cout << (l2 < l) << " " << (dominates_in[l2][l] == DOMINATES_IN_ALL) << " " << (dominates_in[l][l2] != DOMINATES_IN_ALL) << endl;
-	    // 	cout <<  (l2 > l) << " " << (dominates_in[l2][l] == DOMINATES_IN_ALL) << endl;
-	    // }
-	
 	    // if ( dominates_in[l2][l] == DOMINATES_IN_ALL && 
 	    // 	 (dominates_in[l][l2] != DOMINATES_IN_ALL || l2 < l)) {
             if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && 
