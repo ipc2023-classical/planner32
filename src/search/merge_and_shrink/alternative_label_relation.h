@@ -22,8 +22,9 @@ class AlternativeLabelRelation {
 
     // Summary matrix for each l1, l2 indicating whether l1 dominates
     // l2 in all (-2), in none (-1) or only in i (i)
-    std::vector<std::vector<int> > dominates_in;
-    std::vector<int> dominates_noop_in, dominated_by_noop_in;
+    /* std::vector<std::vector<int> > dominates_in; */
+    std::vector<int>  dominated_by_noop_in;
+    //std::vector<int> dominates_noop_in;
 
     //For each lts, matrix indicating whether l1 simulates l2, noop
     //simulates l or l simulates noop
@@ -37,40 +38,19 @@ class AlternativeLabelRelation {
     bool update(int i, const LabelledTransitionSystem * lts, 
 		const SimulationRelation & sim);
 
-    inline bool get_lrel(int l1, int l2, int lts) const {
-	int pos1 = position_of_label[lts][l1];
-	int pos2 = position_of_label[lts][l2];
-	if(pos1 >= 0) {
-	    if(pos2 >= 0) {
-		return lrel[lts][pos1][pos2];
-	    }else {
-		return simulates_irrelevant[lts][pos1];
-	    }	  
-	}else {
-	    if(pos2 != -1) {
-		return simulated_by_irrelevant[lts][pos2];
-	    }else {
-		return true; //Both are irrelevant
-	    }    
-	}
-    }
 
-    inline bool set_not_simulates (int l1, int l2, int lts){	
+    inline bool set_not_simulates (int l1, int l2, int lts){
+        //std::cout << "Not simulates: " << l1 << " to " << l2 << " in " << lts << std::endl;
 	if(lrel[lts][position_of_label[lts][l1]][position_of_label[lts][l2]]) {
 	    lrel[lts][position_of_label[lts][l1]][position_of_label[lts][l2]] = false;
-	    if (!dominates_in.empty()) {
-		if(dominates_in[l1][l2] == DOMINATES_IN_ALL){
-		    dominates_in[l1][l2] = lts;
-		}else if(dominates_in[l1][l2] != lts){
-		    dominates_in[l1][l2] = DOMINATES_IN_NONE;
-		}
-	    }
 	    return true;
 	}
 	return false;
     }
 
     inline bool set_not_simulated_by_irrelevant(int l, int lts){
+        //std::cout << "Not simulated by irrelevant: " << l << " in " << lts << std::endl;
+
         //Returns if there were changes in dominated_by_noop_in
 	assert(position_of_label[lts][l] >= 0);
 	int pos = position_of_label[lts][l];
@@ -83,17 +63,7 @@ class AlternativeLabelRelation {
             }else if(dominated_by_noop_in[l] != lts){
                 dominated_by_noop_in[l] = DOMINATES_IN_NONE;
             }
-            
-            if(!dominates_in.empty()) {
-                for(int l1 : irrelevant_labels_lts[lts]) {
-                    if(dominates_in[l1][l] == DOMINATES_IN_ALL){
-                        dominates_in[l1][l] = lts;
-                    }else if(dominates_in[l1][l] != lts){
-                        dominates_in[l1][l] = DOMINATES_IN_NONE;
-                    }
-                }
-            }
-	    
+            	    
 	    return true;
 	}
         return false;
@@ -101,25 +71,12 @@ class AlternativeLabelRelation {
 
     
     inline bool set_not_simulates_irrelevant(int l, int lts){
+	//std::cout << "Not simulates irrelevant: " << l << " in " << lts << std::endl;
+
 	int pos = position_of_label[lts][l];
         //Returns if there were changes in dominates_noop_in
 	if(simulates_irrelevant[lts][pos]) {
 	    simulates_irrelevant[lts][pos] = false;
-
-            if(dominates_noop_in[l] == DOMINATES_IN_ALL){
-                dominates_noop_in[l] = lts;
-            }else if(dominates_noop_in[l] != lts){
-                dominates_noop_in[l] = DOMINATES_IN_NONE;
-            }
-            if(!dominates_in.empty()) {
-                for(int l2 : irrelevant_labels_lts[lts]) {
-                    if(dominates_in[l][l2] == DOMINATES_IN_ALL){
-                        dominates_in[l][l2] = lts;
-                    }else if(dominates_in[l][l2] != lts){
-                        dominates_in[l][l2] = DOMINATES_IN_NONE;
-                    }
-                }
-            }
 	    return true;
 	}
         return false;
@@ -181,35 +138,35 @@ public:
         return dominated_by_noop_in[l];
     }
 
-
-    inline bool dominates_noop (int l, int lts) const {
-        return dominates_noop_in[l] == DOMINATES_IN_ALL || dominates_noop_in[l] == lts;
-    }
-
     //Returns true if l1 simulates l2 in lts
     inline bool simulates (int l1, int l2, int lts) const{
-	if(dominates_in.empty()) {
-	    return get_lrel(l1, l2, lts);
+        int pos1 = position_of_label[lts][l1];
+	int pos2 = position_of_label[lts][l2];
+	if(pos1 >= 0) {
+	    if(pos2 >= 0) {
+		return lrel[lts][pos1][pos2];
+	    }else {
+		return simulates_irrelevant[lts][pos1];
+	    }	  
+	}else {
+	    if(pos2 != -1) {
+		return simulated_by_irrelevant[lts][pos2];
+	    }else {
+		return true; //Both are irrelevant
+	    }    
 	}
-        return dominates_in[l1][l2] !=  DOMINATES_IN_NONE &&
-	    (dominates_in[l1][l2] == DOMINATES_IN_ALL ||
-	     dominates_in[l1][l2] != lts);
     }
 
     //Returns true if l1 simulates l2 in lts
     bool dominates (int l1, int l2, int lts) const {
-        if(dominates_in.empty()) {
-	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
-		if(lts_id != lts && !get_lrel(l1, l2, lts_id)) {
-		    assert(num_ltss > 1);
-		    return false;
-		}
-	    }
-	    return true;
-	}
-	
-	assert(num_ltss > 1 || dominates_in[l1][l2] == DOMINATES_IN_ALL || (dominates_in[l1][l2] == lts));
-        return dominates_in[l1][l2] == DOMINATES_IN_ALL || (dominates_in[l1][l2] == lts);
+        if (cost_of_label[l2] < cost_of_label[l1]) return false;
+        for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
+            if(lts_id != lts && !simulates(l1, l2, lts_id)) {
+                assert(num_ltss > 1);
+                return false;
+            }
+        }
+        return true;
     }
     
 

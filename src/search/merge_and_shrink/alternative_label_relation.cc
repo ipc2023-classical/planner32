@@ -70,18 +70,9 @@ void AlternativeLabelRelation::init(const std::vector<LabelledTransitionSystem *
     }
 
     cout << "Dominating." << endl;
-    std::vector<std::vector<int> > ().swap(dominates_in);
     std::vector<int> ().swap(dominated_by_noop_in);
-    std::vector<int> ().swap(dominates_noop_in);
     dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
-    dominates_noop_in.resize(num_labels, DOMINATES_IN_ALL);
-    
-    if(num_labels < 0) { // If we have more than 5000 labels, there is not enough space. 
-	dominates_in.resize(num_labels);
-	for (int l1 = 0; l1 < dominates_in.size(); ++l1){
-	    dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
-	}
-    }
+
     cout << "Update label dominance: " << num_labels
 	      << " labels " << lts.size() << " systems." << endl;
     
@@ -147,6 +138,7 @@ bool AlternativeLabelRelation::update(int lts_i, const LabelledTransitionSystem 
             for(auto tr : lts->get_transitions_label(l2)){
                 if(!sim.simulates(tr.src, tr.target)) {
                     changes |= set_not_simulated_by_irrelevant(l2, lts_i);
+                    break;
                 }
             }
         }
@@ -163,6 +155,7 @@ bool AlternativeLabelRelation::update(int lts_i, const LabelledTransitionSystem 
                 }
                 if(!found) {
                     changes |= set_not_simulates_irrelevant(l2, lts_i);
+                    break;
                 }
             }
         }
@@ -177,63 +170,8 @@ void AlternativeLabelRelation::dump(const LabelledTransitionSystem * , int ) con
 }
 
 std::vector<int> AlternativeLabelRelation::get_labels_dominated_in_all() const{
-    std::vector<int> labels_dominated_in_all;
 
-    //TODO: Implement case where dominates_in is empty
-    //cout << "We have " << num_labels << " labels "<< dominates_in.size() << " " << dominates_in[0].size()  << endl;
-    for (int l = 0; l < dominates_in.size(); ++l){
-	//cout << "Check: " << l << endl;
-        //labels->get_label_by_index(l)->dump();
-        if (dominated_by_noop_in[l] == DOMINATES_IN_ALL){
-            labels_dominated_in_all.push_back(l);
-            continue;
-        }
-
-        // PIET-edit: Here we do not remove either label if they dominate each other in all LTSs.
-        // for (int l2 = 0; l2 < dominates_in.size(); ++l2){
-        //     if (l2 != l && dominates_in[l2][l] == DOMINATES_IN_ALL &&
-        //             !dominates_in[l][l2] == DOMINATES_IN_ALL){
-        //         labels_dominated_in_all.push_back(l);
-        //         break;
-        //     }
-        // }
-
-        // PIET-edit: Here we remove one of the two labels dominating each other in all LTSs.
-        for (int l2 = 0; l2 < dominates_in.size(); ++l2){
-	    //cout << " with : " << l2 << " " << dominates_in[l2][l] << "  " << dominates_in[l][l2];
-	    // if ((l == 118 && l2 == 279) || (l2 == 118 && l == 279)) {
-	    // 	cout << "HERE: " << dominates_in[l2][l] << " " << dominates_in[l][l2] << endl;
-	    // 	cout << (l2 < l) << " " << (dominates_in[l2][l] == DOMINATES_IN_ALL) << " " << (dominates_in[l][l2] != DOMINATES_IN_ALL) << endl;
-	    // 	cout <<  (l2 > l) << " " << (dominates_in[l2][l] == DOMINATES_IN_ALL) << endl;
-	    // }
-	
-	    // if ( dominates_in[l2][l] == DOMINATES_IN_ALL && 
-	    // 	 (dominates_in[l][l2] != DOMINATES_IN_ALL || l2 < l)) {
-            if ((l2 < l && dominates_in[l2][l] == DOMINATES_IN_ALL && 
-	    	 dominates_in[l][l2] != DOMINATES_IN_ALL)
-	    	|| (l2 > l && dominates_in[l2][l] == DOMINATES_IN_ALL)) {
-		//cout << " yes" << endl;			       
-                labels_dominated_in_all.push_back(l);
-                break;
-            }
-	    //cout << " no" << endl;
-        }
-
-
-        // PIET-edit: If we take proper care, this both dominating each other cannot ever happen.
-//        for (int l2 = 0; l2 < dominates_in.size(); ++l2) {
-//            if (l != l2 && dominates_in[l][l2] == DOMINATES_IN_ALL && dominates_in[l2][l] == DOMINATES_IN_ALL) {
-//                cerr << "Error: two labels dominating each other in all abstractions. This CANNOT happen!" << endl;
-//                cerr << l << "; " << l2 << endl;
-//                exit(1);
-//            }
-//            if (dominates_in[l2][l] == DOMINATES_IN_ALL) {
-//                labels_dominated_in_all.push_back(l);
-//                break;
-//            }
-//        }
-    }
-
-    return labels_dominated_in_all;
+    std::cout << "AlternativeLabelRelation::get_labels_dominated_in_all not implemented." << std::endl;
+    exit(EXIT_CRITICAL_ERROR);
 }
 

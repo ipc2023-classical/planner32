@@ -353,6 +353,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
                         set_not_simulates(l, l2, i);
                     }
                 }
+                break;
             }
         }
 
@@ -367,6 +368,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
                     }
                 }
                 if(!found) {
+                    //cout << "Not simulates irrelevant: " << l2  << " in " << i << endl;
                     simulates_irrelevant[l2][i] = false;
                     for (int l : lts->get_irrelevant_labels()){
                         if(simulates(l2, l, i)){
@@ -374,6 +376,7 @@ bool LabelRelation::update(int i, const LabelledTransitionSystem * lts,
                             changes = true;
                         }
                     }
+                    break;
                 }
             }
         }

@@ -67,6 +67,8 @@ class LabelRelation {
     }
 
     inline bool set_not_simulated_by_irrelevant(int l, int lts){
+        //std::cout << "Not simulated by irrelevant: " << l << " in " << lts << std::endl;
+
         //Returns if there were changes in dominated_by_noop_in
         simulated_by_irrelevant[l][lts] = false;
         if(dominated_by_noop_in[l] == DOMINATES_IN_ALL){
