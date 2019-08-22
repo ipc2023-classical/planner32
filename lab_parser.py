@@ -71,8 +71,8 @@ def parse_numeric_dominance (content, props):
                 props["has_negative_dominance"] = 1 if (min_val < 0) and (min_val > -100000000) else 0
                 return
             if ":" in l and not "infinity" in l: 
-                min_val = min(min_val, int(l.split(":").trim()))
-                max_val = max(max_val, int(l.split(":").trim()))
+                min_val = min(min_val, int(l.split(":")[0]))
+                max_val = max(max_val, int(l.split(":")[0]))
         elif l == "------": 
             check = True
             
