@@ -70,11 +70,20 @@ def parse_numeric_dominance (content, props):
                 props["has_positive_dominance"] = 1 if (max_val > 0) else 0
                 props["has_negative_dominance"] = 1 if (min_val < 0) and (min_val > -100000000) else 0
                 return
-            if ":" in l and not "infinity" in l: 
-                min_val = min(min_val, int(l.split(":")[0]))
-                max_val = max(max_val, int(l.split(":")[0]))
+            if ":" in l and not "infinity" in l:
+                val = l.split(":")[0]
+                if "(" in val:
+                    val = val.split("(")[0]
+                min_val = min(min_val, int(val))
+                max_val = max(max_val, int(val))
         elif l == "------": 
             check = True
+
+    if min_val == 100000000 and max_val == -100000000:
+        min_val = -100000000
+        max_val = 100000000
+
+        
             
 def fix_error (content, props):
     if not props["error"].startswith("unexplained"):
