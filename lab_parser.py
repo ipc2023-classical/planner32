@@ -25,6 +25,8 @@ regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P
            re.compile('Only Simulations: (?P<only_simulations>(\d+))'),
            re.compile('Similarity equivalences: (?P<similarity_equivalences>(\d+))'),
            re.compile('Completed preprocessing: (?P<time_completed_preprocessing>(.*))'),
+           re.compile('Simulations Found in (?P<num_variables_with_positive_dominance>(\d+)) out of (?P<total_num_variables>(\d+)) variables')
+
 ]
 
 type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig_ops' : int, 
@@ -59,28 +61,52 @@ def parse_regexps (content, props):
 
 def parse_numeric_dominance (content, props):
     check = False
+    new_var = False
+    new_var_geq0 = False
+    new_var_geq1 = False
     min_val = 100000000
     max_val = -100000000
-
+    num_variables_with_dominance = 0
+    num_variables_with_dominance_geq0 = 0
+    num_variables_with_dominance_geq0 = 0
+    
     for l in content.split("\n"):
         if check: 
             if l == "Init partitions" or l.startswith("Completed preprocessing"):
-                if min_val == 100000000 and max_val == -100000000:
-                    min_val = -100000000
-                    max_val = 100000000
                 props['min_negative_dominance'] = min_val 
                 props['max_positive_dominance'] = max_val
                 props["has_positive_dominance"] = 1 if (max_val > 0) else 0
                 props["has_negative_dominance"] = 1 if (min_val < 0) and (min_val > -100000000) else 0
+                props["num_variables_with_dominance"] = num_variables_with_dominance
+                props["num_variables_with_dominance_geq0"] = num_variables_with_dominance_geq0
+                props["num_variables_with_dominance_geq1"] = num_variables_with_dominance_geq1
+                
                 return
             if ":" in l and not "infinity" in l:
                 val = l.split(":")[0]
                 if "(" in val:
                     val = val.split("(")[0]
-                min_val = min(min_val, int(val))
-                max_val = max(max_val, int(val))
+                val = int(val)
+                min_val = min(min_val, val)
+                max_val = max(max_val, val)
+
+                if new_var:
+                    num_variables_with_dominance += 1
+                    new_var = False
+                    
+                if new_var_geq0 and val >= 0:
+                    num_variables_with_dominance_geq0 += 1
+                    new_var_geq0 = False
+                    
+                if new_var_geq1 and val >= 1:
+                    num_variables_with_dominance_geq1 += 1
+                    new_var_geq1 = False
+
         elif l == "------": 
             check = True
+            new_var = True
+            new_var_geq0 = True
+            new_var_geq1 = True
 
 
         
