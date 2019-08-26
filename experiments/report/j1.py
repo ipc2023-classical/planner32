@@ -83,7 +83,7 @@ exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATT
 ]), outfile='report-ldsimalt-vs-qual.html')
 
 
-exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations", "min_negative_dominance", "max_positive_dominance"],filter_algorithm=[
+exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations", "min_negative_dominance", "max_positive_dominance", "has_positive_dominance", "has_negative_dominance"],filter_algorithm=[
     'blind-qrel-0-atomic-nosh-gen',
     'blind-qrel-1-atomic-nosh-gen',
     'blind-qrel-2-atomic-nosh-gen',

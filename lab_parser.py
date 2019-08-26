@@ -68,7 +68,7 @@ def parse_numeric_dominance (content, props):
     max_val = -100000000
     num_variables_with_dominance = 0
     num_variables_with_dominance_geq0 = 0
-    num_variables_with_dominance_geq0 = 0
+    num_variables_with_dominance_geq1 = 0
     
     for l in content.split("\n"):
         if check: 
@@ -77,6 +77,7 @@ def parse_numeric_dominance (content, props):
                 props['max_positive_dominance'] = max_val
                 props["has_positive_dominance"] = 1 if (max_val > 0) else 0
                 props["has_negative_dominance"] = 1 if (min_val < 0) and (min_val > -100000000) else 0
+                props["has_qualitative_dominance"] = 1 if num_variables_with_dominance_geq0 > 0 else 0
                 props["num_variables_with_dominance"] = num_variables_with_dominance
                 props["num_variables_with_dominance_geq0"] = num_variables_with_dominance_geq0
                 props["num_variables_with_dominance_geq1"] = num_variables_with_dominance_geq1
