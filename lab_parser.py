@@ -63,6 +63,7 @@ def parse_regexps (content, props):
 def parse_numeric_dominance (content, props):
     check = False
     new_var = False
+    num_vars = 0
     new_var_geq0 = False
     new_var_geq1 = False
     min_val = 100000000
@@ -82,8 +83,12 @@ def parse_numeric_dominance (content, props):
                 props["num_variables_with_dominance"] = num_variables_with_dominance
                 props["num_variables_with_dominance_geq0"] = num_variables_with_dominance_geq0
                 props["num_variables_with_dominance_geq1"] = num_variables_with_dominance_geq1
-                
+
+                props["percentage_variables_with_dominance"] = num_variables_with_dominance/float(num_vars)
+                props["percentage_variables_with_dominance_geq0"] = num_variables_with_dominance_geq0/float(num_vars)
+                props["percentage_variables_with_dominance_geq1"] = num_variables_with_dominance_geq1/float(num_vars)                
                 return
+            
             if ":" in l and not "infinity" in l:
                 val = l.split(":")[0]
                 if "(" in val:
@@ -104,9 +109,11 @@ def parse_numeric_dominance (content, props):
                     num_variables_with_dominance_geq1 += 1
                     new_var_geq1 = False
 
-        elif l == "------": 
+        if l == "------": 
             check = True
             new_var = True
+            num_vars += 1
+                        
             new_var_geq0 = True
             new_var_geq1 = True
 
