@@ -52,7 +52,7 @@ exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATT
 ]), outfile='report-ldsimalt-vs-qual.html')
 
 
-exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations", "min_negative_dominance", "max_positive_dominance", "has_positive_dominance", "has_negative_dominance"],filter_algorithm=[
+exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations", "min_negative_dominance", "max_positive_dominance", "has_positive_dominance", "has_negative_dominance", "percentage_variables_with_dominance", "num_variables_with_dominance", "total_num_variables"],filter_algorithm=[
     'blind-qrel-0-atomic-nosh-gen',
     'blind-qrel-1-atomic-nosh-gen',
     'blind-qrel-2-atomic-nosh-gen',
@@ -95,12 +95,16 @@ scatter_plots_k_time_ldsim = [("report-eval/scatter/time-ldsim-qrel0-vs-qrel{}-a
 
 scatter_plots_k_min_dom = [("report-eval/scatter/min-dom-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["min_negative_dominance_inverted"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
 
-scatter_plots_k_dom_vars = [("report-eval/scatter/dom-vars-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["num_variables_with_dominance"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
+scatter_plots_k_dom_vars = [("report-eval/scatter/dom-vars-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["percentage_variables_with_dominance"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
 
-scatter_plots_k_dom_vars0 = [("report-eval/scatter/dom-vars0-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["num_variables_with_dominance_geq0"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
+scatter_plots_k_dom_vars0 = [("report-eval/scatter/dom-vars0-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["percentage_variables_with_dominance_geq0"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
 
-scatter_plots_k_dom_vars1 = [("report-eval/scatter/dom-vars1-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["num_variables_with_dominance_geq1"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
+scatter_plots_k_dom_vars1 = [("report-eval/scatter/dom-vars1-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["percentage_variables_with_dominance_geq1"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
 
+
+
+for p in scatter_plots_k_dom_vars + scatter_plots_k_dom_vars0 + scatter_plots_k_dom_vars1:
+    p[1]._set_scales("linear", "linear")
 exp.add_scatter_plot_step(# scatter_plots_k + scatter_plots_k_time_preprocessing
     #scatter_plots_k_time_ldsim)    scatter_plots_k_min_dom)  
     scatter_plots_k_dom_vars + scatter_plots_k_dom_vars1 + scatter_plots_k_dom_vars0)

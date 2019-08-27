@@ -74,9 +74,10 @@ def parse_numeric_dominance (content, props):
     
     for l in content.split("\n"):
         if check: 
-            if l == "Init partitions" or l.startswith("Completed preprocessing"):
+            if l == "Init partitions" or l.startswith("Completed preprocessing"):                
                 props['min_negative_dominance'] = min_val 
                 props['max_positive_dominance'] = max_val
+                props["has_dominance"] = 1 if (max_val > -100000000) else 0      
                 props["has_positive_dominance"] = 1 if (max_val > 0) else 0
                 props["has_negative_dominance"] = 1 if (min_val < 0) and (min_val > -100000000) else 0
                 props["has_qualitative_dominance"] = 1 if num_variables_with_dominance_geq0 > 0 else 0
@@ -109,15 +110,16 @@ def parse_numeric_dominance (content, props):
                     num_variables_with_dominance_geq1 += 1
                     new_var_geq1 = False
 
-        if l == "------": 
-            check = True
+        if l == "------":
+            if not check:
+                check = True
+            else:
+                num_vars += 1
             new_var = True
-            num_vars += 1
-                        
             new_var_geq0 = True
             new_var_geq1 = True
 
-
+                        
         
             
 def fix_error (content, props):
