@@ -48,3 +48,25 @@ for trval in [0, 1, 2, 5, 100, 1000]:
     config = "-".join(map(str, ["blind", "qrel", trval, "atomic","nosh", "gen"]))
     CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
 
+
+
+REVISION2="2d786853a233"
+
+for sim in ["sim", "bisim", "ldsim", "ldsimalt", "noopsim"]:
+    config = "-".join(map(str, ["blind", sim, merge_strategy, sh, pruning_type]))
+    CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test", config + "-test", get_simulation_config(config), 'optimal', REVISION2, SERVERS))
+
+for sim in ["qpos", "qtrade", "qrel", "qual"]:
+    config = "-".join(map(str, ["blind", sim, trval, merge_strategy, sh, pruning_type]))
+    CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test", config + "-test", get_numeric_simulation_config(config), 'optimal', REVISION2, SERVERS))
+
+# Extra numeric configurations 
+config = "-".join(map(str, ["blind", "qrel", "10", "atomic", "nosh", "gensucc"]))
+CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test", config + "-test", get_numeric_simulation_config(config), 'optimal', REVISION2, SERVERS))
+
+config = "-".join(map(str, ["blind", "qrel", "10", "atomic", "nosh", "succ"]))
+CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test", config + "-test", get_numeric_simulation_config(config), 'optimal', REVISION2, SERVERS))
+
+for trval in [0, 1, 2, 5, 100, 1000]:
+    config = "-".join(map(str, ["blind", "qrel", trval, "atomic","nosh", "gen"]))
+    CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test", config + "-test", get_numeric_simulation_config(config), 'optimal', REVISION2, SERVERS))
