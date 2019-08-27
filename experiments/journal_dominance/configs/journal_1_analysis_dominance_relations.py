@@ -45,6 +45,6 @@ config = "-".join(map(str, ["blind", "qrel", "10", "atomic", "nosh", "succ"]))
 CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
 
 for trval in [0, 1, 2, 5, 100, 1000]:
-    config = "-".join(map(str, [heuristic, sim, trval, merge_strategy, sh, pruning_type]))
+    config = "-".join(map(str, ["blind", "qrel", trval, "atomic","nosh", "gen"]))
     CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
 
