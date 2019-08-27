@@ -308,47 +308,47 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "false");
 
     parser.add_option<bool>("remove_spurious",
-            "If activated, remove spurious states from the sets of simulated/simulating states",
-            "true");
+                            "If activated, remove spurious states from the sets of simulated/simulating states",
+                            "true");
 
     Heuristic::add_options_to_parser(parser);
     SymParamsMgr::add_options_to_parser_simulation(parser);
 
     parser.add_option<AbstractionBuilder *>(
-            "abs",
-            "abstraction builder",
-            "");
+        "abs",
+        "abstraction builder",
+        "");
     //LDSimulation::add_options_to_parser(parser);
 
     parser.add_option<bool>("prune_dominated_by_parent",
-            "Prunes a state if it is dominated by its parent",
-            "false");
+                            "Prunes a state if it is dominated by its parent",
+                            "false");
 
-        parser.add_option<bool>("prune_dominated_by_initial_state",
-            "Prunes a state if it is dominated by the initial state",
-            "false");
+    parser.add_option<bool>("prune_dominated_by_initial_state",
+                            "Prunes a state if it is dominated by the initial state",
+                            "false");
+    
     parser.add_option<bool>("prune_dominated_by_open",
-            "Prunes a state if it is dominated by any node in the closed or open list",
-            "false");
+                            "Prunes a state if it is dominated by any node in the closed or open list",
+                            "false");
 
     parser.add_option<bool>("prune_dominated_by_closed",
-            "Prunes a state if it is dominated by any node in the closed list",
-            "false");
+                            "Prunes a state if it is dominated by any node in the closed list",
+                            "false");
 
     parser.add_option<int>("truncate_value",
-            "Assume -infinity if below minus this value",
-            "1000");
+                           "Assume -infinity if below minus this value",
+                           "1000");
+    
     parser.add_option<int>("max_simulation_time",
-			   "Maximum number of seconds spent in computing a single update of a simulation", "1800");
+			   "Maximum number of seconds spent in computing a single update of a simulation", "1800000");
 
     parser.add_option<int>("min_simulation_time",
-			   "Minimum number of seconds spent in computing a single update of a simulation", "1");
+			   "Minimum number of seconds spent in computing a single update of a simulation", "100000"); // By default we do not have any limit
 
     
     parser.add_option<int>("max_total_time",
-			   "Maximum number of seconds spent in computing all updates of a simulation", "1800");
-
-
+			   "Maximum number of seconds spent in computing all updates of a simulation", "1800000");
     
     parser.add_option<int>("max_lts_size_to_compute_simulation",
 			   "Avoid computing simulation on ltss that have more states than this number",
@@ -356,41 +356,42 @@ static PruneHeuristic *_parse(OptionParser &parser) {
 
     parser.add_option<bool>("prune_successors",
             "Prunes all siblings if any successor dominates the parent by enough margin",
-            "false");
+                            "false");
 
     parser.add_option<bool>("insert_dominated",
-            "Whether we store the set of dominated states (default) or just the set of closed.",
-            "true");
+                            "Whether we store the set of dominated states (default) or just the set of closed.",
+                            "true");
 
     parser.add_option<bool>("use_quantified_dominance",
-            "Prune with respect to the quantified or the qualitative dominance",
-            "false");
+                            "Prune with respect to the quantified or the qualitative dominance",
+                            "false");
 
     parser.add_option<bool>("trade_off_dominance",
 			    "Compute dominatedBDD trading off positive and negative values",
 			    "false");
 
     parser.add_option<bool>("only_positive_dominance",
-            "Compute dominatedBDDMaps only for positive values",
-            "false");
+                            "Compute dominatedBDDMaps only for positive values",
+                            "false");
 
     parser.add_option<bool>("use_adds",
-            "Use ADDs (or BDD maps) to represent quantified dominance",
-            "false");
+                            "Use ADDs (or BDD maps) to represent quantified dominance",
+                            "false");
 
 
     parser.add_option<bool>("use_single_bdd",
-            "Use a single BDD to represent all dominated states",
-            "false");
+                            "Use a single BDD to represent all dominated states",
+                            "false");
 
 
     parser.add_option<double>("min_desactivation_ratio",
-            "Ratio of pruned/checked needed to continue pruning the search.",
-            "0.0");
+                              "Ratio of pruned/checked needed to continue pruning the search.",
+                              "0.0");
 
     parser.add_option<int>("min_insertions",
-            "States are inserted and pruning until this limit. Afterwards, depends on the ratios",
-            "1000");
+                           "States are inserted and pruning until this limit. Afterwards, depends on the ratios",
+                           "1000");
+    
     TauLabelManager<int>::add_options_to_parser(parser);
 
     Options opts = parser.parse();
