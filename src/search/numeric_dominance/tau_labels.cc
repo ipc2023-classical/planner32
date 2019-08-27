@@ -405,7 +405,6 @@ TauLabelManager<T>::TauLabelManager(const Options & opts,
 
 template <typename T>
 void TauLabelManager<T>::add_options_to_parser(OptionParser &parser) {
-    parser.add_option<bool>("tau_label_dominance", "Use self loop tau labels in label dominance","true");
 
     parser.add_option<bool>("tau_labels_recursive",
 			    "Use stronger notion of tau labels based on self loops everywhere",
