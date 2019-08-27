@@ -10,8 +10,8 @@
    #define DEBUG_MAS(str) do { str } while( false )
 #else
 //#define DEBUG_MSG(str) do {cout << "  " << g_timer() << ": "; str } while ( false )
-#define DEBUG_MSG(str) do {if(false) { str }}while(false)
-   #define DEBUG_PHPDBS(str) do {if(false) { str }}while(false)
+#define DEBUG_MSG(str) do {if(false) { str }} while(false)
+#define DEBUG_PHPDBS(str) do {if(false) { str }} while(false)
 //#define DEBUG_PHPDBS(str) do { str } while ( false )
 
 //   #define DEBUG_MAS(str) do { str } while( false )

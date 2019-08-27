@@ -16,9 +16,9 @@ class DominanceRelationComplexNoLD : public DominanceRelationComplex<LR> {
     /* 					    const LR & label_dominance,  */
     /* 					    SimulationRelation & simrel); */
     
-    void update_sim_nold (int lts_id, const LTSComplex * lts,
-			  const LR & label_dominance, 
-			  SimulationRelation & simrel);
+    /* void update_sim_nold (int lts_id, const LTSComplex * lts, */
+    /*     		  const LR & label_dominance,  */
+    /*     		  SimulationRelation & simrel); */
     
  public:
     DominanceRelationComplexNoLD(Labels * labels) : DominanceRelationComplex<LR>(labels) {}
@@ -28,11 +28,11 @@ class DominanceRelationComplexNoLD : public DominanceRelationComplex<LR> {
 			const LR & /*label_dominance*/, SimulationRelation & ){
 	//update_sim(lts_id, lts, label_dominance);
     }
-    virtual void update(int lts_id, const LTSComplex * lts,
-			const LR & label_dominance,
-			SimulationRelation & simrel){
-	update_sim_nold(lts_id, lts, label_dominance, simrel);
-    }
+    /* virtual void update(int lts_id, const LTSComplex * lts, */
+    /*     		const LR & label_dominance, */
+    /*     		SimulationRelation & simrel){ */
+    /*     update_sim_nold(lts_id, lts, label_dominance, simrel); */
+    /* } */
 };
 
 #endif

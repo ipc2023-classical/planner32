@@ -20,7 +20,7 @@ protected:
 public:
     MutexPruning(const Options &options);
     virtual ~MutexPruning(){}
-    virtual void initialize();
+    virtual void initialize(bool force_initialization = false);
 
     virtual int compute_heuristic(const State &/*state*/){return 0;}
     //Methods for pruning explicit search

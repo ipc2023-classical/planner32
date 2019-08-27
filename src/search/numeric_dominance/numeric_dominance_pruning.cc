@@ -29,8 +29,7 @@ template <typename T>
 NumericDominancePruning<T>::NumericDominancePruning(const Options &opts)
 : PruneHeuristic(opts), 
   mgrParams(opts), initialized(false),
-  compute_tau_labels_with_noop_dominance(opts.get<bool>("compute_tau_labels_with_noop_dominance")),
-  compute_tau_labels_as_self_loops_everywhere(opts.get<bool>("compute_tau_labels_as_self_loops_everywhere")),
+  tau_labels(make_shared<TauLabelManager<T>>(opts, false)), 
   remove_spurious_dominated_states(opts.get<bool>("remove_spurious")),
   insert_dominated(opts.get<bool>("insert_dominated")),
   use_quantified_dominance(opts.get<bool>("use_quantified_dominance")),
@@ -38,10 +37,15 @@ NumericDominancePruning<T>::NumericDominancePruning(const Options &opts)
   only_positive_dominance(opts.get<bool>("only_positive_dominance")),
   use_ADDs(opts.get<bool>("use_adds")),
   prune_dominated_by_parent(opts.get<bool>("prune_dominated_by_parent")), 
+  prune_dominated_by_initial_state(opts.get<bool>("prune_dominated_by_initial_state")), 
   prune_successors(opts.get<bool>("prune_successors")), 
   prune_dominated_by_closed(opts.get<bool>("prune_dominated_by_closed")), 
   prune_dominated_by_open(opts.get<bool>("prune_dominated_by_open")), 
   truncate_value(opts.get<int>("truncate_value")), 
+  max_simulation_time(opts.get<int>("max_simulation_time")),
+  min_simulation_time(opts.get<int>("min_simulation_time")),
+  max_total_time(opts.get<int>("max_total_time")),
+  max_lts_size_to_compute_simulation(opts.get<int>("max_lts_size_to_compute_simulation")), 
   min_insertions_desactivation(opts.get<int>("min_insertions")),
   min_desactivation_ratio(opts.get<double>("min_desactivation_ratio")),
     dump(opts.get<bool>("dump")), exit_after_preprocessing(opts.get<bool>("exit_after_preprocessing")),
@@ -57,6 +61,9 @@ void NumericDominancePruning<T>::dump_options() const {
 	cout << " dominated_by_parent";
     }
 
+        if(prune_dominated_by_parent) {
+	cout << " dominated_by_initial_state";
+    }
     if(prune_successors) {
 	cout << " successors";
     }
@@ -69,23 +76,24 @@ void NumericDominancePruning<T>::dump_options() const {
 	cout << " dominated_by_open";
     }
 
-    cout <<  endl 
-	 << "compute_tau_labels_with_noop_dominance: " << 
-	compute_tau_labels_with_noop_dominance << endl 	 
-	 << "compute_tau_labels_as_self_loops_everywhere: " << 
-	compute_tau_labels_as_self_loops_everywhere << endl
-	 << "truncate_value: " << truncate_value << endl;
+    tau_labels->print_config();
+    
+    cout << "truncate_value: " << truncate_value << endl <<
+	"max_lts_size_to_compute_simulation: " << max_lts_size_to_compute_simulation << endl <<
+    	"max_simulation_time: " << max_simulation_time << endl <<
+	"min_simulation_time: " << min_simulation_time << endl <<
+	"max_total_time: " << max_total_time << endl;
 }
 
 
 template <typename T> 
 bool NumericDominancePruning<T>::apply_pruning() const {
-    return prune_dominated_by_parent || prune_successors || 
+    return prune_dominated_by_parent || prune_dominated_by_initial_state || prune_successors || 
 	prune_dominated_by_closed || prune_dominated_by_open;
 }
 
 template <typename T> 
-void NumericDominancePruning<T>::initialize() {
+void NumericDominancePruning<T>::initialize(bool force_initialization) {
     if(!initialized){
 	dump_options();
         initialized = true;
@@ -94,12 +102,15 @@ void NumericDominancePruning<T>::initialize() {
 					      cost_type, ldSimulation, abstractions);
 	cout << "LDSimulation finished" << endl;
 
-	if(apply_pruning()) {
+	if(force_initialization || apply_pruning()) {
 	    ldSimulation->
 		compute_numeric_dominance_relation<T>(truncate_value, 
-						      compute_tau_labels_with_noop_dominance, 
-						      compute_tau_labels_as_self_loops_everywhere, 
-						      dump, numeric_dominance_relation);
+						      max_simulation_time,
+						      min_simulation_time,
+						      max_total_time, 
+						      max_lts_size_to_compute_simulation,
+						      dump, tau_labels,
+						      numeric_dominance_relation);
 	}
 
 	ldSimulation->release_memory();
@@ -130,7 +141,7 @@ void NumericDominancePruning<T>::initialize() {
 
 template <typename T> 
 bool NumericDominancePruning<T>::is_dead_end(const State &state) {
-    if(!prune_dominated_by_parent) {
+    if(!prune_dominated_by_parent && !prune_dominated_by_initial_state) {
     // if(ldSimulation && ldSimulation->has_dominance_relation() &&
     //    /*is_activated() && */numeric_dominance_relation->pruned_state(state)){
     //     deadends_pruned ++;
@@ -169,13 +180,13 @@ void NumericDominancePruning<T>::prune_applicable_operators(const State & state,
     bool applied_action_selection_pruning = false;
     if(prune_successors && applicable_operators.size() > 1) {
 	applied_action_selection_pruning = true;
-	if(numeric_dominance_relation->action_selection_pruning(state, applicable_operators, search_progress)) {
+	if(numeric_dominance_relation->action_selection_pruning(state, applicable_operators, search_progress, cost_type)) {
 	    return;
 	}
     } 
 
-    if (prune_dominated_by_parent) {
-	numeric_dominance_relation->prune_dominated_by_parent(state, applicable_operators, search_progress, applied_action_selection_pruning);
+    if (prune_dominated_by_parent || prune_dominated_by_initial_state) {
+	numeric_dominance_relation->prune_dominated_by_parent_or_initial_state(state, applicable_operators, search_progress, applied_action_selection_pruning, prune_dominated_by_parent, prune_dominated_by_initial_state, cost_type);
     }
 }
 
@@ -199,7 +210,7 @@ bool NumericDominancePruning<T>::prune_generation(const State &state, int g,
     // 	     <<  endl;
     // }
 
-    if(!prune_dominated_by_parent && numeric_dominance_relation->pruned_state(state)){
+    if(!prune_dominated_by_parent && !prune_dominated_by_initial_state && numeric_dominance_relation->pruned_state(state)){
         return true;
     }
 
@@ -296,16 +307,6 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "Exit after preprocessing",
             "false");
 
-    parser.add_option<bool>("compute_tau_labels_with_noop_dominance",
-            "Use stronger notion of tau labels based on noop dominance",
-            "false");
-
-
-    parser.add_option<bool>("compute_tau_labels_as_self_loops_everywhere",
-            "Use stronger notion of tau labels based on self loops everywhere",
-            "true");
-
-
     parser.add_option<bool>("remove_spurious",
             "If activated, remove spurious states from the sets of simulated/simulating states",
             "true");
@@ -323,6 +324,9 @@ static PruneHeuristic *_parse(OptionParser &parser) {
             "Prunes a state if it is dominated by its parent",
             "false");
 
+        parser.add_option<bool>("prune_dominated_by_initial_state",
+            "Prunes a state if it is dominated by the initial state",
+            "false");
     parser.add_option<bool>("prune_dominated_by_open",
             "Prunes a state if it is dominated by any node in the closed or open list",
             "false");
@@ -334,6 +338,21 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     parser.add_option<int>("truncate_value",
             "Assume -infinity if below minus this value",
             "1000");
+    parser.add_option<int>("max_simulation_time",
+			   "Maximum number of seconds spent in computing a single update of a simulation", "1800");
+
+    parser.add_option<int>("min_simulation_time",
+			   "Minimum number of seconds spent in computing a single update of a simulation", "1");
+
+    
+    parser.add_option<int>("max_total_time",
+			   "Maximum number of seconds spent in computing all updates of a simulation", "1800");
+
+
+    
+    parser.add_option<int>("max_lts_size_to_compute_simulation",
+			   "Avoid computing simulation on ltss that have more states than this number",
+			   "1000000");
 
     parser.add_option<bool>("prune_successors",
             "Prunes all siblings if any successor dominates the parent by enough margin",
@@ -372,8 +391,13 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     parser.add_option<int>("min_insertions",
             "States are inserted and pruning until this limit. Afterwards, depends on the ratios",
             "1000");
+    TauLabelManager<int>::add_options_to_parser(parser);
 
     Options opts = parser.parse();
+    auto cost_type = OperatorCost(opts.get_enum("cost_type"));
+    
+    bool task_has_zero_cost = cost_type == OperatorCost::ZERO ||
+	(cost_type == OperatorCost::NORMAL && g_min_action_cost == 0);
    
     if (parser.dry_run()) {
         return 0;
@@ -386,13 +410,13 @@ static PruneHeuristic *_parse(OptionParser &parser) {
                 cerr << "Error: you cannot use use_single_bdd and use_quantified_dominance or prune_dominated_by_open" << endl;
                 exit_with(EXIT_INPUT_ERROR);
             }
-	    if(g_min_action_cost == 0) {
+	    if(task_has_zero_cost) {
 		return new NumericDominancePruningBDD<IntEpsilon> (opts);
 	    } else {
 		return new NumericDominancePruningBDD<int> (opts);
 	    }
 	} else {
-            if(g_min_action_cost == 0) {
+            if(task_has_zero_cost) {
 		return new NumericDominancePruningBDDMap<IntEpsilon> (opts);
 	    } else {
 		return new NumericDominancePruningBDDMap<int> (opts);
@@ -485,6 +509,22 @@ map<int, BDD> NumericDominancePruning<IntEpsilon>::getBDDMapToInsert(const State
     return res;
 }
 
+template <typename T> 
+map<int, BDD> NumericDominancePruning<T>::getBDDMapToInsert(const State & state){
+    assert(insert_dominated); 
+    map<T, BDD> res = numeric_dominance_relation->getDominatedBDDMap(vars.get(), state);
+    for(auto & it : res) {
+	BDD & bdd = it.second;
+	if(remove_spurious_dominated_states){
+	    bdd = mgr->filter_mutex(bdd, true, 1000000, true);
+	    bdd = mgr->filter_mutex(bdd, false, 1000000, true);
+	}
+	if(prune_dominated_by_open){
+	    bdd -= vars->getStateBDD(state); //Remove the state
+	}
+    }
+    return res;
+}
 
 template <typename T>
 void NumericDominancePruningBDDMap<T>::insert (const State & state, int g){

@@ -9,7 +9,7 @@
 #include "numeric_label_relation.h"
 
 class LabelledTransitionSystem;
-class LTSComplex;
+/* class LTSComplex; */
 class Operator;
 class SearchProgress;
 
@@ -23,10 +23,18 @@ class NumericDominanceRelation {
 
     //Auxiliar data-structures to perform successor pruning 
     mutable std::set<int> relevant_simulations;
-    mutable std::vector<int> parent, parent_ids, succ;
+    mutable std::vector<int> parent, parent_ids, succ, succ_ids;
+    mutable std::vector<T> values_initial_state_against_parent;
+
+    //Auxiliar data structure to compare against initial state
+    std::vector<int> initial_state, initial_state_ids;
 
     const int truncate_value;
+    const int max_simulation_time;
+    const int min_simulation_time, max_total_time;
+    const int max_lts_size_to_compute_simulation;
     NumericLabelRelation<T> label_dominance;
+    std::shared_ptr<TauLabelManager<T>> tau_labels;
 
 protected:
     std::vector<std::unique_ptr<NumericSimulationRelation<T>> > simulations;
@@ -49,17 +57,54 @@ protected:
 	    std::cout << lts->size() << " states and " << lts->num_transitions() << " transitions" << std::endl;
 	}
 
+	std::cout << "Compute tau labels" << std::endl;
+	tau_labels->initialize(_ltss, labelMap);	
         label_dominance.init(_ltss, *this, labelMap);
+	for (int i = 0; i < simulations.size(); i++) {
+	    if (_ltss[i]->size() > max_lts_size_to_compute_simulation) {
+		std::cout << "Computation of numeric simulation on LTS " << i <<
+		    " with " << _ltss[i]->size() << " states cancelled because it is too big." << std::endl;
+		simulations[i]->cancel_simulation_computation(i, _ltss[i]);
+	    }
+	}
+
+
+	
+	std::vector<int> order_by_size;
+	for (int i = 0; i < simulations.size(); i++) {
+	    order_by_size.push_back(i);
+	}
+
+	std::sort (order_by_size.begin(), order_by_size.end(), [&] (int a, int b) {
+		return _ltss[a]->size() < _ltss[b]->size();/*  || */
+	    });
 	std::cout << "  Init numLDSim in " << t() << "s: " << std::flush;
+	bool restart = false;
+	do {
 	do{
 	    num_iterations++;
 	    //label_dominance.dump();
-		for (int i = 0; i < simulations.size(); i++){
-		    num_inner_iterations += simulations[i]->update(i, _ltss[i], label_dominance);
+		int remaining_to_compute = order_by_size.size(); 
+		for (int i : order_by_size) {
+		    std::cout << "Updating " << i << " of size " <<   _ltss[i]->size() << " states and "
+			      <<  _ltss[i]->num_transitions() << " transitions" << std::endl;
+		    
+		    int max_time = std::max(max_simulation_time,
+					    std::min(min_simulation_time,
+						     1 + max_total_time/remaining_to_compute--));
+		    num_inner_iterations += simulations[i]->update(i, _ltss[i], label_dominance, max_time);
 		    //_dominance_relation[i]->dump(_ltss[i]->get_names());
 		}
 	    std::cout << " " << t() << "s" << std::flush;
 	}while(label_dominance.update(_ltss, *this));
+	    restart = tau_labels->add_noop_dominance_tau_labels (_ltss, label_dominance);
+	    if(restart) {
+		for (int i : order_by_size) {
+		    simulations[i]->init_goal_respecting();
+		}
+	    }
+	    
+	} while(restart);
 	std::cout << std::endl << "Numeric LDSim computed " << t() << std::endl;
 	std::cout << "Numeric LDSim outer iterations: " << num_iterations << std::endl;
 	std::cout << "Numeric LDSim inner iterations: " << num_inner_iterations << std::endl;
@@ -77,6 +122,7 @@ protected:
 		simulations[i]->dump(_ltss[i]->get_names()); 
 		std::cout << "------" << std::endl; 
 		/*     label_dominance.dump(_ltss[i], i);  */
+		     label_dominance.dump(_ltss[i], i);  
 	    } 
 	}
 	//label_dominance.dump_equivalent();
@@ -95,21 +141,30 @@ public:
 
     NumericDominanceRelation(Labels * labels, 
 			     int truncate_value_, 
-			     bool compute_tau_labels_with_noop_dominance, 
-			     bool compute_tau_labels_as_self_loops_everywhere) : 
+			 int max_simulation_time_,
+			 int min_simulation_time_,
+			 int max_total_time_, 
+			 int max_lts_size_to_compute_simulation_,
+			 std::shared_ptr<TauLabelManager<T>> tau_label_mgr) : 
 								truncate_value(truncate_value_),
-								label_dominance(labels,
-										compute_tau_labels_with_noop_dominance,  compute_tau_labels_as_self_loops_everywhere) 
-    {}
+	max_simulation_time(max_simulation_time_),
+	min_simulation_time(min_simulation_time_),
+	max_total_time(max_total_time_),
+	max_lts_size_to_compute_simulation (max_lts_size_to_compute_simulation_),
+	label_dominance(labels), tau_labels(tau_label_mgr) {
+
+
+	}
 
 
 								
     bool action_selection_pruning (const State & state, 
 				   std::vector<const Operator *> & applicable_operators,
-				   SearchProgress & search_progress) const;
-    void prune_dominated_by_parent (const State & state, 
+				   SearchProgress & search_progress, OperatorCost cost_type) const;
+    void prune_dominated_by_parent_or_initial_state (const State & state, 
 				   std::vector<const Operator *> & applicable_operators,
-				   SearchProgress & search_progress, bool parent_ids_stored) const;
+						     SearchProgress & search_progress, bool parent_ids_stored,
+						     bool compare_against_parent, bool compare_against_initial_state, OperatorCost cost_type) const;
 
  
     //Methods to use the dominance relation 
@@ -159,6 +214,12 @@ public:
     const NumericSimulationRelation<T> & operator[](int index) const {
         return *(simulations[index]);
     }    
+    bool strictly_dominates (const State & dominating_state,
+			     const State & dominated_state) const;
+
+    bool strictly_dominates_initial_state(const State &) const;
+
+    void set_initial_state (const State & state);
 };
 
 #endif

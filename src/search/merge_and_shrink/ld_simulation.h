@@ -5,6 +5,7 @@
 
 #include "simulation_relation.h"
 #include "dominance_relation.h"
+#include "../numeric_dominance/tau_labels.h"
 
 #include "../option_parser.h"
 
@@ -16,14 +17,14 @@ class MergeStrategy;
 class Abstraction;
 class SymManager;
 class LabelledTransitionSystem;
-class LTSComplex;
+/* class LTSComplex; */
 template <typename T> class NumericDominanceRelation;
 
 enum class LabelDominanceType {
     NONE, NOOP, NORMAL, ALTERNATIVE
 };
 enum class SimulationType {
-    NONE, SIMPLE, COMPLEX
+    NONE, SIMPLE//, COMPLEX
 };
 
 std::ostream & operator<<(std::ostream &os, const LabelDominanceType & m);
@@ -135,9 +136,11 @@ public:
 
     template <typename T> 
 	void compute_numeric_dominance_relation(int truncate_value, 
-						bool compute_tau_labels_with_noop_dominance, 
-						bool compute_tau_labels_as_self_loops_everywhere, 
+						int max_simulation_time,
+						int min_simulation_time, int max_total_time,
+						int max_lts_size_to_compute_simulation,
 						bool dump, 
+						std::shared_ptr<TauLabelManager<T>> tau_label_mgr,
 						std::unique_ptr<NumericDominanceRelation<T>> & result) const;
 
     void getVariableOrdering(std::vector <int> & var_order);

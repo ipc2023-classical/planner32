@@ -13,7 +13,7 @@ MutexPruning::MutexPruning(const Options &opts)
     : PruneHeuristic(opts), mgrParams(opts){
 }
 
-void MutexPruning::initialize() {
+void MutexPruning::initialize(bool ) {
     if(!vars){
 	vars = unique_ptr<SymVariables> (new SymVariables());
         vector <int> var_order;

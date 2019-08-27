@@ -5,6 +5,7 @@
 #include "../sym/sym_variables.h"
 #include "../sym/sym_params.h"
 
+#include "tau_labels.h"
 #include "int_epsilon.h"
 #include "numeric_dominance_relation.h"
 
@@ -21,8 +22,7 @@ class NumericDominancePruning : public PruneHeuristic {
   const SymParamsMgr mgrParams; //Parameters for SymManager configuration.
 
   bool initialized;
-  const bool compute_tau_labels_with_noop_dominance;
-  const bool compute_tau_labels_as_self_loops_everywhere;
+  std::shared_ptr<TauLabelManager<T>> tau_labels;
   const bool remove_spurious_dominated_states;
   const bool insert_dominated;
   const bool use_quantified_dominance;
@@ -31,11 +31,17 @@ class NumericDominancePruning : public PruneHeuristic {
   const bool use_ADDs;
 
   const bool prune_dominated_by_parent; 
+  const bool prune_dominated_by_initial_state; 
   const bool prune_successors; 
   const bool prune_dominated_by_closed; 
   const bool prune_dominated_by_open; 
 
   const int truncate_value; 
+  const int max_simulation_time;
+  const int min_simulation_time;
+  const int max_total_time;
+
+  const int max_lts_size_to_compute_simulation;
 
     /*
    * Three parameters help to decide whether to apply dominance
@@ -93,7 +99,7 @@ class NumericDominancePruning : public PruneHeuristic {
   }
 
  public:
-  virtual void initialize() override;
+  virtual void initialize(bool force_initialization = false) override;
 
   //Methods for pruning explicit search
   virtual void prune_applicable_operators(const State & state, int g, std::vector<const Operator *> & operators, SearchProgress & search_progress) override;

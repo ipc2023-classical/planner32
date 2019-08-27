@@ -7,27 +7,25 @@
 #include "../sym/sym_variables.h"
 #include "numeric_label_relation.h"
 #include "int_epsilon.h"
+#include "tau_labels.h"
 
 class Labels;
 class Abstraction;
 class CompositeAbstraction;
 class LabelledTransitionSystem;
-class LTSTransition; 
+class LTSTransition;
 
 template <typename T> 
 class NumericSimulationRelation {
 protected:
     const  Abstraction * abs;
     const int truncate_value; 
-    
-    std::vector<int> tau_labels;
-    std::vector<std::vector<T> > distances_with_tau;
-    std::vector<T> goal_distances_with_tau;
 
-    //List of states for which distances_with_tau is not infinity
-    std::vector<std::vector<int> > reachable_with_tau;
+    std::shared_ptr<TauLabelManager<T>> tau_labels;
+    int tau_distances_id;
 
     std::vector<std::vector<T> > relation;
+  
     T max_relation_value;
 
     //BDDs of each abstract state
@@ -42,21 +40,42 @@ protected:
     std::vector<std::map<T, BDD> > dominated_bdd_maps, dominating_bdd_maps;
 
 
-    T compare_noop(int lts_id, const LTSTransition & trs, int t,
+    std::vector<std::pair<int, int> > entries_with_positive_dominance;
+    std::vector<std::vector<bool> > is_relation_stable; 
+
+    bool cancelled;
+    
+    T compare_noop(int lts_id, int tr_s_target, int tr_s_label, int t,
 		     T tau_distance, 
 		     const NumericLabelRelation<T> & label_dominance) const;
 
 
-    T compare_transitions(int lts_id, const LTSTransition & trs, const LTSTransition & trt, 
-			  T tau_distance, const NumericLabelRelation<T> & label_dominance) const;
+    T compare_transitions(int lts_id,  int tr_s_target, int tr_s_label,
+			  int tr_t_target, int tr_t_label,
+			  T tau_distance,
+			  const NumericLabelRelation<T> & label_dominance) const;
+
+    int update_pair (int lts_id, const LabelledTransitionSystem * lts,
+		     const NumericLabelRelation<T> & label_dominance,
+		     const TauDistances<T> & tau_distances,
+		     int s, int t);
+
+    int update_pair_stable (int lts_id, const LabelledTransitionSystem * lts,
+		     const NumericLabelRelation<T> & label_dominance,
+		     const TauDistances<T> & tau_distances,
+		     int s, int t);
 
 public:
-    NumericSimulationRelation(Abstraction * _abs, int truncate_value);
+    NumericSimulationRelation(Abstraction * _abs, int truncate_value,
+			      std::shared_ptr<TauLabelManager<T>> tau_labels_mgr);
     
     void init_goal_respecting (); 
     int update (int lts_id, const LabelledTransitionSystem * lts,
-		 const NumericLabelRelation<T> & label_dominance);
+		const NumericLabelRelation<T> & label_dominance,
+		int max_time);
+    
 
+    void cancel_simulation_computation(int lts_id, const LabelledTransitionSystem * lts);	
 
     bool pruned(const State & state) const;
 	
@@ -77,15 +96,39 @@ public:
     }
 
     inline T q_simulates (int s, int t) const {
-	if(s >= relation.size()) {
-	    std::cout << s << std::endl;
-	    std::cout << relation.size() << std::endl;
-	}
+	/* if(s >= relation.size()) { */
+	/*     std::cout << s << std::endl; */
+	/*     std::cout << relation.size() << std::endl; */
+	/* } */
 	
 	assert(s < relation.size());
 	assert(t < relation[s].size());
 	assert(s!=t || relation[s][t] == 0);
         return relation[s][t];
+    }
+
+
+
+    inline bool strictly_simulates (int s, int t) const {
+	/* if(s >= relation.size()) { */
+	/*     std::cout << s << std::endl; */
+	/*     std::cout << relation.size() << std::endl; */
+	/* } */
+
+        return relation[s][t] >= 0 && relation[t][s] < 0;
+    }
+
+     
+    inline bool positively_simulates (int s, int t) const {
+	/* if(s >= relation.size()) { */
+	/*     std::cout << s << std::endl; */
+	/*     std::cout << relation.size() << std::endl; */
+	/* } */
+	
+	assert(s < relation.size());
+	assert(t < relation[s].size());
+	assert(s!=t || relation[s][t] == 0);
+        return relation[s][t] >= 0;
     }
 
     inline bool similar (int s, int t) const {
@@ -117,24 +160,16 @@ public:
     T get_max_value () const {
 	return max_relation_value; 
     }
-
-    inline T minus_shortest_path_with_tau(int from, int to) {
-	assert(from < distances_with_tau.size());
-	assert(to < distances_with_tau[from].size());
-	assert((from != to && distances_with_tau[from][to] > 0) ||
-	       (from == to && distances_with_tau[from][to] == 0));
-	return distances_with_tau[from][to] == std::numeric_limits<int>::max() 
-	    ? std::numeric_limits<int>::lowest() 
-	    : - distances_with_tau[from][to];
-    }
-
-    bool precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
-					   const NumericLabelRelation<T> & label_dominance);
+    
+    std::vector<int> get_dangerous_labels(const LabelledTransitionSystem * lts) const; 
 
     void dump(const std::vector<std::string> & names) const;
     void dump() const;
 
     void statistics() const;
+
+    bool has_dominance() const;
+    bool has_positive_dominance() const;
 
     void precompute_absstate_bdds(SymVariables * vars);
     void precompute_bdds(bool dominating, bool quantified, bool use_ADD);

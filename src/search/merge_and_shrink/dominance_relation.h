@@ -9,7 +9,7 @@
 #include "simulation_relation.h"
 
 class LabelledTransitionSystem;
-class LTSComplex;
+/* class LTSComplex; */
 
 /*
  * Class that represents the collection of simulation relations for a
@@ -46,9 +46,9 @@ public:
 				       const LabelMap & labelMap, 
 					bool incremental_step, bool dump) = 0;   
 
-    virtual void compute_ld_simulation (std::vector<LTSComplex *> & _ltss,
-				       const LabelMap & labelMap, 
-				       bool incremental_step, bool dump) = 0;   
+    /* virtual void compute_ld_simulation (std::vector<LTSComplex *> & _ltss, */
+    /*     			       const LabelMap & labelMap,  */
+    /*     			       bool incremental_step, bool dump) = 0;    */
 
 
     virtual bool propagate_transition_pruning
@@ -129,10 +129,10 @@ class DominanceRelationLR : public DominanceRelation {
 			const LR & label_dominance, 
 			SimulationRelation & simrel) = 0;
 
-    virtual void update(int lts_id, 
-			const LTSComplex * lts, 
-			const LR & label_dominance, 
-			SimulationRelation & simrel) = 0;
+    /* virtual void update(int lts_id,  */
+    /*     		const LTSComplex * lts,  */
+    /*     		const LR & label_dominance,  */
+    /*     		SimulationRelation & simrel) = 0; */
 
     bool propagate_label_domination(int lts_id, 
 				    const LabelledTransitionSystem * lts,
@@ -209,11 +209,11 @@ DominanceRelationLR(Labels * labels) : label_dominance(labels)
 	compute_ld_simulation_template(_ltss, labelMap, incremental_step, dump);
     }  
 
-    virtual void compute_ld_simulation(std::vector<LTSComplex *> & _ltss,
-				       const LabelMap & labelMap, 
-				       bool incremental_step, bool dump){
-	compute_ld_simulation_template(_ltss, labelMap, incremental_step, dump);
-    }  
+    /* virtual void compute_ld_simulation(std::vector<LTSComplex *> & _ltss, */
+    /*     			       const LabelMap & labelMap,  */
+    /*     			       bool incremental_step, bool dump){ */
+    /*     compute_ld_simulation_template(_ltss, labelMap, incremental_step, dump); */
+    /* }   */
  
     virtual bool propagate_transition_pruning(int lts_id,
 					      const std::vector<LabelledTransitionSystem *> & ltss, 

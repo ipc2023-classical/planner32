@@ -23,12 +23,19 @@ void NumericDominanceRelation<T>::init (const std::vector<Abstraction *> & abstr
     }
     parent.resize (g_variable_domain.size());
     parent_ids.resize (simulations.size());
+    succ.resize (g_variable_domain.size());
+    succ_ids.resize (simulations.size());
+    initial_state.resize (g_variable_domain.size());
+    initial_state_ids.resize (simulations.size());
+    values_initial_state_against_parent.resize (simulations.size());
+
+    set_initial_state(g_initial_state());
 }
 
 template <typename T> 
 std::unique_ptr<NumericSimulationRelation<T>> 
 NumericDominanceRelation<T>::init_simulation (Abstraction * _abs){
-    auto res = make_unique<NumericSimulationRelation<T>> (_abs, truncate_value);
+    auto res = make_unique<NumericSimulationRelation<T>> (_abs, truncate_value, tau_labels);
     res->init_goal_respecting();
     return std::move (res);
 }
@@ -78,6 +85,7 @@ template <typename T>
 bool NumericDominanceRelation<T>::dominates(const State &t, const State & s, int g_diff) const {
     T total_value = 0;
     for(const auto & sim : simulations) {
+	assert(sim);
 	T val = sim->q_simulates(t, s);
 	if(val == std::numeric_limits<int>::lowest()) {
 	    return false;
@@ -89,6 +97,20 @@ bool NumericDominanceRelation<T>::dominates(const State &t, const State & s, int
 
 }
 
+template <typename T> 
+bool NumericDominanceRelation<T>::strictly_dominates(const State &t, const State & s) const {
+    return dominates(t, s, 0) && !dominates(s, t, 0);
+}
+
+
+template <typename T> 
+bool NumericDominanceRelation<T>::strictly_dominates_initial_state(const State &t) const {
+    vector<int> copy_t (g_variable_domain.size());
+    for(int i = 0; i < g_variable_domain.size(); ++i) {
+	copy_t[i] = t[i];
+    }
+    return dominates_parent(copy_t, initial_state, 0) && !dominates_parent(initial_state, copy_t, 0);
+}
 
 template <typename T> 
 bool NumericDominanceRelation<T>::dominates_parent(const vector<int> & state, 
@@ -208,10 +230,9 @@ map<T, BDD> NumericDominanceRelation<T>::getDominatedBDDMap(SymVariables * vars,
 
 
 
-template <typename T> 
-bool NumericDominanceRelation<T>::action_selection_pruning(const State & state, 
-							   std::vector<const Operator *> & applicable_operators,
-							   SearchProgress & search_progress) const {
+template <typename T> bool NumericDominanceRelation<T>::
+action_selection_pruning(const State & state, std::vector<const Operator *> & applicable_operators,
+			 SearchProgress & search_progress, OperatorCost cost_type) const {
     for(int i = 0; i < g_variable_domain.size(); ++i) {
 	parent[i] = state[i];
     }
@@ -243,7 +264,7 @@ bool NumericDominanceRelation<T>::action_selection_pruning(const State & state,
       	relevant_simulations.clear();
 
 	//TODO: Use adjusted cost instead.
-	if(may_simulate && total_value - op->get_cost() >= 0) {
+	if(may_simulate && total_value - get_adjusted_action_cost(*op, cost_type) >= 0) {
 	    search_progress.inc_action_selection(applicable_operators.size() - 1);
 	    applicable_operators.clear();
 	    applicable_operators.push_back(op);
@@ -258,19 +279,37 @@ bool NumericDominanceRelation<T>::action_selection_pruning(const State & state,
     return false;
 }
 
-template <typename T> 
-void NumericDominanceRelation<T>::prune_dominated_by_parent (const State & state, 
+template <typename T> void NumericDominanceRelation<T>::
+prune_dominated_by_parent_or_initial_state (const State & state, 
 							     std::vector<const Operator *> & applicable_operators,
-							     SearchProgress & search_progress, bool parent_ids_stored) const {
+					    SearchProgress & search_progress, bool parent_ids_stored,
+					    bool compare_against_parent,
+					    bool compare_against_initial_state, OperatorCost cost_type) const {
 
     if(!parent_ids_stored) {
 	for(int i = 0; i < g_variable_domain.size(); ++i) {
-	    parent[i] = state[i];
+	    succ[i] = state[i];
 	}
+	if(compare_against_parent) {
+	    parent = succ;
 	for(int i = 0; i < simulations.size(); ++i) {
 	    parent_ids[i] = simulations[i]->get_abstract_state_id(parent);
 	} 
-	succ = parent;
+    }
+    }
+
+    vector<int> ts_initial_state_does_not_simulate_parent;
+    T initial_state_against_parent = 0;
+    if (compare_against_initial_state) {
+	for(int i = 0; i < simulations.size(); ++i) {
+	    values_initial_state_against_parent[i] =
+		simulations[i]->q_simulates(initial_state_ids[i], parent_ids[i]);
+	    if(values_initial_state_against_parent[i] == std::numeric_limits<int>::lowest()) {
+		ts_initial_state_does_not_simulate_parent.push_back(i);
+	    } else {
+		initial_state_against_parent += values_initial_state_against_parent[i];
+	    }
+	}
     }
 
     int detected_dead_ends = 0;
@@ -283,26 +322,65 @@ void NumericDominanceRelation<T>::prune_dominated_by_parent (const State & state
 						      relevant_simulations.insert(simulation_of_variable[prepost.var]);
 						  }
 
+						  bool proved_prunable = false;
+
+						  //Check dead_ends
+						  for (int sim :  relevant_simulations) {
+						      succ_ids[sim] = simulations[sim]->get_abstract_state_id(succ);
+						      if(succ_ids[sim] == -1) {
+							  detected_dead_ends ++;
+							  proved_prunable = true;
+						      } 
+						  }
+
+						  if(!proved_prunable && compare_against_parent) {
 						  T total_value = 0;
 						  bool may_simulate = true;
 						  for (int sim :  relevant_simulations) {
-						      int succ_id = simulations[sim]->get_abstract_state_id(succ);
-						      if(succ_id == -1) {
-							  relevant_simulations.clear();
-							  for(const auto & prepost : op->get_pre_post()){
-							      succ[prepost.var] = parent[prepost.var];
-							  }
-							  detected_dead_ends ++;
-							  return true;
-						      } 
-						      
-						      if (may_simulate) {
-							  T val = simulations[sim]->q_simulates(parent_ids[sim], succ_id);
+							  T val = simulations[sim]->q_simulates(parent_ids[sim], succ_ids[sim]);
+
+	
 							  if(val == std::numeric_limits<int>::lowest()) {
 							      may_simulate = false;
-							      continue; //continue in order to ensure that all dead-ends are pruned
+							      break; 
 							  }
 							  total_value += val;
+						      } 
+						      
+						      proved_prunable = may_simulate && (total_value >= 0 || total_value + get_adjusted_action_cost(*op, cost_type) > 0);
+						  }
+
+						  if (!proved_prunable && compare_against_initial_state && ts_initial_state_does_not_simulate_parent.size() <= relevant_simulations.size()) {
+						      bool all_not_simulated_change = false;
+						      for (int sim_must_change :  ts_initial_state_does_not_simulate_parent) {
+							  bool found = false;
+							  for(int sim : relevant_simulations) {
+							      if (sim_must_change == sim) {
+								  found = true;
+								  break;
+							      }
+							  }
+							  if (!found) {
+							      all_not_simulated_change = false;
+							      break; //proved no
+							  }
+						      }
+
+						      if(all_not_simulated_change) {
+							  T total_value = initial_state_against_parent;
+							  bool may_simulate = true;
+							  for (int sim :  relevant_simulations) {					      
+							      T val = simulations[sim]->q_simulates(initial_state_ids[sim], succ_ids[sim]);
+							  if(val == std::numeric_limits<int>::lowest()) {
+							      may_simulate = false;
+								  break; 
+							  }
+							  total_value += val;
+							      if(values_initial_state_against_parent[sim] != std::numeric_limits<int>::lowest()) {
+								  total_value -= values_initial_state_against_parent[sim];
+							      }
+							  }
+							  proved_prunable = may_simulate && (total_value >= 0 || total_value + get_adjusted_action_cost(*op, cost_type) > 0);
 						      }
 						  }
 
@@ -312,12 +390,24 @@ void NumericDominanceRelation<T>::prune_dominated_by_parent (const State & state
 						  }
 
 						  //TODO: Use adjusted cost instead.
-						  return may_simulate && (total_value >= 0 || total_value + op->get_cost() > 0);
+						  return proved_prunable;
 					      }),
 			       applicable_operators.end());	
     if(ops_before > applicable_operators.size()) {
 	search_progress.inc_dead_ends(detected_dead_ends);
-	search_progress.inc_pruned(ops_before- applicable_operators.size() - detected_dead_ends);
+	search_progress.inc_pruned((ops_before - applicable_operators.size()) - detected_dead_ends);
+	//cout << "Pruned "  << ops_before  -applicable_operators.size() << " out of " << ops_before << endl;
+    }
+}
+
+
+template <typename T> void NumericDominanceRelation<T>::
+ set_initial_state (const State & state) {
+    for(int i = 0; i < g_variable_domain.size(); ++i) {
+	initial_state[i] = state[i];
+    }
+    for(int i = 0; i < simulations.size(); ++i) {
+	initial_state_ids[i] = simulations[i]->get_abstract_state_id(initial_state);
     }
 }
 

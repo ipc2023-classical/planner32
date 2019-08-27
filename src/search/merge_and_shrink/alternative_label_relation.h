@@ -112,18 +112,18 @@ public:
     bool update(const std::vector<LabelledTransitionSystem*> & lts, 
 		const DominanceRelation & sim);
 
-    void init(const std::vector<LTSComplex *> & ,
-              const DominanceRelation & ,
-              const LabelMap & ){
-        std::cout << "LTSComplex not implemented." << std::endl;
-        exit(EXIT_CRITICAL_ERROR);
-    }
+    /* void init(const std::vector<LTSComplex *> & , */
+    /*           const DominanceRelation & , */
+    /*           const LabelMap & ){ */
+    /*     std::cout << "LTSComplex not implemented." << std::endl; */
+    /*     exit(EXIT_CRITICAL_ERROR); */
+    /* } */
 
-    bool update(const std::vector<LTSComplex*> & ,
-                const DominanceRelation & ){
-       std::cout << "LTSComplex not implemented." << std::endl;
-        exit(EXIT_CRITICAL_ERROR);
-    }
+    /* bool update(const std::vector<LTSComplex*> & , */
+    /*             const DominanceRelation & ){ */
+    /*    std::cout << "LTSComplex not implemented." << std::endl; */
+    /*     exit(EXIT_CRITICAL_ERROR); */
+    /* } */
 
 
     inline int get_num_labels() const {

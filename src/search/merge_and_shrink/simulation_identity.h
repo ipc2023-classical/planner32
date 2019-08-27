@@ -33,9 +33,9 @@ class DominanceRelationIdentity : public DominanceRelationLR<LR> {
 			const LabelledTransitionSystem * , 
 			const LR & , SimulationRelation & ){}
 
-    virtual void update(int , const LTSComplex * ,
-			const LR &,
-			SimulationRelation & ){}
+    /* virtual void update(int , const LTSComplex * , */
+    /*     		const LR &, */
+    /*     		SimulationRelation & ){} */
 
     virtual bool propagate_label_domination(int /*lts_id*/, 
 					    const LabelledTransitionSystem * /*lts*/,

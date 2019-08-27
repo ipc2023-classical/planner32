@@ -9,6 +9,7 @@
 class Labels;
 class Abstraction;
 class CompositeAbstraction;
+class LabelledTransitionSystem;
 
 // First implementation of a simulation relation. 
 class SimulationRelation {
@@ -53,17 +54,19 @@ public:
     bool simulates (const State & t, const State & s) const;
 
     inline bool simulates (int s, int t) const {
-        return relation[s][t];
+        return  !relation.empty() ? relation[s][t] : s == t;
     }
 
     bool is_identity () const;
 
     inline bool similar (int s, int t) const {
-        return relation[s][t] && relation[t][s];
+        return !relation.empty() ?
+	    relation[s][t] && relation[t][s] :
+	    s == t;
     }
 
     inline bool fixed_simulates(int s, int t) const {
-	return !fixed_relation.empty() && fixed_relation[s][t];
+	return !fixed_relation.empty() ? fixed_relation[s][t] : s == t;
      }
     inline void remove (int s, int t) {
         relation[s][t] = false;
@@ -118,6 +121,7 @@ public:
     void shrink();
 
     void compute_list_dominated_states();
+    void cancel_simulation_computation();
 
 };
 

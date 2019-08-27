@@ -151,26 +151,26 @@ void LabelRelationNoop::init(const std::vector<LabelledTransitionSystem *> & lts
     }
 }
 
-void LabelRelationNoop::init(const std::vector<LTSComplex *> & lts,
-        const DominanceRelation & sim,
-        const LabelMap & labelMap){
-    num_labels = labelMap.get_num_labels();
+// void LabelRelationNoop::init(const std::vector<LTSComplex *> & lts,
+//         const DominanceRelation & sim,
+//         const LabelMap & labelMap){
+//     num_labels = labelMap.get_num_labels();
 
-    simulates_irrelevant.resize(num_labels);
-    simulated_by_irrelevant.resize(num_labels);
-    for(int i = 0; i < num_labels; i++){
-        simulates_irrelevant[i].resize(lts.size(), true);
-        simulated_by_irrelevant[i].resize(lts.size(), true);
-    }
+//     simulates_irrelevant.resize(num_labels);
+//     simulated_by_irrelevant.resize(num_labels);
+//     for(int i = 0; i < num_labels; i++){
+//         simulates_irrelevant[i].resize(lts.size(), true);
+//         simulated_by_irrelevant[i].resize(lts.size(), true);
+//     }
 
-    dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
+//     dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
     
-    DEBUG_MSG(cout << "Update label dominance: " << num_labels
-	      << " labels " << lts.size() << " systems." << endl;);
-    for (int i = 0; i < lts.size(); ++i){
-        update(i, lts[i], sim[i]);
-    }
-}
+//     DEBUG_MSG(cout << "Update label dominance: " << num_labels
+// 	      << " labels " << lts.size() << " systems." << endl;);
+//     for (int i = 0; i < lts.size(); ++i){
+//         update(i, lts[i], sim[i]);
+//     }
+// }
 
 
 bool LabelRelationNoop::update(const std::vector<LabelledTransitionSystem*> & lts,
@@ -184,14 +184,14 @@ bool LabelRelationNoop::update(const std::vector<LabelledTransitionSystem*> & lt
     return changes;
 }
 
-bool LabelRelationNoop::update(const std::vector<LTSComplex*> & lts,
-        const DominanceRelation & sim){
-    bool changes = false;
-    for (int i = 0; i < lts.size(); ++i){
-        changes |= update(i, lts[i], sim[i]);
-    }
-    return changes;
-}
+// bool LabelRelationNoop::update(const std::vector<LTSComplex*> & lts,
+//         const DominanceRelation & sim){
+//     bool changes = false;
+//     for (int i = 0; i < lts.size(); ++i){
+//         changes |= update(i, lts[i], sim[i]);
+//     }
+//     return changes;
+// }
 
 /* TODO: This version is inefficient. It could be improved by
  * iterating only the right transitions (see TODO inside the loop)
@@ -228,36 +228,36 @@ bool LabelRelationNoop::update(int i, const LabelledTransitionSystem * lts,
     return changes;
 }
 
-bool LabelRelationNoop::update(int i, const LTSComplex * lts, 
-        const SimulationRelation & sim){
-    bool changes = false;
-    for(int l2 : lts->get_relevant_labels()) {
+// bool LabelRelationNoop::update(int i, const LTSComplex * lts, 
+//         const SimulationRelation & sim){
+//     bool changes = false;
+//     for(int l2 : lts->get_relevant_labels()) {
         
-        //Is l2 simulated by irrelevant_labels in lts?
-        if (simulated_by_irrelevant[l2][i] &&
-                lts->applyPost(l2,
-                        //Exists s-l2-> y s.t. s is not simulated by t
-                        [&](const LTSTransition & tr){
-            return !sim.simulates(tr.src, tr.target);
-        })){
-            changes |= set_not_simulated_by_irrelevant(l2, i);
-	}
+//         //Is l2 simulated by irrelevant_labels in lts?
+//         if (simulated_by_irrelevant[l2][i] &&
+//                 lts->applyPost(l2,
+//                         //Exists s-l2-> y s.t. s is not simulated by t
+//                         [&](const LTSTransition & tr){
+//             return !sim.simulates(tr.src, tr.target);
+//         })){
+//             changes |= set_not_simulated_by_irrelevant(l2, i);
+// 	}
 
-        //Does l2 simulates irrelevant_labels in lts?
-        if(simulates_irrelevant[l2][i]){
-            for(int s = 0; s < lts->size(); s++){
-                if(!lts->applyPost(l2,
-                        [&](const LTSTransition & tr){
-                    return tr.src == s && sim.simulates(tr.target, tr.src);
-                })){
-                    simulates_irrelevant[l2][i] = false;
-                }
-            }
-        }
-    }
+//         //Does l2 simulates irrelevant_labels in lts?
+//         if(simulates_irrelevant[l2][i]){
+//             for(int s = 0; s < lts->size(); s++){
+//                 if(!lts->applyPost(l2,
+//                         [&](const LTSTransition & tr){
+//                     return tr.src == s && sim.simulates(tr.target, tr.src);
+//                 })){
+//                     simulates_irrelevant[l2][i] = false;
+//                 }
+//             }
+//         }
+//     }
 
-    return changes;
-}
+//     return changes;
+// }
 
 EquivalenceRelation * 
 LabelRelationNoop::get_equivalent_labels_relation(const LabelMap & labelMap, 
@@ -284,11 +284,13 @@ bool LabelRelationNoop::propagate_transition_pruning(int lts_id,
     if(simulates_irrelevant[l1][lts_id]) {
 	//For each transition from src, check if anything has changed
 	bool found = lts->applyPostSrc(src, [&](const LTSTransition & tr){
-		if (l1 == tr.label) { //Same label
-		    if(tr.target == target) return false;
+		for(int trlabel : lts->get_labels(tr.label_group)){
+		    if (l1 == trlabel) { //Same label
+			if(tr.target == target) continue;
 		    if(sim.simulates(tr.target, tr.src)){
 			//There is another transition with the same label which simulates noop
 			return true;
+			}
 		    }
 		}
 		return false;

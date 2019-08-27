@@ -17,7 +17,7 @@ class LabelMap;
 class State;
 class SimulationRelation;
 class LabelledTransitionSystem;
-class LTSComplex;
+/* class LTSComplex; */
 class DominanceRelation;
 class IntEpsilonSum; 
 
@@ -89,7 +89,7 @@ class Abstraction {
 
     //TODO: Unify with transitions by label??
     std::unique_ptr<LabelledTransitionSystem> lts;
-    std::unique_ptr<LTSComplex> lts_complex;
+    /* std::unique_ptr<LTSComplex> lts_complex; */
 
     // Alvaro: Information regarding the number of transitions by label
     // (needed by some merge_criterions, only computed on demand)
@@ -255,7 +255,7 @@ public:
     virtual BDD getIrrelevantStateBDD(SymVariables * vars, std::vector<BDD> & abs_bdds) const = 0;
 
     LabelledTransitionSystem * get_lts(const LabelMap & labelMap);
-    LTSComplex * get_lts_complex(const LabelMap & labelMap);
+    /* LTSComplex * get_lts_complex(const LabelMap & labelMap); */
 
     //Alvaro: used by shrink_empty_labels
     const std::vector<bool> & get_goal_states() const {

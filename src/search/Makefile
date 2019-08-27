@@ -112,16 +112,15 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/label_relation_identity.h \
            merge_and_shrink/label_relation_noop.h \
            merge_and_shrink/labelled_transition_system.h \
-           merge_and_shrink/lts_complex.h \
            merge_and_shrink/simulation_simple.h \
            merge_and_shrink/simulation_identity.h \
-           merge_and_shrink/simulation_complex.h \
            merge_and_shrink/ld_simulation.h \
            merge_and_shrink/variable_partition_finder.h \
            merge_and_shrink/opt_order.h \
 	   merge_and_shrink/abstraction_builder.h \
-           merge_and_shrink/simulation_complex_nold.h \
-           merge_and_shrink/variable_partition_dominance.h 
+#          merge_and_shrink/variable_partition_dominance.h 
+	 # merge_and_shrink/simulation_complex.h \
+#           merge_and_shrink/simulation_complex_nold.h \
 
 HEADERS += numeric_dominance/numeric_simulation_relation.h \
            numeric_dominance/numeric_dominance_relation.h \
@@ -129,7 +128,8 @@ HEADERS += numeric_dominance/numeric_simulation_relation.h \
            numeric_dominance/numeric_dominance_pruning.h \
            numeric_dominance/int_epsilon.h \
            numeric_dominance/dijkstra_search_epsilon.h \
-
+	   numeric_dominance/tau_labels.h \
+	   numeric_dominance/breadth_first_search.h 
 
 HEADERS += landmarks/exploration.h \
            landmarks/h_m_landmarks.h \

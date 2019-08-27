@@ -19,7 +19,7 @@ protected:
 public:
     PruneHeuristic(const Options &options);
     virtual ~PruneHeuristic();
-    virtual void initialize() = 0;
+    virtual void initialize(bool force_initialization = false) = 0;
 
     //Methods for pruning explicit search
     virtual void prune_applicable_operators(const State &/*state*/, int /*g*/, std::vector<const Operator *> & /*operators*/, SearchProgress & /*search_progress*/) {}

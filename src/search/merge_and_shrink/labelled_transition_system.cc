@@ -15,8 +15,11 @@ LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs, const La
 	name_states.push_back(abs->description(i));
     }
 
+    label_group_of_label.resize(num_labels, LabelGroup(-1));
+    label_groups.reserve(num_labels);
+
     transitions_src.resize(abs->size());
-    transitions_label.resize(num_labels);
+    transitions_label_group.reserve(num_labels);
  
     for (int label_no = 0; label_no < num_labels; label_no++) {
 	int old_label = labelMap.get_old_id(label_no);
@@ -24,12 +27,31 @@ LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs, const La
 	    const vector<AbstractTransition> &abs_tr = abs->get_transitions_for_label(old_label);
 
 	    if (!abs_tr.empty()) {
+		vector<TSTransition> transitions_label;
 		relevant_labels.push_back(label_no);
 		for (int j = 0; j < abs_tr.size(); j++) {
-		    LTSTransition t (abs_tr[j].src, abs_tr[j].target, label_no);
-		    transitions.push_back(t);
-		    transitions_src[t.src].push_back(t);
-		    transitions_label[t.label].push_back(t);
+		    transitions_label.push_back(TSTransition(abs_tr[j].src, abs_tr[j].target));
+		}
+        	std::sort(transitions_label.begin(), transitions_label.end());
+		
+		for(int g = 0; g < transitions_label_group.size(); ++g){
+		    if(transitions_label_group[g] == transitions_label) {
+			assert(g < label_groups.size());
+			label_groups[g].push_back(label_no);
+			label_group_of_label[label_no] = LabelGroup(g);
+			break;
+		    } 		    
+		}
+		if (label_group_of_label[label_no].dead()) {
+		    LabelGroup new_group (transitions_label_group.size());
+		    for (const TSTransition & tr : transitions_label) {
+			transitions.push_back(LTSTransition (tr.src, tr.target, new_group));
+			transitions_src[tr.src].push_back(LTSTransition (tr.src, tr.target, new_group));
+		    }
+		    transitions_label_group.push_back(move(transitions_label));
+		    label_groups.push_back(std::vector<int>());
+		    label_groups[new_group.group].push_back(label_no);
+		    label_group_of_label[label_no] = new_group;
 		}
 	    } else {
 		//dead_label
@@ -44,80 +66,84 @@ LabelledTransitionSystem::LabelledTransitionSystem (Abstraction * _abs, const La
 	      }*/
 	}
     }
+
+#ifndef NDEBUG
+    for (int label_no = 0; label_no < num_labels; label_no++) {
+	is_relevant_label(label_no);
+    }
+#endif
 }
 
 void LabelledTransitionSystem::kill_transition(int src, int label, int target) {
-    LTSTransition t(src, target, label);
-    kill_from_vector(t, transitions);
-    kill_from_vector(t, transitions_src[src]);
-    kill_from_vector(t, transitions_label[label]);
+    auto group = label_group_of_label[label];
+
+    if(label_groups[group.group].size() == 1) {
+	LTSTransition t(src, target, LabelGroup(group));
+	kill_from_vector(t, transitions);
+	kill_from_vector(t, transitions_src[src]);
+	kill_from_vector(TSTransition(src, target), transitions_label_group[group.group]);
+    } else {
+	LabelGroup new_group (transitions_label_group.size());
+	transitions_label_group.push_back(transitions_label_group[group.group]);
+	kill_from_vector(TSTransition(src, target), transitions_label_group[new_group.group]);
+	for (const auto & t :  transitions_label_group[new_group.group]) {
+	    transitions.push_back(LTSTransition(t.src, t.target, new_group));
+	    transitions_src[t.src].push_back(LTSTransition(t.src, t.target, new_group));
+	}
+	label_groups[group.group].erase(remove(begin(label_groups[group.group]),
+					 end(label_groups[group.group]), label),
+				  end(label_groups[group.group]));
+	label_groups[new_group.group].push_back(label);
+	label_group_of_label[label] = new_group;	
+    }
 }
 
 
 void LabelledTransitionSystem::kill_label(int l) {
     cout << "KILL " << l << endl;
-    std::vector <LTSTransition>().swap(transitions_label[l]);
+    auto group = label_group_of_label[l];
+    if (group.dead()) {
+	irrelevant_labels.erase(remove(begin(irrelevant_labels), end(irrelevant_labels), l), end(irrelevant_labels));   
+    } else {
+	label_group_of_label[l] = LabelGroup(-1);
 
-    transitions.erase(std::remove_if(begin(transitions),
-				     end(transitions),
-				     [&](LTSTransition & t){
-					 return t.label == l;
-				     }), end(transitions));
+	relevant_labels.erase(remove(begin(relevant_labels), end(relevant_labels), l), end(relevant_labels));
+	label_groups[group.group].erase(remove(begin(label_groups[group.group]), end(label_groups[group.group]), l), end(label_groups[group.group]));
+	if(label_groups[group.group].empty()) {
+	    //Kill group
+	    std::vector <TSTransition>().swap(transitions_label_group[l]);
+
+	    transitions.erase(std::remove_if(begin(transitions),
+					     end(transitions),
+					     [&](LTSTransition & t){
+						 return t.label_group == group;
+					     }), end(transitions));
     
-    for (auto & trs : transitions_src){
-    	trs.erase(std::remove_if(begin(trs),
-    				 end(trs),
-    				 [&](LTSTransition & t){
-    				     return t.label == l;
-    				 }), end(trs));
-    }
+	    for (auto & trs : transitions_src){
+		trs.erase(std::remove_if(begin(trs),
+					 end(trs),
+					 [&](LTSTransition & t){
+					     return t.label_group == group;
+					 }), end(trs));
+	    }
 
-
-    relevant_labels.erase(remove(begin(relevant_labels), end(relevant_labels), l), end(relevant_labels));
-    irrelevant_labels.erase(remove(begin(irrelevant_labels), end(irrelevant_labels), l), end(irrelevant_labels));   
-}
-
-
-vector<int> LabelledTransitionSystem::compute_label_equivalence_groups() {
-    //Ensure that transitions from label are sorted
-    for(int l : relevant_labels) {
-        std::sort(transitions_label[l].begin(),
-                  transitions_label[l].end(),
-                  [](const LTSTransition & tr, const LTSTransition & tr2) -> bool {
-                      return tr.src < tr2.src || (tr.src == tr2.src && tr.target < tr2.target);
-                  });
-    }
-    
-    //All labels go to group 0 by default (irrelevant labels group)
-    vector<int> label_to_equivalence_group (transitions_label.size(), 0);
-    std::vector<int> representative_label_from_group(1);
-    for(int l : relevant_labels) {
-        int candidate_group = 1;
-        for (; candidate_group < representative_label_from_group.size(); ++candidate_group) {
-            // Pick a label from the candidate group to check if both labels have the same transitions
-            int l2 = representative_label_from_group[candidate_group];
-
-            if (transitions_label[l].size() == transitions_label[l2].size() &&
-                std::equal(transitions_label[l].begin(),
-                           transitions_label[l].end(),
-                           transitions_label[l2].begin(),
-                           [](const LTSTransition & tr, const LTSTransition & tr2) {
-                               return tr.src == tr2.src && tr.target == tr2.target;
-                           })) {
-                //We have found an equivalent label group
-                break;
-            }          
-        }
-
-        label_to_equivalence_group[l] = candidate_group;
-        if (candidate_group == representative_label_from_group.size()) {
-            representative_label_from_group.push_back(l);
-        }
-    }
-    
-    return label_to_equivalence_group;
+	}
+    }   
 }
 
 
 
+void LabelledTransitionSystem::dump() const {
+    for (int s = 0; s < size(); s++) {
+	applyPostSrc(s, [&](const LTSTransition & trs) {
+		cout << trs.src << " -> " << trs.target << " (" << trs.label_group.group << ":";
+		for(int tr_s_label : get_labels(trs.label_group)) {
+		    cout << " " << tr_s_label;
+		}
+		cout << ")\n";
+		return false;
+	    });
+    }
+	    
+}       
 

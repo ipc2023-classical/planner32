@@ -5,18 +5,22 @@
 #include "../priority_queue.h"
 #include "../debug.h"
 #include "dijkstra_search_epsilon.h"
+#include "breadth_first_search.h"
 
 using namespace std;
 
 template <typename T>
 NumericSimulationRelation<T>::NumericSimulationRelation(Abstraction * _abs, 
-							int truncate_value_) : abs(_abs), 
-									       truncate_value(truncate_value_), 
-									       max_relation_value(0) { 
+							int truncate_value_,
+							std::shared_ptr<TauLabelManager<T>> tau_labels_mgr) : abs(_abs), 
+													   truncate_value(truncate_value_), tau_labels(tau_labels_mgr),
+													   max_relation_value(0), cancelled(false) { 
+    assert(abs);
 }
 
 template <typename T>
 void NumericSimulationRelation<T>::init_goal_respecting() {
+   
     assert(abs->are_distances_computed());
     //assert(abs->no_dead_labels()); 
     int num_states = abs->size();
@@ -24,8 +28,10 @@ void NumericSimulationRelation<T>::init_goal_respecting() {
     const std::vector <int> & goal_distances = abs->get_goal_distances();
 
     relation.resize(num_states);
+    is_relation_stable.resize(num_states);
     for(int s = 0; s < num_states; s++){
         relation[s].resize(num_states);
+	is_relation_stable[s].resize(num_states, false);
 	for (int t = 0; t < num_states; t++){
 	    // qrel (t, s) = h*(t) - h*(s)
 	    // if (!abs->is_goal_state(t) && abs->is_goal_state(s)) {
@@ -37,7 +43,6 @@ void NumericSimulationRelation<T>::init_goal_respecting() {
 	    //Here we have not computed tau distances yet (because
 	    //with dominated by noop version may change)
 	    relation[s][t] = goal_distances[t] - goal_distances[s];
-
 	}
     }
 }
@@ -51,12 +56,16 @@ void NumericSimulationRelation<IntEpsilon>::init_goal_respecting() {
     cout << "Recompute distances with epsilon" << endl;
     std::vector <IntEpsilonSum> goal_distances = abs->recompute_goal_distances_with_epsilon();
     relation.resize(num_states);
+    is_relation_stable.resize(num_states);
+
     for(int s = 0; s < num_states; s++){
         relation[s].resize(num_states);
+	is_relation_stable[s].resize(num_states, false);
+
 	for (int t = 0; t < num_states; t++) {
 	    // qrel (t, s) = h*(t) - h*(s)
 	    // if (!abs->is_goal_state(t) && abs->is_goal_state(s)) {
-	    // 	relation[s][t] = goal_distances_with_tau[t];
+	    // 	relation[s][t] = goal_distances_with_tau[t;]
 	    // } else {
 		IntEpsilonSum rel = (goal_distances[t] - goal_distances[s]);
 		relation[s][t] = rel.get_epsilon_negative();
@@ -66,165 +75,379 @@ void NumericSimulationRelation<IntEpsilon>::init_goal_respecting() {
 }
 
 template <typename T>
-T NumericSimulationRelation<T>::compare_transitions(int lts_id, const LTSTransition & trs, 
-						   const LTSTransition & trt, 
+T NumericSimulationRelation<T>::compare_transitions(int lts_id, int tr_s_target, int tr_s_label,
+						    int tr_t_target, int tr_t_label,
 						    T tau_distance, 
 						    const NumericLabelRelation<T> & label_dominance) const {
-    if(label_dominance.may_dominate (trt.label, trs.label, lts_id) &&
-       may_simulate(trt.target, trs.target)) {
+    if(label_dominance.may_dominate (tr_t_label, tr_s_label, lts_id) &&
+       may_simulate(tr_t_target, tr_s_target)) {
 
-	return tau_distance + label_dominance.q_dominates(trt.label, trs.label, lts_id)
-	    + label_dominance.get_label_cost(trs.label)
-	    - label_dominance.get_label_cost(trt.label)
-	    + q_simulates(trt.target, trs.target);
+	return tau_distance +
+	    label_dominance.q_dominates(tr_t_label, tr_s_label, lts_id)
+	    + label_dominance.get_label_cost(tr_s_label)
+	    - label_dominance.get_label_cost(tr_t_label)
+	    + q_simulates(tr_t_target, tr_s_target);
     } else {
 	return std::numeric_limits<int>::lowest();
-    }     
+    }         
 }
 
 template <typename T>
-T NumericSimulationRelation<T>::compare_noop(int lts_id, const LTSTransition & trs, 
+T NumericSimulationRelation<T>::compare_noop(int lts_id, int tr_s_target, int tr_s_label,
 					    int t,  T tau_distance, 
 					    const NumericLabelRelation<T> & label_dominance) const {
 
     // Checking noop 
-    if(may_simulate(t, trs.target) && label_dominance.may_dominated_by_noop(trs.label, lts_id)) {
-
+    if(may_simulate(t, tr_s_target) &&
+       label_dominance.may_dominated_by_noop(tr_s_label, lts_id)) {
 	return tau_distance + 
-	    q_simulates(t, trs.target) +
-	    label_dominance.get_label_cost(trs.label) +
-	    label_dominance.q_dominated_by_noop(trs.label, lts_id);
+	    q_simulates(t, tr_s_target) +
+	    label_dominance.get_label_cost(tr_s_label) +
+	    label_dominance.q_dominated_by_noop(tr_s_label, lts_id);
     } else {
 	return std::numeric_limits<int>::lowest();
     }    
 }				
 
 
+
+template <typename T> void NumericSimulationRelation<T>::
+cancel_simulation_computation(int lts_id, const LabelledTransitionSystem * lts) {
+
+
+    const auto & tau_distances = tau_labels->get_tau_distances(lts_id);
+    int new_tau_distances_id = tau_distances.get_id();
+    if(new_tau_distances_id != tau_distances_id || !cancelled) { 
+    	const auto & tau_distances = tau_labels->get_tau_distances(lts_id);
+	cancelled = true;
+	for (int s = 0; s < lts->size(); s++) {
+	    for (int t = 0; t < lts->size(); t++) { //for each pair of states t, s
+		update_value(t, s,  tau_distances.minus_shortest_path (t, s));
+	    }
+	}
+    }
+}
+
+
+template <typename T>
+vector<int> NumericSimulationRelation<T>::get_dangerous_labels(const LabelledTransitionSystem * lts) const {
+    vector<int> dangerous_labels;
+    
+    int num_states = lts->size();
+    vector<bool> is_state_to_check(num_states);
+    vector<bool> is_ok(num_states);
+    for(LabelGroup lg(0); lg.group < lts->get_num_label_groups(); ++lg) {
+	std::fill(is_ok.begin(), is_ok.end(), false);
+	std::fill(is_state_to_check.begin(), is_state_to_check.end(), false);
+	const std::vector<TSTransition> & trs = lts->get_transitions_label_group(lg);
+	std::vector<int> states_to_check;
+
+	for (const auto & tr : trs) {
+	    int s = tr.src;
+	    int t = tr.target;
+	    if (is_ok[s]) {
+		continue;
+	    } else if(may_simulate(t, s) && q_simulates (t, s) >= 0){
+		is_ok[s] = true;
+	    } else if (!is_state_to_check[s]) {
+		states_to_check.push_back (s);
+		is_state_to_check[s] = true;
+	    }
+	}
+
+	for (int s : states_to_check) {
+	    if (!is_ok[s]) {
+		// Add dangerous labels
+		const std::vector<int> & labels = lts->get_labels(lg);
+		dangerous_labels.insert(dangerous_labels.end(), labels.begin(), labels.end());
+		break;
+	    }
+	}
+    }
+    //for (int i  : dangerous_labels) cout << g_operators[i].get_name() << endl;
+    return dangerous_labels;   
+}
+
+
+
+template <typename T>
+int NumericSimulationRelation<T>::update_pair_stable (int lts_id, const LabelledTransitionSystem * lts,
+					       const NumericLabelRelation<T> & label_dominance,
+					       const TauDistances<T> & tau_distances,
+					       int s, int t) {
+    assert (s != t && !is_relation_stable[s][t] && may_simulate(t, s)) ;
+    
+    T lower_bound = tau_distances.minus_shortest_path(t,s);
+    T previous_value = q_simulates(t, s);
+    // cout << "prev: " << previous_value << endl;
+		    
+    assert(lower_bound <= previous_value);
+    if(lower_bound == previous_value) {
+	return false;
+    } 
+
+    T min_value = previous_value;
+    // if (lts->is_goal(t) || !lts->is_goal(s)) {
+
+    //Check if really t simulates s
+    //for each transition s--l->s':
+    // a) with noop t >= s' and l dominated by noop?
+    // b) exist t--l'-->t', t' >= s' and l dominated by l'?
+    lts->applyPostSrc(s, [&](const LTSTransition & trs) {
+	    for(int tr_s_label : lts->get_labels(trs.label_group)) {
+		T max_value = std::numeric_limits<int>::lowest();
+		for (int t2 : tau_distances.states_reachable_from(t)) {
+		    T tau_distance = tau_distances.minus_shortest_path(t, t2);			    
+
+		    max_value = max(max_value, 
+				    compare_noop(lts_id, trs.target, tr_s_label, t2, tau_distance, label_dominance));
+
+		    if (max_value >= min_value) {
+			continue; // Go to next transition
+		    }
+
+		    // is_relation_stable[s][t] = lts->applyPostSrc(t2,[&](const LTSTransition & trt) {
+		    // 	    if(is_relation_stable[trs.target][trt.target] || (trs.target == s && trt.target == t)) {
+		    // 		for(int tr_t_label : lts->get_labels(trt.label_group)) {
+		    // 		    max_value_stable = max(max_value_stable, compare_transitions(lts_id, trs.target, tr_s_label, trt.target, tr_t_label, tau_distance, label_dominance));
+		    // 		    if (max_value_stable == max_value) {
+		    // 			//break if we have found a transition that simulates with the best result possible
+		    // 			return true;
+		    // 		    }
+		    // 		}
+		    // 	    }
+		    // 	    return false;
+		    // 	});
+
+		    lts->applyPostSrc(t2,[&](const LTSTransition & trt) {
+			    for(int tr_t_label : lts->get_labels(trt.label_group)) {
+				max_value = max(max_value, compare_transitions(lts_id, trs.target, tr_s_label, trt.target, tr_t_label, tau_distance, label_dominance));
+				if (max_value >= min_value) {
+				    //break if we have found a transition that simulates with the best result possible
+				    return true;
+				}
+			    }
+			    return false;
+			});
+
+		    if (max_value >= min_value) {
+			break;
+		    }
+		}
+
+		/*if(min_value > std::numeric_limits<int>::lowest() && max_value == std::numeric_limits<int>::lowest()) {
+		  std::cout << lts->name(t) << " does not simulate "
+		  << lts->name(s) << " because of "
+		  << lts->name(trs.src) << " => "
+		  << lts->name(trs.target) << " ("
+		  << tr_s_label << ")"; // << std::endl;
+		  std::cout << "  Simulates? "
+		  << q_simulates(t, trs.target);
+		  std::cout << "  domnoop? "
+		  << label_dominance.may_dominated_by_noop(tr_s_label, lts_id) << "   " << endl;
+		  // label_dominance.dump(trs.label);
+		  // for (auto trt : lts->get_transitions(t)) {
+		  // std::cout << "Tried with: "
+		  // 	  << lts->name(trt.src) << " => "
+		  // 	  << lts->name(trt.target) << " ("
+		  // 	  << trt.label << ")" << " label dom: "
+		  // 	  << label_dominance.q_dominates(trt.label,
+		  // 					 trs.label, lts_id)
+		  // 	  << " target sim "
+		  // 	  << q_simulates(trt.target, trs.target)
+		  // 	  << std::endl;
+		  // }
+		  }*/
+		min_value  = std::min(min_value, max_value);
+		if (min_value <= lower_bound) {
+		    return true;
+		}
+	    }
+	    return false;
+	});
+    assert(min_value < std::numeric_limits<int>::max());
+
+    min_value = std::max(min_value, lower_bound);
+
+    // } else {
+    // 	min_value = lower_bound;
+    // }
+
+    assert(min_value <= previous_value);
+    
+    
+    if(min_value < previous_value) {
+	//cout << "Updating " << lts->get_names()[s] << " <= " << lts->get_names()[t]
+	// << " with " << min_value << " before " << previous_value << endl;
+
+	update_value(t, s,  min_value);
+	return true;
+    }
+    return false;
+}
+
+template <typename T>
+int NumericSimulationRelation<T>::update_pair (int lts_id, const LabelledTransitionSystem * lts,
+					       const NumericLabelRelation<T> & label_dominance,
+					       const TauDistances<T> & tau_distances,
+					       int s, int t) {
+    assert (s != t && !is_relation_stable[s][t] && may_simulate(t, s)) ;
+    
+    T lower_bound = tau_distances.minus_shortest_path(t,s);
+    T previous_value = q_simulates(t, s);
+    // cout << "prev: " << previous_value << endl;
+		    
+    assert(lower_bound <= previous_value);
+    if(lower_bound == previous_value) {
+	return false;
+    } 
+
+    T min_value = previous_value;
+    // if (lts->is_goal(t) || !lts->is_goal(s)) {
+
+    //Check if really t simulates s
+    //for each transition s--l->s':
+    // a) with noop t >= s' and l dominated by noop?
+    // b) exist t--l'-->t', t' >= s' and l dominated by l'?
+    lts->applyPostSrc(s, [&](const LTSTransition & trs) {
+	    for(int tr_s_label : lts->get_labels(trs.label_group)) {
+		T max_value = std::numeric_limits<int>::lowest();
+		for (int t2 : tau_distances.states_reachable_from(t)) {
+		    T tau_distance = tau_distances.minus_shortest_path(t, t2);			    
+
+		    max_value = max(max_value, 
+				    compare_noop(lts_id, trs.target, tr_s_label, t2, tau_distance, label_dominance));
+
+		    if (max_value >= min_value) {
+			continue; // Go to next transition
+		    }
+			       
+		    lts->applyPostSrc(t2,[&](const LTSTransition & trt) {
+			    for(int tr_t_label : lts->get_labels(trt.label_group)) {
+				max_value = max(max_value, compare_transitions(lts_id, trs.target, tr_s_label, trt.target, tr_t_label, tau_distance, label_dominance));
+				if (max_value >= min_value) {
+				    //break if we have found a transition that simulates with the best result possible
+				    return true;
+				}
+			    }
+			    return false;
+			});
+
+		    if (max_value >= min_value) {
+			break;
+		    }
+		}
+
+		/*if(min_value > std::numeric_limits<int>::lowest() && max_value == std::numeric_limits<int>::lowest()) {
+		  std::cout << lts->name(t) << " does not simulate "
+		  << lts->name(s) << " because of "
+		  << lts->name(trs.src) << " => "
+		  << lts->name(trs.target) << " ("
+		  << tr_s_label << ")"; // << std::endl;
+		  std::cout << "  Simulates? "
+		  << q_simulates(t, trs.target);
+		  std::cout << "  domnoop? "
+		  << label_dominance.may_dominated_by_noop(tr_s_label, lts_id) << "   " << endl;
+		  // label_dominance.dump(trs.label);
+		  // for (auto trt : lts->get_transitions(t)) {
+		  // std::cout << "Tried with: "
+		  // 	  << lts->name(trt.src) << " => "
+		  // 	  << lts->name(trt.target) << " ("
+		  // 	  << trt.label << ")" << " label dom: "
+		  // 	  << label_dominance.q_dominates(trt.label,
+		  // 					 trs.label, lts_id)
+		  // 	  << " target sim "
+		  // 	  << q_simulates(trt.target, trs.target)
+		  // 	  << std::endl;
+		  // }
+		  }*/
+		min_value  = std::min(min_value, max_value);
+		if (min_value <= lower_bound) {
+		    return true;
+		}
+	    }
+	    return false;
+	});
+    assert(min_value < std::numeric_limits<int>::max());
+
+    min_value = std::max(min_value, lower_bound);
+
+    // } else {
+    // 	min_value = lower_bound;
+    // }
+
+    assert(min_value <= previous_value);
+    
+    
+    if(min_value < previous_value) {
+	//cout << "Updating " << lts->get_names()[s] << " <= " << lts->get_names()[t]
+	// << " with " << min_value << " before " << previous_value << endl;
+
+	update_value(t, s,  min_value);
+	return true;
+    }
+    return false;
+}
+
+
 template <typename T>
 int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSystem * lts,
-				       const NumericLabelRelation<T> & label_dominance) {
-    int num_iterations = 0;
-    bool changes = true;
-    if(precompute_shortest_path_with_tau(lts, lts_id, label_dominance)) {
+					  const NumericLabelRelation<T> & label_dominance,
+					  int max_time) {
+    if (cancelled){
+	cancel_simulation_computation(lts_id, lts); //check that tau-labels have not changed
+	return 0;
+    }
+    
+    assert(tau_labels);
+
+
+    const auto & tau_distances = tau_labels->get_tau_distances(lts_id);
+    int new_tau_distances_id = tau_distances.get_id();
+    if(new_tau_distances_id != tau_distances_id) { //recompute_goal_respecting
+	tau_distances_id = new_tau_distances_id;
 	for (int s = 0; s < lts->size(); s++) {
             for (int t = 0; t < lts->size(); t++) { //for each pair of states t, s
 		if (!lts->is_goal(t) && lts->is_goal(s)) {
-		    if (goal_distances_with_tau[t] == std::numeric_limits<int>::max()) {
-			update_value(t, s,  std::numeric_limits<int>::lowest());
+		    if (tau_distances.get_goal_distance(t) == std::numeric_limits<int>::max()) {
+			update_value(t, s, std::numeric_limits<int>::lowest());
 		    } else {
-			update_value(t, s,  min(relation[s][t], -goal_distances_with_tau[t]));
+			update_value(t, s, min(relation[s][t], -tau_distances.get_goal_distance(t)));
 		    }
 		}
 
 	    }
 	}
     }
-    // for (int s = 0; s < lts->size(); s++) {	
-    // 	cout << g_fact_names[lts_id][s] << endl;
-    // }
+   
 
+    Timer timer;
 
-    
-
+    int num_iterations = 0;
+    bool changes = true;    
     while (changes) {
-	num_iterations ++;
-	// dump();
+	num_iterations ++;	
         changes = false;
         for (int s = 0; s < lts->size(); s++) {
             for (int t = 0; t < lts->size(); t++) { //for each pair of states t, s
-		// cout << "s: " << s << " t: " << t << endl;
-		if (s != t && may_simulate(t, s)) {
-                    T previous_value = q_simulates(t, s);
-		    // cout << "prev: " << previous_value << endl;
-		    T lower_bound = minus_shortest_path_with_tau(t,s);
+		if (timer() > max_time) {
+		    cout << "Computation of numeric simulation on LTS " << lts_id
+			 << " with " << lts->size()
+			 << " states cancelled after " << timer() << " seconds." << endl;
 		    
-		    assert(lower_bound <= previous_value);
-		    if(lower_bound == previous_value) {
-			continue;
-		    }
-
-		    T min_value = previous_value;
-		    // if (lts->is_goal(t) || !lts->is_goal(s)) {
-
-			//Check if really t simulates s
-			//for each transition s--l->s':
-			// a) with noop t >= s' and l dominated by noop?
-			// b) exist t--l'-->t', t' >= s' and l dominated by l'?
-			lts->applyPostSrc(s, [&](const LTSTransition & trs) {
-
-				T max_value = std::numeric_limits<int>::lowest();
-
-				for (int t2 : reachable_with_tau[t]) {
-				    T tau_distance = minus_shortest_path_with_tau(t, t2);			    
-
-				    max_value = max(max_value, 
-						    compare_noop(lts_id, trs, t2, tau_distance, label_dominance));
-
-				    if (max_value >= min_value) {
-					return false; // Go to next transition
-				    }
-			       
-				    lts->applyPostSrc(t2,[&](const LTSTransition & trt) {
-					    max_value = max(max_value, 
-							    compare_transitions(lts_id, trs, trt, tau_distance, label_dominance));
-				    
-					    return max_value >= min_value; 
-					    //break if we have found a transition that simulates with the best result possible
-					});
-
-				    if (max_value >= min_value) {
-					return false; 
-				    }
-				}
-
-				// if(min_value > 0 && max_value <= 0) {
-				//     std::cout << lts->name(t) << " does not positevely simulate "
-				// 	      << lts->name(s) << " because of "
-				// 	      << lts->name(trs.src) << " => "
-				// 	      << lts->name(trs.target) << " ("
-				// 	      << trs.label << ")"; // << std::endl;
-				//     std::cout << "  Simulates? "
-				// 	      << q_simulates(t, trs.target);
-				//     std::cout << "  domnoop? "
-				// 	      << label_dominance.q_dominated_by_noop(trs.label, lts_id) << "   ";
-				//     // label_dominance.dump(trs.label);
-				//     for (auto trt : lts->get_transitions(t)) {
-				// 	std::cout << "Tried with: "
-				// 		  << lts->name(trt.src) << " => "
-				// 		  << lts->name(trt.target) << " ("
-				// 		  << trt.label << ")" << " label dom: "
-				// 		  << label_dominance.q_dominates(trt.label,
-				// 						 trs.label, lts_id)
-				// 		  << " target sim "
-				// 		  << q_simulates(trt.target, trs.target)
-				// 		  << std::endl;
-				//     }
-				// }
-				min_value  = std::min(min_value, max_value);
-				return min_value <= lower_bound;
-			    });
-			assert(min_value < std::numeric_limits<int>::max());
-
-			min_value = std::max(min_value, lower_bound);
-
-		    // } else {
-		    // 	min_value = lower_bound;
-		    // }
-
-		    assert(min_value <= previous_value);
-		    if(min_value < previous_value) {
-			    // cout << "Updating " << lts->get_names()[s] << " <= " << lts->get_names()[t]
-			    // 	 << " with " << min_value << " before " << previous_value
-			    // 	 << " minimum: " << minimum_value << endl;
-
-			update_value(t, s,  min_value);
-			changes = true;
-		    }
+		    cancel_simulation_computation(lts_id, lts);
+		    return num_iterations;
 		}
-            }
-        }
-    }
 
+		// cout << "s: " << s << " t: " << t << endl;
+		if (s != t && !is_relation_stable[s][t] && may_simulate(t, s)) {
+
+		    changes |= update_pair (lts_id, lts, label_dominance, tau_distances, s, t);
+		}
+	    }
+	}
+    }
+    
     return num_iterations;
     
     // for (int s = 0; s < lts->size(); s++) {	
@@ -269,75 +492,6 @@ T NumericSimulationRelation<T>::q_simulates (const vector<int> & t, const vector
     return q_simulates(tid, sid);
 }
 
-template <typename T>
-bool NumericSimulationRelation<T>::precompute_shortest_path_with_tau(const LabelledTransitionSystem * lts, int lts_id,
-								     const NumericLabelRelation<T> & label_dominance) {
-
-    if(!label_dominance.have_tau_labels_changed(lts_id) && 
-       !distances_with_tau.empty()) return false;
-    const vector<int> & tau_labels = label_dominance.get_tau_labels(lts_id);
-	
-    //cout << "Number of tau labels: " << tau_labels.size() << endl;
-    // if(!distances_with_tau.empty() && tau_labels_ == tau_labels) return;
-    // tau_labels = tau_labels_;
-
-    int num_states = lts->size();
-    //Create copy of the graph only with tau transitions
-    vector<vector<pair<int, T> > > tau_graph(num_states);
-    for (int label_no : tau_labels) {
-	if(label_dominance.may_dominate_noop_in(label_no, lts_id)) {
-	    T label_cost = epsilon_if_zero(T(label_dominance.get_label_cost (label_no)));
-
-		if(label_dominance.get_compute_tau_labels_with_noop_dominance()) {
-	    	label_cost += std::min(T(0),  -label_dominance.q_dominates_noop(label_no, lts_id));
-        }
-	    
-	    for (const auto & trans : lts->get_transitions_label(label_no)) {
-		if(trans.src != trans.target) {
-		    tau_graph[trans.src].push_back(make_pair(trans.target, label_cost));
-		}
-	    }
-	}
-    }
-
-    distances_with_tau.resize(num_states);
-    reachable_with_tau.resize(num_states);
-    goal_distances_with_tau.resize(num_states, std::numeric_limits<int>::max());
-
-    for(int s = 0; s < num_states; ++s) {
-	//Perform Dijkstra search from s
-	auto & distances = distances_with_tau [s];
-	distances.resize(num_states);
-	std::fill(distances.begin(), distances.end(), std::numeric_limits<int>::max());
-	distances[s] = 0;
-	
-	dijkstra_search_epsilon(tau_graph, s, distances, reachable_with_tau[s]);
-
-
-	for(int t = 0; t < num_states; t++) {
-	    if(lts->is_goal(t)) {
-		goal_distances_with_tau[s] = min(goal_distances_with_tau[s], distances[t]);
-	    }
-	}
-
-#ifndef NDEBUG 
-	const std::vector <int> & goal_distances = abs->get_goal_distances();
-	for(int t : reachable_with_tau [s]) {
-	    if(T(goal_distances[s]) > distances[t] + T(goal_distances[t])) {
-		cout << endl;
-		cout << T(goal_distances[s])  << endl; 
-		cout << distances[t] << endl;
-		cout << T(goal_distances[t]) << endl;
-	    }
-	    assert(T(goal_distances[s]) <= distances[t] + T(goal_distances[t]));
-	    assert(s == t || distances[t] > 0);
-	}
-#endif
-
-    }
-
-    return true;
-}
 
 template <typename T>
 void NumericSimulationRelation<T>::dump(const vector<string> & names) const{ 
@@ -362,6 +516,36 @@ void NumericSimulationRelation<T>::dump() const{
     }
 }
 
+
+
+template <typename T>
+bool NumericSimulationRelation<T>::has_dominance() const {
+    for(int j = 0; j < relation.size(); ++j){
+        for(int i = 0; i < relation.size(); ++i){
+	    if(i == j) continue;
+	    if (relation[i][j] > std::numeric_limits<int>::lowest()) {
+		return true;
+	    }
+	}
+    }
+
+    return false;
+}
+
+
+template <typename T>
+bool NumericSimulationRelation<T>::has_positive_dominance() const {
+    for(int j = 0; j < relation.size(); ++j){
+        for(int i = 0; i < relation.size(); ++i){
+	    if(i == j) continue;
+	    if (relation[i][j] >= 0) {
+		return true;
+	    }
+	}
+    }
+
+    return false;
+}
 
 template <typename T>
 void NumericSimulationRelation<T>::statistics() const {

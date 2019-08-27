@@ -22,8 +22,8 @@ class LabelRelationNoop {
 
     bool update(int i, const LabelledTransitionSystem * lts, 
 		const SimulationRelation & sim);
-    bool update(int i, const LTSComplex  * lts, 
-		const SimulationRelation & sim);
+    /* bool update(int i, const LTSComplex  * lts,  */
+    /*     	const SimulationRelation & sim); */
 
     void merge_systems(int system_one, int system_two);
     void merge_labels();
@@ -52,9 +52,9 @@ public:
             const LabelMap & labelMap);
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
-    void init(const std::vector<LTSComplex *> & lts,
-            const DominanceRelation & sim,
-            const LabelMap & labelMap);
+    /* void init(const std::vector<LTSComplex *> & lts, */
+    /*         const DominanceRelation & sim, */
+    /*         const LabelMap & labelMap); */
 
     /* //Initializes label relation (only the first time, to reinitialize call reset instead) */
     /* void init_identity(int num_lts, const LabelMap & labelMap); */
@@ -63,8 +63,8 @@ public:
     void reset();
     bool update(const std::vector<LabelledTransitionSystem*> & lts,
             const DominanceRelation & sim);
-    bool update(const std::vector<LTSComplex*> & lts,
-            const DominanceRelation & sim);
+    /* bool update(const std::vector<LTSComplex*> & lts, */
+    /*         const DominanceRelation & sim); */
 
 
     void dump() const;

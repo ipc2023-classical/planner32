@@ -4,8 +4,10 @@
 #include "shrink_bisimulation.h"
 #include "simulation_simple.h"
 #include "simulation_identity.h"
-#include "simulation_complex.h"
-#include "simulation_complex_nold.h"
+#include "../debug.h"
+
+// // #include "simulation_complex.h"
+// // #include "simulation_complex_nold.h"
 #include "merge_strategy.h"
 #include "labelled_transition_system.h"
 #include "opt_order.h"
@@ -42,14 +44,14 @@ std::ostream & operator<<(std::ostream &os, const SimulationType & type){
     switch(type){
     case SimulationType::NONE: return os << "none";
     case SimulationType::SIMPLE: return os << "simple";
-    case SimulationType::COMPLEX: return os << "complex";
+    // case SimulationType::COMPLEX: return os << "complex";
     default:
 	std::cerr << "Name of SimulationType not known";
 	exit(-1);
     }
 } 
 const std::vector<std::string> SimulationTypeValues {
-    "NONE", "SIMPLE", "COMPLEX"
+    "NONE", "SIMPLE"
 	};
 
 LDSimulation::LDSimulation(bool unit_cost, const Options &opts, OperatorCost cost_type) : 
@@ -90,24 +92,24 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
 
 	}
 
-    case SimulationType::COMPLEX: 
-	switch(label_dominance_type){
-	case LabelDominanceType::NONE:
-	    return unique_ptr<DominanceRelation>(new DominanceRelationComplexNoLD<LabelRelationIdentity>(labels.get())); 
-	case LabelDominanceType::NOOP: 
-	    return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelationNoop>(labels.get())); 
-	case LabelDominanceType::NORMAL: 	   
-	    if (labels->get_size() > switch_off_label_dominance) {
-		return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelationNoop>(labels.get()));
-	    }
+    // case SimulationType::COMPLEX: 
+    //     switch(label_dominance_type){
+    //     case LabelDominanceType::NONE:
+    //         return unique_ptr<DominanceRelation>(new DominanceRelationComplexNoLD<LabelRelationIdentity>(labels.get())); 
+    //     case LabelDominanceType::NOOP: 
+    //         return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelationNoop>(labels.get())); 
+    //     case LabelDominanceType::NORMAL: 	   
+    //         if (labels->get_size() > switch_off_label_dominance) {
+    //     	return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelationNoop>(labels.get()));
+    //         }
  
-	    return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelation>(labels.get()));
+    //         return unique_ptr<DominanceRelation>(new DominanceRelationComplex<LabelRelation>(labels.get()));
 
-        default:
-            cerr << "Error: unkown type of simulation relation or label dominance" << endl;
-            exit(-1);
+        // default:
+        //     cerr << "Error: unkown type of simulation relation or label dominance" << endl;
+        //     exit(-1);
 
-	}
+	// }
     default:
         cerr << "Error: unkown type of simulation relation or label dominance" << endl;
         exit(-1);
@@ -117,25 +119,33 @@ unique_ptr<DominanceRelation> LDSimulation::create_dominance_relation(Simulation
     exit(-1);
 }
 
+
 template<typename T> 
-void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
-						      bool compute_tau_labels_with_noop_dominance, 
-						      bool compute_tau_labels_as_self_loops_everywhere, 
-						      bool dump, 
+void LDSimulation::compute_numeric_dominance_relation(int truncate_value,
+						      int max_simulation_time,
+						      int min_simulation_time, int max_total_time,
+						      int max_lts_size_to_compute_simulation,
+						      bool dump,
+						      std::shared_ptr<TauLabelManager<T>> tau_label_mgr,
 						      unique_ptr<NumericDominanceRelation<T>> & result) const{
     result = 
 	make_unique<NumericDominanceRelation<T>>(labels.get(), 
-						 truncate_value, 
-						 compute_tau_labels_with_noop_dominance, 
-						 compute_tau_labels_as_self_loops_everywhere);
+						 truncate_value, max_simulation_time,
+						 min_simulation_time, max_total_time, 
+						 max_lts_size_to_compute_simulation,
+						 tau_label_mgr);
 
     LabelMap labelMap (labels.get());
+    
+    vector<Abstraction *> abstractions_nonull;
 
     vector<LabelledTransitionSystem *> ltss_simple;
-    vector<LTSComplex *> ltss_complex;
+    //vector<LTSComplex *> ltss_complex;
     // Generate LTSs and initialize simulation relations
     DEBUG_MSG(cout << "Building LTSs and Simulation Relations:";);
     for (auto a : abstractions){
+	if (!a) continue;
+	abstractions_nonull.push_back(a);
         a->compute_distances();
 	if (!a->is_solvable()){
 	    exit_with(EXIT_UNSOLVABLE);
@@ -149,23 +159,28 @@ void LDSimulation::compute_numeric_dominance_relation(int truncate_value,
     DEBUG_MSG(cout << endl;);
 
 
-    result->init(abstractions);
+    result->init(abstractions_nonull);
     result->compute_ld_simulation(ltss_simple, labelMap, dump);
 }
 
+
 template
 void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
-						      bool compute_tau_labels_with_noop_dominance, 
-						      bool compute_tau_labels_as_self_loops_everywhere, 
+						      int max_simulation_time,
+						      int min_simulation_time, int max_total_time,
+						      int max_lts_size_to_compute_simulation,
 						      bool dump, 
+						      shared_ptr<TauLabelManager<int>> tau_label_mgr, 
 						      unique_ptr<NumericDominanceRelation<int>> & result) const; 
 
 
 template 
 void LDSimulation::compute_numeric_dominance_relation(int truncate_value, 
-						      bool compute_tau_labels_with_noop_dominance, 
-						      bool compute_tau_labels_as_self_loops_everywhere, 
+						      int max_simulation_time,
+						      int min_simulation_time, int max_total_time,
+						      int max_lts_size_to_compute_simulation,
 						      bool dump, 
+						      shared_ptr<TauLabelManager<IntEpsilon>> tau_label_mgr,
 						      unique_ptr<NumericDominanceRelation<IntEpsilon>> & result) const; 
 
 
@@ -740,7 +755,8 @@ void LDSimulation::build_abstraction(MergeStrategy * merge_strategy,  int limit_
 
 void LDSimulation::compute_ld_simulation(SimulationType simulation_type, 
 					 LabelDominanceType label_dominance_type, 
-					 int switch_off_label_dominance, bool complex_lts,
+					 int switch_off_label_dominance, bool /* complex_lts*/
+                                         ,
 					 bool apply_subsumed_transitions_pruning, 
 					 bool apply_label_dominance_reduction, 
 					 bool apply_simulation_shrinking, bool preserve_all_optimal_plans, 
@@ -755,7 +771,7 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
 
 
     vector<LabelledTransitionSystem *> ltss_simple;
-    vector<LTSComplex *> ltss_complex;
+    // vector<LTSComplex *> ltss_complex;
     // Generate LTSs and initialize simulation relations
     DEBUG_MSG(cout << "Building LTSs and Simulation Relations:";);
     for (auto a : abstractions){
@@ -764,15 +780,15 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
 	    exit_with(EXIT_UNSOLVABLE);
 	}
         int lts_size, lts_trs;
-        if(complex_lts){
-            ltss_complex.push_back(a->get_lts_complex(labelMap));
-            lts_size= ltss_complex.back()->size();
-            lts_trs= ltss_complex.back()->num_transitions();
-        }else{
+        // if(complex_lts){
+        //     ltss_complex.push_back(a->get_lts_complex(labelMap));
+        //     lts_size= ltss_complex.back()->size();
+        //     lts_trs= ltss_complex.back()->num_transitions();
+        // }else{
             ltss_simple.push_back(a->get_lts(labelMap));
             lts_size= ltss_simple.back()->size();
             lts_trs= ltss_simple.back()->num_transitions();
-        }
+        // }
         DEBUG_MSG(cout << " " << lts_size << " (" << lts_trs << ")";);
     }
     DEBUG_MSG(cout << endl;);
@@ -782,13 +798,13 @@ void LDSimulation::compute_ld_simulation(SimulationType simulation_type,
     }
 
     // Algorithm to compute LD simulation 
-    if(complex_lts){
-        dominance_relation->compute_ld_simulation(ltss_complex, labelMap,
-						  incremental_step, dump);
-    }else{
+    // if(complex_lts){
+    //     dominance_relation->compute_ld_simulation(ltss_complex, labelMap,
+    //     					  incremental_step, dump);
+    // }else{
         dominance_relation->compute_ld_simulation(ltss_simple, labelMap,
 						  incremental_step, dump);
-    }
+    // }
 
 
     
@@ -927,9 +943,9 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
 	}
     }
 
-    printf("Dead operators due to dead labels: %d (new %d) / %u (%.2lf%%)\n",
-	   were_dead + num_dead, num_dead,  g_operators.size(),
-	   ((double) (num_dead + were_dead) / g_operators.size()) * 100);
+    cout << "Dead operators due to dead labels: " << (were_dead + num_dead) <<
+	"(new " << num_dead << ") " << g_operators.size() << " / "  <<
+	(((double) (num_dead + were_dead) / g_operators.size()) * 100);
 
     if(!Abstraction::store_original_operators){
 	/*cout << "Dead Operators due to dead labels: " << num_dead << " / "
@@ -972,11 +988,9 @@ void LDSimulation::prune_dead_ops (const vector<Abstraction*> & all_abstractions
             }
 	    if(!irrelevant_for_all_abstractions)  required_operators |= required_operators_for_label;
         }
-        printf("Dead operators detected by storing original operators: %u / %u (%.2lf%%)\n",
-	       g_operators.size() - required_operators.count(),
-	       g_operators.size(),
-	       ((double) g_operators.size() - required_operators.count())
-	       / g_operators.size() * 100);
+	cout  << "Dead operators detected by storing original operators: "
+	       << (g_operators.size() - required_operators.count()) << " / " <<
+	       g_operators.size() << "(" << (((double) g_operators.size() - required_operators.count()) / g_operators.size() * 100) << ")\n";
         /*cout << "Dead Operators detected by storing original operators: "
 	  << (g_operators.size() - required_operators.count()) << " / "
 	  << g_operators.size() << " i.e., "

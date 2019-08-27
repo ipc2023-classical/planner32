@@ -37,10 +37,10 @@ DominanceRelationSimple(Labels * labels) : DominanceRelationLR<LR>(labels) {}
 			const LR & label_dominance, SimulationRelation & simrel){
 	update_sim(lts_id, lts, label_dominance, simrel);
     }
-    virtual void update(int lts_id, const LTSComplex * lts, 
-			const LR & label_dominance, SimulationRelation & simrel){
-	update_sim(lts_id, lts, label_dominance, simrel);
-    }
+    /* virtual void update(int lts_id, const LTSComplex * lts,  */
+    /*     		const LR & label_dominance, SimulationRelation & simrel){ */
+    /*     update_sim(lts_id, lts, label_dominance, simrel); */
+    /* } */
 
 };
 

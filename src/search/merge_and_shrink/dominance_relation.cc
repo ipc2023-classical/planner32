@@ -240,24 +240,56 @@ bool DominanceRelationLR<LR>::propagate_label_domination(int lts_id,
 		// a) with noop t >= s' and l dominated by noop?
 		// b) exist t--l'-->t', t' >= s' and l dominated by l'?
 		bool not_simulates_anymore = lts->applyPostSrc(s, [&](const LTSTransition & trs) {
-			if(trs.label != l2) return false;
+			const vector<int> & labels_trs = lts->get_labels (trs.label_group);
+			vector<bool> is_label_simulated (labels_trs.size(), false);
+			int num_labels_trs_simulated = 0;
 
-			if(simrel.simulates (t, trs.target) &&
-			   label_dominance.dominated_by_noop(trs.label, lts_id)) {
+			if(lts->get_group_label(l2) == trs.label_group) {
+			    if(labels_trs.size() == 1) {
+				return false;
+			    }
+			    for(size_t i = 0; i <  labels_trs.size(); ++i) {
+				if (labels_trs[i] == l2) {
+				    is_label_simulated[i] = true;
+				    num_labels_trs_simulated ++;				    
+				}
+			    }
+			}
 			    //cout << "Dominated by noop!" << endl;
+			if(simrel.simulates (t, trs.target)) {
+			    for(size_t i = 0; i <  labels_trs.size(); ++i) {
+				if(label_dominance.dominated_by_noop(labels_trs[i], lts_id)) {
+				    is_label_simulated [i] =  true;
+				    num_labels_trs_simulated ++;
+				}
+			    }
+			}
+
+			if(num_labels_trs_simulated == labels_trs.size()) {
 			    return false;
 			}
-			bool found =
-                            lts->applyPostSrc(t,[&](const LTSTransition & trt) {
-				    if (trt.label == l) return false;
-				    if(label_dominance.dominates(trt.label, trs.label, lts_id) &&
-				       simrel.simulates(trt.target, trs.target)) {
+			bool all_simulated = lts->applyPostSrc(t,[&](const LTSTransition & trt) {
+ 				if(simrel.simulates(trt.target, trs.target)) {
+				    const vector<int> & labels_trt = lts->get_labels (trt.label_group);
+				    for(size_t i = 0; i <  labels_trs.size(); ++i) {
+					if(!is_label_simulated[i]) {				
+					    for (int label_trt : labels_trt) {
+						if(label_dominance.dominates(label_trt, labels_trs[i], lts_id)) {
+						    is_label_simulated [i] =  true;
+						    if (++num_labels_trs_simulated == labels_trs.size()) {
 					return true;
 				    }
+						    break;
+						}
+					    }
+					}
+				    }					    
+				}
+				assert(num_labels_trs_simulated < labels_trs.size());
 				    return false;
 				});
 			
-			return !found;
+			return !all_simulated;
 		    });
 
 		if(not_simulates_anymore) return false;

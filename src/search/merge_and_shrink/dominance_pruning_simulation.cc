@@ -46,7 +46,7 @@ void DominancePruningSimulation::dump_options() const {
     cout << "Type pruning: " << pruning_type << endl;
 }
 
-void DominancePruningSimulation::initialize() {
+void DominancePruningSimulation::initialize(bool ) {
     if(!initialized){
 	dump_options();
         initialized = true;

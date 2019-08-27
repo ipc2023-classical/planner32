@@ -8,7 +8,7 @@
 #include "label_relation.h" //TODO: For DOMINATED_IN_NONE
 
 class EquivalenceRelation;
-class LTSComplex;
+/* class LTSComplex; */
 class LabelledTransitionSystem;
 class SimulationRelation;
 class DominanceRelation;
@@ -28,15 +28,15 @@ public:
 	      const DominanceRelation & /*sim*/,
 	      const LabelMap & /*labelMap*/){}
 
-    void init(const std::vector<LTSComplex *> & /*lts*/,
-	      const DominanceRelation & /*sim*/,
-	      const LabelMap & /*labelMap*/) {}
+    /* void init(const std::vector<LTSComplex *> & /\*lts*\/, */
+    /*           const DominanceRelation & /\*sim*\/, */
+    /*           const LabelMap & /\*labelMap*\/) {} */
 
     void reset() {}
     bool update(const std::vector<LabelledTransitionSystem*> & /*lts*/,
 		const DominanceRelation & /*sim*/) {return false;}
-    bool update(const std::vector<LTSComplex*> & /*lts*/,
-		const DominanceRelation & /*sim*/) {return false;}
+    /* bool update(const std::vector<LTSComplex*> & /\*lts*\/, */
+    /*     	const DominanceRelation & /\*sim*\/) {return false;} */
 
 
     void dump() const {}

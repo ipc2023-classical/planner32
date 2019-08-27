@@ -2118,13 +2118,13 @@ LabelledTransitionSystem * Abstraction::get_lts(const LabelMap & labelMap){
     return lts.get();
 }
 
-LTSComplex * Abstraction::get_lts_complex(const LabelMap & labelMap){
-    if(!lts_complex){
-        lts_complex = std::unique_ptr<LTSComplex>
-	    (new LTSComplex(this, labelMap));
-    }
-    return lts_complex.get();
-}
+// LTSComplex * Abstraction::get_lts_complex(const LabelMap & labelMap){
+//     if(!lts_complex){
+//         lts_complex = std::unique_ptr<LTSComplex>
+// 	    (new LTSComplex(this, labelMap));
+//     }
+//     return lts_complex.get();
+// }
 
 
 int Abstraction::estimate_transitions(const Abstraction * other) const{

@@ -105,7 +105,7 @@ class DominancePruningSimulation : public PruneHeuristic {
 /*   } */
 
  public:
-  virtual void initialize();
+  virtual void initialize(bool force_initialization = false);
 
   //Methods for pruning explicit search
   virtual bool prune_generation(const State &state, int g, const State &parent, int action_cost);

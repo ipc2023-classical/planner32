@@ -15,7 +15,7 @@
 #include "lts_complex.h" 
 #include "../debug.h" 
 
-class LTSComplex;
+/* class LTSComplex; */
 
 class Qa;
 
@@ -471,11 +471,11 @@ class DominanceRelationComplex : public DominanceRelationLR<LR> {
 	//update_sim(lts_id, lts, label_dominance);
     }
 
-    virtual void update(int lts_id, const LTSComplex * lts,
-			const LR & label_dominance, 
-			SimulationRelation & simrel){
-	update_sim(lts_id, lts, label_dominance, simrel);
-    }
+    /* virtual void update(int lts_id, const LTSComplex * lts, */
+    /*     		const LR & label_dominance,  */
+    /*     		SimulationRelation & simrel){ */
+    /*     update_sim(lts_id, lts, label_dominance, simrel); */
+    /* } */
 
     template<typename LTS> void update_sim (int lts_id, const LTS * lts,
 					    const LR & label_dominance, 

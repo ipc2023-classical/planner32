@@ -1,6 +1,7 @@
 #include "simulation_relation.h"
 
 #include "label_relation.h"
+#include "labelled_transition_system.h"
 
 #include <cstdlib>
 #include <iostream>
@@ -450,3 +451,7 @@ const std::vector<int> & SimulationRelation::get_dominating_states(const State &
     }
     return dominating_states[abs->get_abstract_state(state)];
 }
+void SimulationRelation::cancel_simulation_computation() {
+    vector<vector<bool> >().swap(relation);
+}
+
