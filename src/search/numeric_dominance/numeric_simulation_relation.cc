@@ -280,6 +280,7 @@ int NumericSimulationRelation<T>::update_pair_stable (int lts_id, const Labelled
 	//cout << "Updating " << lts->get_names()[s] << " <= " << lts->get_names()[t]
 	// << " with " << min_value << " before " << previous_value << endl;
 
+
 	update_value(t, s,  min_value);
 	return true;
     }
@@ -295,6 +296,7 @@ int NumericSimulationRelation<T>::update_pair (int lts_id, const LabelledTransit
     
     T lower_bound = tau_distances.minus_shortest_path(t,s);
     T previous_value = q_simulates(t, s);
+    
     // cout << "prev: " << previous_value << endl;
 		    
     assert(lower_bound <= previous_value);
@@ -362,7 +364,11 @@ int NumericSimulationRelation<T>::update_pair (int lts_id, const LabelledTransit
 		  // }
 		  }*/
 		min_value  = std::min(min_value, max_value);
-		if (min_value <= lower_bound) {
+
+                if(min_value < truncate_value) {
+                    min_value = lower_bound;
+                    return true;
+                } else if (min_value <= lower_bound) {
 		    return true;
 		}
 	    }
@@ -441,7 +447,6 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 
 		// cout << "s: " << s << " t: " << t << endl;
 		if (s != t && !is_relation_stable[s][t] && may_simulate(t, s)) {
-
 		    changes |= update_pair (lts_id, lts, label_dominance, tau_distances, s, t);
 		}
 	    }

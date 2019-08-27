@@ -150,11 +150,13 @@ def get_numeric_simulation_config (s):
     optional_sim = get_optionals_sim(opt)
     optional_pr = get_optionals_prune(opt)
 
-    if "nooptau" in opt:
-        optional_pr += ["compute_tau_labels_with_noop_dominance=true", "compute_tau_labels_as_self_loops_everywhere=false"]
+    if "simpletau" in opt:
+        optional_pr += ["tau_labels_self_loops=true", "tau_labels_recursive=false", "tau_labels_noop=false"]
+    elif "recurtau" in opt:
+        optional_pr += ["tau_labels_self_loops=true", "tau_labels_recursive=true", "tau_labels_noop=false"]   
     else:
-        optional_pr += ["compute_tau_labels_with_noop_dominance=false", "compute_tau_labels_as_self_loops_everywhere=true"]
-
+        optional_pr += ["tau_labels_self_loops=true", "tau_labels_recursive=true", "tau_labels_noop=true"]   
+        
     builder_params = ", ".join([default, merge] + optional_sim  )
     simulation_params = ", ".join(numeric_simulation_type[simtype] + [pruning_dd, "pruning_type=%s" %  pruning_type] + optional_pr  )
     

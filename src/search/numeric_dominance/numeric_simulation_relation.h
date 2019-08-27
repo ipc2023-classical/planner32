@@ -136,10 +136,10 @@ public:
     }
 
     inline void update_value (int s, int t, T value) {
-	if(value < -truncate_value) {
-	    //std::cout << value << " rounded to -infty: " << truncate_value << std::endl;
-	    value = std::numeric_limits<int>::lowest();
-	}
+	/* if(value < -truncate_value) { */
+	/*     // std::cout << value << " rounded to -infty: " << truncate_value << std::endl; */
+	/*     value = std::numeric_limits<int>::lowest(); */
+        /* } */
         relation[s][t] = value;
     }
 
