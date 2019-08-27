@@ -50,7 +50,7 @@ for trval in [0, 1, 2, 5, 100, 1000]:
 
 
 
-REVISION2="2d786853a233"
+REVISION2="212af1897523"
 
 for sim in ["sim", "bisim", "ldsim", "ldsimalt", "noopsim"]:
     config = "-".join(map(str, ["blind", sim, merge_strategy, sh, pruning_type]))
