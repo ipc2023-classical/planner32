@@ -5,7 +5,6 @@
 
 #include "simulation_relation.h"
 #include "labelled_transition_system.h"
-#include "lts_complex.h"
 #include "label_relation.h"
 #include "alternative_label_relation.h"
 #include "label_relation_identity.h"

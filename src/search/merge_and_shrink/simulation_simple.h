@@ -4,7 +4,7 @@
 #include "dominance_relation.h"
 #include "labelled_transition_system.h" 
 
-#include "lts_complex.h" 
+/* #include "lts_complex.h"  */
 class Labels;
  
 /*
@@ -15,10 +15,10 @@ class Labels;
 template <typename LR> 
 class DominanceRelationSimple : public DominanceRelationLR<LR>{
 
-    template<typename LTS> void 
+ public:
+        template<typename LTS> static void 
 	update_sim (int lts_id, const LTS * lts, const LR & label_dominance, 
 		    SimulationRelation & simrel);
- public:
 DominanceRelationSimple(Labels * labels) : DominanceRelationLR<LR>(labels) {}
 
     virtual std::unique_ptr<SimulationRelation> init_simulation (Abstraction * _abs);
