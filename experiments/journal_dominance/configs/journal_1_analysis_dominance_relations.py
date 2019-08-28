@@ -53,10 +53,10 @@ for trval in [0, 1, 2, 5, 100, 1000]:
 REVISION2="01381ea1719c"
 
 config = "-".join(map(str, ["blind", "qrel", trval, "atomic","nosh", "gen"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test", get_numeric_simulation_config(config), 'optimal', REVISION2, SERVERS))
+CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_numeric_simulation_config(config), 'optimal', REVISION2, SERVERS))
 
 config = "-".join(map(str, ["blind", "qrel", trval, "atomic","nosh", "gen", "usedominatesin"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test", get_numeric_simulation_config(config), 'optimal', REVISION2, SERVERS))
+CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_numeric_simulation_config(config), 'optimal', REVISION2, SERVERS))
 
-config = "-".join(map(str, ["blind", "ldsim", "atomic","nosh", "gen"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test", get_simulation_config(config), 'optimal', REVISION2, SERVERS))
+config = "-".join(map(str, ["blind", "ldsimalt", "atomic","nosh", "gen"]))
+CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_simulation_config(config), 'optimal', REVISION2, SERVERS))

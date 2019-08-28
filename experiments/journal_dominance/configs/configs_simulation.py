@@ -12,7 +12,8 @@ pruning_types = {"par" : "parent",
 }
 
 optionals_sim = {"inc" :  "intermediate_simulations=true, incremental_simulations=true", 
-                 "irr" : "apply_subsumed_transitions_pruning=false, prune_dead_operators=true, store_original_operators=true", } 
+                 "irr" : "apply_subsumed_transitions_pruning=false, prune_dead_operators=true, store_original_operators=true",
+                 "usedominatesin" : "num_labels_to_use_dominates_in=5000", } 
 
 optionals_prune = {"nospu" : "remove_spurious=false"}
 
@@ -43,7 +44,6 @@ numeric_simulation_type = {
 
 optionals_sim = {#"inc" :  "intermediate_simulations=true, incremental_simulations=true", 
                  #"irr" : "apply_subsumed_transitions_pruning=false, prune_dead_operators=true, store_original_operators=true", }
-    "usedominatesin" : "num_labels_to_use_dominates_in=5000", }
 }
 
 shrinking = {
