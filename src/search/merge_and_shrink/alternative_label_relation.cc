@@ -104,28 +104,28 @@ bool AlternativeLabelRelation::update(int lts_i, const LabelledTransitionSystem 
 
     bool changes = false;
     //cout << "UPDATE " << lts_i << " " << lts->get_relevant_labels().size() << endl;
-    for(int l2 : lts->get_relevant_labels()) {
-        for(int l1 : lts->get_relevant_labels()){
-            if(l1 != l2 && simulates(l1, l2, lts_i)){
+    
+    for(LabelGroup lg2 (0); lg2.group < lts->get_num_label_groups(); ++lg2) {      
+	for(LabelGroup lg1(0); lg1.group < lts->get_num_label_groups(); ++lg1) {
+            if(lg1 != lg2 && simulates(lg1, lg2, lts_i)) {
                 //std::cout << "Check " << l1 << " " << l2 << std::endl;
                 //std::cout << "Num transitions: " << lts->get_transitions_label(l1).size()
                 //		    << " " << lts->get_transitions_label(l2).size() << std::endl;
                 //Check if it really simulates
                 //For each transition s--l2-->t, and every label l1 that dominates
                 //l2, exist s--l1-->t', t <= t'?
-                for(const auto & tr : lts->get_transitions_label(l2)){
+                for(const auto & tr : lts->get_transitions_label_group(lg2)){
                     bool found = false;
                     //TODO: for(auto tr2 : lts->get_transitions_for_label_src(l1, tr.src)){
-                    for(const auto & tr2 : lts->get_transitions_label(l1)){
-                        if(tr2.src == tr.src &&
-                                sim.simulates(tr2.target, tr.target)){
+                    for(const auto & tr2 : lts->get_transitions_label_group(lg1)){
+                        if(tr2.src == tr.src && sim.simulates(tr2.target, tr.target)){
                             found = true;
                             break; //Stop checking this tr
                         }
                     }
                     if(!found){
                         //std::cout << "Not sim " << l1 << " " << l2 << " " << i << std::endl;
-                        set_not_simulates(l1, l2, lts_i);
+                        set_not_simulates(lg1, lg2, lts_i);
                         changes = true;
                         break; //Stop checking trs of l1
                     }
@@ -134,27 +134,27 @@ bool AlternativeLabelRelation::update(int lts_i, const LabelledTransitionSystem 
         }
 
         //Is l2 simulated by irrelevant_labels in lts?
-        if (get_simulated_by_irrelevant(l2, lts_i)) {
-            for(auto tr : lts->get_transitions_label(l2)){
+        if (get_simulated_by_irrelevant(lg2, lts_i)) {
+            for(auto tr : lts->get_transitions_label_group(lg2)){
                 if(!sim.simulates(tr.src, tr.target)) {
-                    changes |= set_not_simulated_by_irrelevant(l2, lts_i);
+                    changes |= set_not_simulated_by_irrelevant(lg2, lts_i, lts);
                     break;
                 }
             }
         }
 
         //Does l2 simulates irrelevant_labels in lts?
-        if(get_simulates_irrelevant(l2, lts_i)){
+        if(get_simulates_irrelevant(lg2, lts_i)){
             for(int s = 0; s < lts->size(); s++){
                 bool found = false;
-                for(const auto & tr : lts->get_transitions_label(l2)){
+                for(const auto & tr : lts->get_transitions_label_group(lg2)){
                     if(tr.src == s && sim.simulates(tr.target, tr.src)) {
                         found = true;
                         break;
                     }
                 }
                 if(!found) {
-                    changes |= set_not_simulates_irrelevant(l2, lts_i);
+                    changes |= set_not_simulates_irrelevant(lg2, lts_i);
                     break;
                 }
             }
