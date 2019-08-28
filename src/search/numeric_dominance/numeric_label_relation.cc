@@ -10,10 +10,8 @@
 using namespace std;
 
 template <typename T>
-NumericLabelRelation<T>::NumericLabelRelation(Labels * _labels// ,
-					      // std::shared_ptr<TauLabelManager<T>> tau_labels_mgr
-    ) :
-    labels (_labels), num_labels(_labels->get_size()) // tau_labels(tau_labels_mgr)
+NumericLabelRelation<T>::NumericLabelRelation(Labels * _labels, int num_labels_to_use_dominates_in_) :
+    labels (_labels), num_labels(_labels->get_size()), num_labels_to_use_dominates_in(num_labels_to_use_dominates_in_) 
 {
     
 }

@@ -139,6 +139,7 @@ public:
 						int max_simulation_time,
 						int min_simulation_time, int max_total_time,
 						int max_lts_size_to_compute_simulation,
+                                                int num_labels_to_use_dominates_in,
 						bool dump, 
 						std::shared_ptr<TauLabelManager<T>> tau_label_mgr,
 						std::unique_ptr<NumericDominanceRelation<T>> & result) const;

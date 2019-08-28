@@ -125,6 +125,7 @@ void LDSimulation::compute_numeric_dominance_relation(int truncate_value,
 						      int max_simulation_time,
 						      int min_simulation_time, int max_total_time,
 						      int max_lts_size_to_compute_simulation,
+                                                      int num_labels_to_use_dominates_in,
 						      bool dump,
 						      std::shared_ptr<TauLabelManager<T>> tau_label_mgr,
 						      unique_ptr<NumericDominanceRelation<T>> & result) const{
@@ -133,6 +134,7 @@ void LDSimulation::compute_numeric_dominance_relation(int truncate_value,
 						 truncate_value, max_simulation_time,
 						 min_simulation_time, max_total_time, 
 						 max_lts_size_to_compute_simulation,
+                                                 num_labels_to_use_dominates_in,
 						 tau_label_mgr);
 
     LabelMap labelMap (labels.get());
@@ -169,6 +171,7 @@ void LDSimulation::compute_numeric_dominance_relation(int truncate_value,
 						      int max_simulation_time,
 						      int min_simulation_time, int max_total_time,
 						      int max_lts_size_to_compute_simulation,
+                                                      int num_labels_to_use_dominates_in,
 						      bool dump, 
 						      shared_ptr<TauLabelManager<int>> tau_label_mgr, 
 						      unique_ptr<NumericDominanceRelation<int>> & result) const; 
@@ -179,6 +182,7 @@ void LDSimulation::compute_numeric_dominance_relation(int truncate_value,
 						      int max_simulation_time,
 						      int min_simulation_time, int max_total_time,
 						      int max_lts_size_to_compute_simulation,
+                                                      int num_labels_to_use_dominates_in, 
 						      bool dump, 
 						      shared_ptr<TauLabelManager<IntEpsilon>> tau_label_mgr,
 						      unique_ptr<NumericDominanceRelation<IntEpsilon>> & result) const; 

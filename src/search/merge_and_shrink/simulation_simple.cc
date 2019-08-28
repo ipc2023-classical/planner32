@@ -33,69 +33,57 @@ DominanceRelationSimple<LR>::update_sim (int lts_id, const LTS * lts,
                     // b) exist t--l'-->t', t' >= s' and l dominated by l'?
                     lts->applyPostSrc(s, [&](const LTSTransition & trs) {
 			    const vector<int> & labels_trs = lts->get_labels (trs.label_group);
-			    vector<bool> is_label_simulated (labels_trs.size(), false);
-			    int num_labels_trs_simulated = 0;
-                        //cout << "Checking transition " << trs.label << " " << g_operators[trs.label].get_name() << " to " << trs.target << endl;
-			    if(simrel.simulates (t, trs.target)) {
-				for(size_t i = 0; i <  labels_trs.size(); ++i) {
- 				    if(label_dominance.dominated_by_noop(labels_trs[i], lts_id)) {
-					if(++num_labels_trs_simulated == labels_trs.size()) {
-                                //cout << "Dominated by noop!" << endl;
-                                return false;
-                            }
-					is_label_simulated [i] =  true;
-				    }
-				}
-			    }
-                            bool found =
-                            lts->applyPostSrc(t,[&](const LTSTransition & trt) {
-				    if(simrel.simulates(trt.target, trs.target)) {
-					const vector<int> & labels_trt = lts->get_labels (trt.label_group);
-					for(size_t i = 0; i <  labels_trs.size(); ++i) {
-					    if(!is_label_simulated[i]) {				
-						for (int label_trt : labels_trt) {
-						    if(label_dominance.dominates(label_trt, labels_trs[i], lts_id)) {
-							is_label_simulated [i] =  true;
-							if (++num_labels_trs_simulated == labels_trs.size()) {
-                                            return true;
-                                        }
-							break;
-						    }
-						}
-					    }
-					}					    
-				    }
-				    assert(num_labels_trs_simulated < labels_trs.size());
-                                        return false;
-                                    });
+                            for(size_t i = 0; i <  labels_trs.size(); ++i) {
+                                //cout << "Checking transition " << trs.label << " " << g_operators[trs.label].get_name() << " to " << trs.target << endl;
+                                if(simrel.simulates (t, trs.target)) {
+                                    if(label_dominance.dominated_by_noop(labels_trs[i], lts_id)) {
+                                        continue;
+                                    }
+                                }
+                                bool found =
+                                    lts->applyPostSrc(t,[&](const LTSTransition & trt) {
+                                            if(simrel.simulates(trt.target, trs.target)) {
+                                                const vector<int> & labels_trt = lts->get_labels (trt.label_group);
+                                                for (int label_trt : labels_trt) {
+                                                    if(label_dominance.dominates(label_trt, labels_trs[i], lts_id)) {
+                                                            return true;
+                                                    }
+                                                }
+                                                					 
+                                                    assert(num_labels_trs_simulated < labels_trs.size());
+                                            }
+                                            return false;
+                                        });
 
-                            if(!found) {
-                                changes = true;
-                                simrel.remove(t, s);
-                                /*std::cout << lts->name(t) << " does not simulate "
-                                 << lts->name(s) << " because of "
-                                 << lts->name(trs.src) << " => "
-                                 << lts->name(trs.target) << " ("
-                                 << trs.label << ")"; // << std::endl;
-                                 std::cout << "  Simulates? "
-                                 << simulates(trs.src, trs.target);
-                                 std::cout << "  domnoop? "
-                                 << label_dominance.dominated_by_noop(
-                                 trs.label, lts_id) << "   ";
-                                 label_dominance.dump(trs.label);*/
-                                /*for (auto trt : lts->get_transitions(t)) {
-                                 std::cout << "Tried with: "
-                                 << lts->name(trt.src) << " => "
-                                 << lts->name(trt.target) << " ("
-                                 << trt.label << ")" << " label dom: "
-                                 << label_dominance.dominates(trt.label,
-                                 trs.label, lts_id)
-                                 << " target sim "
-                                 << simulates(trt.target, trs.target)
-                                 << std::endl;
-                                 }*/
-                                return true;
+                                if(!found) {
+                                    changes = true;
+                                    simrel.remove(t, s);
+                                    /*std::cout << lts->name(t) << " does not simulate "
+                                      << lts->name(s) << " because of "
+                                      << lts->name(trs.src) << " => "
+                                      << lts->name(trs.target) << " ("
+                                      << trs.label << ")"; // << std::endl;
+                                      std::cout << "  Simulates? "
+                                      << simulates(trs.src, trs.target);
+                                      std::cout << "  domnoop? "
+                                      << label_dominance.dominated_by_noop(
+                                      trs.label, lts_id) << "   ";
+                                      label_dominance.dump(trs.label);*/
+                                    /*for (auto trt : lts->get_transitions(t)) {
+                                      std::cout << "Tried with: "
+                                      << lts->name(trt.src) << " => "
+                                      << lts->name(trt.target) << " ("
+                                      << trt.label << ")" << " label dom: "
+                                      << label_dominance.dominates(trt.label,
+                                      trs.label, lts_id)
+                                      << " target sim "
+                                      << simulates(trt.target, trs.target)
+                                      << std::endl;
+                                      }*/
+                                    return true;
+                                }
                             }
+                                            
                             return false;
                         });
                 }

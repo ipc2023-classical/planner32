@@ -28,10 +28,10 @@ void NumericSimulationRelation<T>::init_goal_respecting() {
     const std::vector <int> & goal_distances = abs->get_goal_distances();
 
     relation.resize(num_states);
-    is_relation_stable.resize(num_states);
+    // is_relation_stable.resize(num_states);
     for(int s = 0; s < num_states; s++){
         relation[s].resize(num_states);
-	is_relation_stable[s].resize(num_states, false);
+	// is_relation_stable[s].resize(num_states, false);
 	for (int t = 0; t < num_states; t++){
 	    // qrel (t, s) = h*(t) - h*(s)
 	    // if (!abs->is_goal_state(t) && abs->is_goal_state(s)) {
@@ -56,11 +56,11 @@ void NumericSimulationRelation<IntEpsilon>::init_goal_respecting() {
     cout << "Recompute distances with epsilon" << endl;
     std::vector <IntEpsilonSum> goal_distances = abs->recompute_goal_distances_with_epsilon();
     relation.resize(num_states);
-    is_relation_stable.resize(num_states);
+    // is_relation_stable.resize(num_states);
 
     for(int s = 0; s < num_states; s++){
         relation[s].resize(num_states);
-	is_relation_stable[s].resize(num_states, false);
+	// is_relation_stable[s].resize(num_states, false);
 
 	for (int t = 0; t < num_states; t++) {
 	    // qrel (t, s) = h*(t) - h*(s)
@@ -175,7 +175,8 @@ int NumericSimulationRelation<T>::update_pair_stable (int lts_id, const Labelled
 					       const NumericLabelRelation<T> & label_dominance,
 					       const TauDistances<T> & tau_distances,
 					       int s, int t) {
-    assert (s != t && !is_relation_stable[s][t] && may_simulate(t, s)) ;
+    assert (s != t // && !is_relation_stable[s][t]
+            && may_simulate(t, s)) ;
     
     T lower_bound = tau_distances.minus_shortest_path(t,s);
     T previous_value = q_simulates(t, s);
@@ -292,7 +293,7 @@ int NumericSimulationRelation<T>::update_pair (int lts_id, const LabelledTransit
 					       const NumericLabelRelation<T> & label_dominance,
 					       const TauDistances<T> & tau_distances,
 					       int s, int t) {
-    assert (s != t && !is_relation_stable[s][t] && may_simulate(t, s)) ;
+    assert (s != t && may_simulate(t, s)) ;
     
     T lower_bound = tau_distances.minus_shortest_path(t,s);
     T previous_value = q_simulates(t, s);
@@ -446,7 +447,7 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 		}
 
 		// cout << "s: " << s << " t: " << t << endl;
-		if (s != t && !is_relation_stable[s][t] && may_simulate(t, s)) {
+		if (s != t  && may_simulate(t, s)) { // && !is_relation_stable[s][t]
 		    changes |= update_pair (lts_id, lts, label_dominance, tau_distances, s, t);
 		}
 	    }

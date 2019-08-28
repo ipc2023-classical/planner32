@@ -81,9 +81,9 @@ protected:
 	std::cout << "  Init numLDSim in " << t() << "s: " << std::flush;
 	bool restart = false;
 	do {
-	do{
-	    num_iterations++;
-	    //label_dominance.dump();
+            do{
+                num_iterations++;
+                //label_dominance.dump();
 		int remaining_to_compute = order_by_size.size(); 
 		for (int i : order_by_size) {
 		    std::cout << "Updating " << i << " of size " <<   _ltss[i]->size() << " states and "
@@ -95,8 +95,8 @@ protected:
 		    num_inner_iterations += simulations[i]->update(i, _ltss[i], label_dominance, max_time);
 		    //_dominance_relation[i]->dump(_ltss[i]->get_names());
 		}
-	    std::cout << " " << t() << "s" << std::flush;
-	}while(label_dominance.update(_ltss, *this));
+                std::cout << " " << t() << "s" << std::flush;
+            }while(label_dominance.update(_ltss, *this));
 	    restart = tau_labels->add_noop_dominance_tau_labels (_ltss, label_dominance);
 	    if(restart) {
 		for (int i : order_by_size) {
@@ -141,17 +141,18 @@ public:
 
     NumericDominanceRelation(Labels * labels, 
 			     int truncate_value_, 
-			 int max_simulation_time_,
-			 int min_simulation_time_,
-			 int max_total_time_, 
-			 int max_lts_size_to_compute_simulation_,
-			 std::shared_ptr<TauLabelManager<T>> tau_label_mgr) : 
-								truncate_value(truncate_value_),
+                             int max_simulation_time_,
+                             int min_simulation_time_,
+                             int max_total_time_, 
+                             int max_lts_size_to_compute_simulation_,
+                             int num_labels_to_use_dominates_in,
+                             std::shared_ptr<TauLabelManager<T>> tau_label_mgr) : 
+    truncate_value(truncate_value_),
 	max_simulation_time(max_simulation_time_),
 	min_simulation_time(min_simulation_time_),
 	max_total_time(max_total_time_),
 	max_lts_size_to_compute_simulation (max_lts_size_to_compute_simulation_),
-	label_dominance(labels), tau_labels(tau_label_mgr) {
+        label_dominance(labels, num_labels_to_use_dominates_in), tau_labels(tau_label_mgr) {
 
 
 	}

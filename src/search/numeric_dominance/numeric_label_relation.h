@@ -27,6 +27,8 @@ class NumericLabelRelation {
     int num_labels;
     int num_ltss;
 
+    const int num_labels_to_use_dominates_in;
+
     // Summary matrix for each l1, l2 indicating whether l1 dominates
     // l2 in all (-2), in none (-1) or only in i (i)
     std::vector<std::vector<int> > dominates_in;
@@ -209,7 +211,7 @@ class NumericLabelRelation {
     /* 		    int lts) const;  */
 
 public:
-    NumericLabelRelation(Labels * labels/* , std::shared_ptr<TauLabelManager<T>> tau_labels_mgr */);
+    NumericLabelRelation(Labels * labels, int num_labels_to_use_dominates_in/* , std::shared_ptr<TauLabelManager<T>> tau_labels_mgr */);
 
     //Initializes label relation (only the first time, to reinitialize call reset instead)
 
@@ -265,7 +267,7 @@ public:
 	dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
 	dominates_noop_in.resize(num_labels, DOMINATES_IN_ALL);
     
-	if(num_labels < 5000) { // If we have more than 5000 labels, there is not enough space. 
+	if(num_labels < num_labels_to_use_dominates_in) { // If we have more than 5000 labels, there is not enough space. 
 	    dominates_in.resize(num_labels);
 	    for (int l1 = 0; l1 < dominates_in.size(); ++l1){
 		dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);

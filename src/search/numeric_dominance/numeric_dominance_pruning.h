@@ -42,7 +42,7 @@ class NumericDominancePruning : public PruneHeuristic {
   const int max_total_time;
 
   const int max_lts_size_to_compute_simulation;
-
+  const int num_labels_to_use_dominates_in;
     /*
    * Three parameters help to decide whether to apply dominance
    * pruning or not. Dominance pruning is used until

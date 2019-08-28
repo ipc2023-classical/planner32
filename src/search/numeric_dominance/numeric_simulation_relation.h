@@ -41,7 +41,7 @@ protected:
 
 
     std::vector<std::pair<int, int> > entries_with_positive_dominance;
-    std::vector<std::vector<bool> > is_relation_stable; 
+    /* std::vector<std::vector<bool> > is_relation_stable;  */
 
     bool cancelled;
     

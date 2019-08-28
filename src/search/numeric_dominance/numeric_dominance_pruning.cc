@@ -45,7 +45,8 @@ NumericDominancePruning<T>::NumericDominancePruning(const Options &opts)
   max_simulation_time(opts.get<int>("max_simulation_time")),
   min_simulation_time(opts.get<int>("min_simulation_time")),
   max_total_time(opts.get<int>("max_total_time")),
-  max_lts_size_to_compute_simulation(opts.get<int>("max_lts_size_to_compute_simulation")), 
+  max_lts_size_to_compute_simulation(opts.get<int>("max_lts_size_to_compute_simulation")),
+  num_labels_to_use_dominates_in (opts.get<int>("num_labels_to_use_dominates_in")),
   min_insertions_desactivation(opts.get<int>("min_insertions")),
   min_desactivation_ratio(opts.get<double>("min_desactivation_ratio")),
     dump(opts.get<bool>("dump")), exit_after_preprocessing(opts.get<bool>("exit_after_preprocessing")),
@@ -79,6 +80,7 @@ void NumericDominancePruning<T>::dump_options() const {
     tau_labels->print_config();
     
     cout << "truncate_value: " << truncate_value << endl <<
+        "num_labels_to_use_dominates_in: " << num_labels_to_use_dominates_in << endl <<
 	"max_lts_size_to_compute_simulation: " << max_lts_size_to_compute_simulation << endl <<
     	"max_simulation_time: " << max_simulation_time << endl <<
 	"min_simulation_time: " << min_simulation_time << endl <<
@@ -109,6 +111,7 @@ void NumericDominancePruning<T>::initialize(bool force_initialization) {
 						      min_simulation_time,
 						      max_total_time, 
 						      max_lts_size_to_compute_simulation,
+                                                      num_labels_to_use_dominates_in,
 						      dump, tau_labels,
 						      numeric_dominance_relation);
 	}
@@ -353,6 +356,10 @@ static PruneHeuristic *_parse(OptionParser &parser) {
     parser.add_option<int>("max_lts_size_to_compute_simulation",
 			   "Avoid computing simulation on ltss that have more states than this number",
 			   "1000000");
+
+    parser.add_option<int>("num_labels_to_use_dominates_in",
+			   "Use dominates_in for instances that have less than this amount of labels",
+			   "0");
 
     parser.add_option<bool>("prune_successors",
             "Prunes all siblings if any successor dominates the parent by enough margin",
