@@ -130,7 +130,6 @@ IntEpsilonSum & IntEpsilonSum::operator+=(const IntEpsilonSum & other) {
 }
 
 
-
 IntEpsilonSum & IntEpsilonSum::operator-=(const IntEpsilonSum & other) {
     value -= other.value;
     epsilon -= other.epsilon;

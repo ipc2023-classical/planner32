@@ -365,7 +365,7 @@ int NumericSimulationRelation<T>::update_pair (int lts_id, const LabelledTransit
 		  }*/
 		min_value  = std::min(min_value, max_value);
 
-                if(min_value < truncate_value) {
+                if(min_value < -truncate_value) {
                     min_value = lower_bound;
                     return true;
                 } else if (min_value <= lower_bound) {

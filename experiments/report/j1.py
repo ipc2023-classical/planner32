@@ -37,6 +37,12 @@ def invert_min_negative_dominance(props):
 exp.add_fetcher('../properties/journal1-all/', postprocess_functions=[fix_algorithm, joint_domains, invert_min_negative_dominance])
 
 
+exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations", "min_negative_dominance", "max_positive_dominance", "has_positive_dominance", "has_negative_dominance", "percentage_variables_with_dominance", "num_variables_with_dominance", "total_num_variables"],filter_algorithm=[
+    'blind-qrel-100-atomic-nosh-gen',
+    'blind-qrel-100-atomic-nosh-gen-test',
+]), outfile='report-test.html')
+
+
 exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations"],filter_algorithm=[
     'blind',
     #'blind-ldsim-atomic-bissh-exp',

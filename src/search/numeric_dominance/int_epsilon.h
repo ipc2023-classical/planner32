@@ -14,7 +14,7 @@ class IntEpsilon {
 public: 
     IntEpsilon() : value (0), epsilon(0) {}
 
-    IntEpsilon(int value_) :  value(value_), epsilon (0) {   
+    IntEpsilon(int value_) :  value(value_), epsilon (0) {
     }
 
 IntEpsilon(int value_, int epsilon_) : value(value_), epsilon(epsilon_) {

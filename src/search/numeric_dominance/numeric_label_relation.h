@@ -34,7 +34,7 @@ class NumericLabelRelation {
 
     //For each lts, matrix indicating whether l1 simulates l2, noop
     //simulates l or l simulates noop
-    std::vector<int> cost_of_label;
+    std::vector<T> cost_of_label;
     std::vector<std::vector<LabelGroup> > group_of_label; //position that label l takes on lts
     std::vector<std::vector<int> > irrelevant_labels_lts;
     std::vector<std::vector<std::vector<T> > > lqrel;
@@ -223,7 +223,7 @@ public:
 		  << " labels " << lts.size() << " systems.\n";
 
 
-	std::vector<int> ().swap(cost_of_label);
+	std::vector<T> ().swap(cost_of_label);
 	std::vector<std::vector<LabelGroup> >().swap(group_of_label);
 	std::vector<std::vector<std::vector<T> > >().swap(lqrel);
 	std::vector<std::vector<T> >().swap(simulates_irrelevant);
@@ -456,7 +456,7 @@ public:
     /* 		tau_labels_noop_dominance[lts] : tau_labels_self_loops[lts]); */
     /* } */
 
-    int get_label_cost (int label) const {
+    T get_label_cost (int label) const {
     	return cost_of_label[label];
     }
 
