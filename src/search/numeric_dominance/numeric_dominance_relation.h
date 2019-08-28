@@ -86,8 +86,8 @@ protected:
                 //label_dominance.dump();
 		int remaining_to_compute = order_by_size.size(); 
 		for (int i : order_by_size) {
-		    std::cout << "Updating " << i << " of size " <<   _ltss[i]->size() << " states and "
-			      <<  _ltss[i]->num_transitions() << " transitions" << std::endl;
+		    /* std::cout << "Updating " << i << " of size " <<   _ltss[i]->size() << " states and " */
+		    /*           <<  _ltss[i]->num_transitions() << " transitions" << std::endl; */
 		    
 		    int max_time = std::max(max_simulation_time,
 					    std::min(min_simulation_time,
