@@ -28,44 +28,34 @@ void AlternativeLabelRelation::init(const std::vector<LabelledTransitionSystem *
 	      << " labels " << lts.size() << " systems." << endl;
 
     std::vector<int> ().swap(cost_of_label);
-    std::vector<std::vector<int> >().swap(position_of_label);
+    std::vector<std::vector<LabelGroup> >().swap(group_of_label);
     std::vector<std::vector<std::vector<bool> > >().swap(lrel);
     std::vector<std::vector<bool> >().swap(simulates_irrelevant);
     std::vector<std::vector<bool> >().swap(simulated_by_irrelevant);
 
     irrelevant_labels_lts.resize(lts.size());
-    position_of_label.resize(lts.size());
+    group_of_label.resize(lts.size());
     simulates_irrelevant.resize(lts.size());
     simulated_by_irrelevant.resize(lts.size());
     lrel.resize(lts.size());
-
+    
     cost_of_label.resize(num_labels);
     for(int l = 0; l < num_labels; l++) {
 	cost_of_label[l] = labelMap.get_cost(l);
     }
 
     for (int i = 0; i < num_ltss; ++i){
-        position_of_label[i].resize(num_labels, -1);
-	irrelevant_labels_lts[i] = lts[i]->get_irrelevant_labels();
+        group_of_label[i] = lts[i]->get_group_of_label();
+        irrelevant_labels_lts[i] = lts[i]->get_irrelevant_labels();
 
-	int num_relevant_labels = 0;
-	for(int l = 0; l < num_labels; l++) {
-	    if(lts[i]->is_relevant_label(l)){
-		position_of_label[i][l] = num_relevant_labels++;
-	    }
-	}
+        int num_label_groups = lts[i]->get_num_label_groups();
 
-	cout << "Relevant labels: " << num_relevant_labels << endl;
-	// for(int l : lts[i]->get_relevant_labels()) {
-	//     assert(position_of_label[i][l]  >= 0);
-	// }
+	simulates_irrelevant[i].resize(num_label_groups, true);
+        simulated_by_irrelevant[i].resize(num_label_groups, true);
+	lrel[i].resize(num_label_groups);
 
-	simulates_irrelevant[i].resize(num_relevant_labels, true);
-        simulated_by_irrelevant[i].resize(num_relevant_labels, true);
-	lrel[i].resize(num_relevant_labels);
-
-	for(int j = 0; j < num_relevant_labels; j++) {
-	    lrel[i][j].resize(num_relevant_labels, true);
+	for(int j = 0; j < num_label_groups; j++) {
+	    lrel[i][j].resize(num_label_groups, true);
 	}
     }
 
