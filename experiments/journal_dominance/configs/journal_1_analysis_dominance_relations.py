@@ -57,4 +57,4 @@ config = "-".join(map(str, ["blind", "qrel", "100", "atomic","nosh", "gen", "use
 CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_numeric_simulation_config(config), 'optimal', "01381ea1719c", SERVERS))
 
 config = "-".join(map(str, ["blind", "ldsimalt", "atomic","nosh", "gen"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_simulation_config(config), 'optimal', "2fb5a1ddd95a", SERVERS))
+CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_simulation_config(config), 'optimal', "0f1bf8052c88", SERVERS))
