@@ -5,56 +5,37 @@ import sys
 
 from collections import defaultdict
 
-REVISION = "ded5386d5ce3"
+REVISION = "05a2f1687ac7"
 SERVERS = "new_servers" 
+
+
+def add_config(CONFIG_NAME, config_list, revision = REVISION, servers = SERVERS):
+    config = "-".join(map(str, config_list))
+    CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', revision, servers))
 
 
 
 # Experiment #1: simulation type and pruning types
 # merge_strategies = ["atomic", "dfp50k"]
 
-heuristic = "blind"
-sh = "nosh"
-trval = 10
-
 CONFIGS = defaultdict(list)
 
-blind_config = configs.Config('blind', 'blind', "astar(blind())", 'optimal', '6320039e08bb', SERVERS)
+CONFIGS["journal1-atomic"].append(configs.Config('blind', 'blind', "astar(blind())", 'optimal', '6320039e08bb', SERVERS))
 
-
+heuristic = "blind"
 pruning_type = "gen"
-merge_strategy = "atomic"
-
 sh = "nosh"
-CONFIG_NAME = "journal1-{}".format(merge_strategy)
-CONFIGS[CONFIG_NAME].append(blind_config)
-        
-for sim in ["sim", "bisim", "ldsim", "ldsimalt", "noopsim"]:
-    config = "-".join(map(str, [heuristic, sim, merge_strategy, sh, pruning_type]))
-    CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', REVISION, SERVERS))
 
-for sim in ["qpos", "qtrade", "qrel", "qual"]:
-    config = "-".join(map(str, [heuristic, sim, trval, merge_strategy, sh, pruning_type]))
-    CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
+for sim in ["sim", "bisim", "ldsimalt", "noopsim", "qpos-10", "qtrade-10", "qrel-10", "qual-10"]:
+    add_config("journal1-atomic", [heuristic, sim, "atomic", sh, pruning_type])
+    add_config("journal1-nonatomic", [heuristic, sim, "dfp50k", sh, pruning_type])
 
-# Extra numeric configurations 
-config = "-".join(map(str, ["blind", "qrel", "10", "atomic", "nosh", "gensucc"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
+add_config("journal1-atomic", ["blind", "qrel", "10", "atomic", "nosh", "gensucc"])
+add_config("journal1-atomic", ["blind", "qrel", "10", "atomic", "nosh", "succ"])
 
-config = "-".join(map(str, ["blind", "qrel", "10", "atomic", "nosh", "succ"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
+add_config("journal1-nonatomic", ["blind", "qrel", "10", "dfp50k", "nosh", "gensucc"])
+add_config("journal1-nonatomic", ["blind", "qrel", "10", "dfp50k", "nosh", "succ"])
 
-for trval in [0, 1, 2, 5, 100, 1000]:
-    config = "-".join(map(str, ["blind", "qrel", trval, "atomic","nosh", "gen"]))
-    CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', REVISION, SERVERS))
+for trval in [0, 1, 100, 1000]:
+    add_config("journal1-atomic", [heuristic, "qrel", trval, "atomic", sh, pruning_type])
 
-
-
-config = "-".join(map(str, ["blind", "qrel", "100", "atomic","nosh", "gen"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_numeric_simulation_config(config), 'optimal', "01381ea1719c", SERVERS))
-
-config = "-".join(map(str, ["blind", "qrel", "100", "atomic","nosh", "gen", "usedominatesin"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_numeric_simulation_config(config), 'optimal', "01381ea1719c", SERVERS))
-
-config = "-".join(map(str, ["blind", "ldsimalt", "atomic","nosh", "gen"]))
-CONFIGS[CONFIG_NAME].append(configs.Config(config + "-test2", config + "-test2", get_simulation_config(config), 'optimal', "0f1bf8052c88", SERVERS))

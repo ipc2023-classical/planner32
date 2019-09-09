@@ -41,6 +41,7 @@ exp.add_fetcher('../properties/journal1-all/', postprocess_functions=[fix_algori
 
 
 exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations",  "time_ldsim"],filter_algorithm=[
+    "blind-qrel-100-atomic-nosh-gen",
     "blind-qrel-100-atomic-nosh-gen-test2",
     'blind-qrel-100-atomic-nosh-gen-usedominatesin-test2'
 ]), outfile='report-test-qrel.html')
@@ -134,7 +135,7 @@ for p in scatter_plots_k_dom_vars + scatter_plots_k_dom_vars0 + scatter_plots_k_
     p[1]._set_scales("linear", "linear")
 
     
-exp.add_scatter_plot_step[])
+exp.add_scatter_plot_step([])
     
 # , ,
 #     _configpairs = [
