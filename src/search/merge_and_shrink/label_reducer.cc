@@ -150,8 +150,6 @@ void LabelReducer::reduce_labels(pair<int, int> next_merge,
         }
     }
 
-    cout << "Reduce labels" << endl; 
-
     for (size_t i = 0; i < local_equivalence_relations.size(); ++i)
         delete local_equivalence_relations[i];
 }

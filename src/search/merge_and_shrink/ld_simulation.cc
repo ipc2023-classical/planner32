@@ -233,7 +233,7 @@ void LDSimulation::remove_dead_labels(vector<Abstraction *> & abstractions){
 	    for (auto abs : abstractions) {
 		if(abs && abs->prune_transitions_dominated_label_all(l) > 0) {
                     recompute_distances.insert(abs);
-                }
+                } 
 	    }
 	}
 

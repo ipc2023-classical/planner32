@@ -34,18 +34,26 @@ def invert_min_negative_dominance(props):
         if "min_negative_dominance" in props[p]:
             props[p] ["min_negative_dominance_inverted"] = -props[p] ["min_negative_dominance"]
 
+            
 exp.add_fetcher('../properties/journal1-all/', postprocess_functions=[fix_algorithm, joint_domains, invert_min_negative_dominance])
 
 
+
+
+exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations",  "time_ldsim"],filter_algorithm=[
+    "blind-qrel-100-atomic-nosh-gen-test2",
+    'blind-qrel-100-atomic-nosh-gen-usedominatesin-test2'
+]), outfile='report-test-qrel.html')
+
 exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations", "min_negative_dominance", "max_positive_dominance", "has_positive_dominance", "has_negative_dominance", "percentage_variables_with_dominance", "num_variables_with_dominance", "total_num_variables", "time_ldsim"],filter_algorithm=[
     'blind-qrel-100-atomic-nosh-gen',
-    'blind-qrel-100-atomic-nosh-gen-test',
+    'blind-qrel-100-atomic-nosh-gen-test2',
 ]), outfile='report-test.html')
 
 
 exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations",  "time_ldsim"],filter_algorithm=[
     #'blind-ldsim-atomic-bissh-exp',
-    'blind-ldsimalt-atomic-nosh-gen-test',
+    'blind-ldsimalt-atomic-nosh-gen-test2',
     'blind-ldsimalt-atomic-nosh-gen',
 #    'blind-qrel-10-atomic-bissh-gen',
 ]), outfile='report-test-ldsim.html')
@@ -117,11 +125,16 @@ scatter_plots_k_dom_vars1 = [("report-eval/scatter/dom-vars1-qrel0-vs-qrel{}-ato
 
 
 
+scatter_plots_test_qrel = [("report-eval/scatter/test-qrel".format(i), ScatterPlotReport(filter_algorithm=["blind-qrel-100-atomic-nosh-gen-test2", 'blind-qrel-100-atomic-nosh-gen-usedominatesin-test2'], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"]))]
+
+
+
+
 for p in scatter_plots_k_dom_vars + scatter_plots_k_dom_vars0 + scatter_plots_k_dom_vars1:
     p[1]._set_scales("linear", "linear")
-exp.add_scatter_plot_step(# scatter_plots_k + scatter_plots_k_time_preprocessing
-    #scatter_plots_k_time_ldsim)    scatter_plots_k_min_dom)  
-    scatter_plots_k_dom_vars + scatter_plots_k_dom_vars1 + scatter_plots_k_dom_vars0)
+
+    
+exp.add_scatter_plot_step[])
     
 # , ,
 #     _configpairs = [

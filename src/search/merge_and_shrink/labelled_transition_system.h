@@ -165,12 +165,13 @@ class LabelledTransitionSystem {
 
   int is_relevant_label(int label) const {
 #ifndef NDEBUG
-      bool relevant1 = std::find(relevant_labels.begin(), relevant_labels.end(), label) != relevant_labels.end();
-      bool relevant2 = std::find(irrelevant_labels.begin(), irrelevant_labels.end(), label) == irrelevant_labels.end();
-      bool relevant3 = !label_group_of_label[label].dead() &&
-	  !transitions_label_group[label_group_of_label[label].group].empty();
-      assert (relevant1 == relevant2);
-      assert (relevant3 == relevant2);
+      if (!label_group_of_label[label].dead()){
+          bool relevant1 = std::find(relevant_labels.begin(), relevant_labels.end(), label) != relevant_labels.end();
+          bool relevant2 = std::find(irrelevant_labels.begin(), irrelevant_labels.end(), label) == irrelevant_labels.end();
+          bool relevant3 = !transitions_label_group[label_group_of_label[label].group].empty();
+          assert (relevant1 == relevant2);
+          assert (relevant3 == relevant2);
+      }
 #endif
       return std::find(relevant_labels.begin(), relevant_labels.end(), label) != relevant_labels.end();
   }

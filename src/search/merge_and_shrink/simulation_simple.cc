@@ -49,8 +49,6 @@ DominanceRelationSimple<LR>::update_sim (int lts_id, const LTS * lts,
                                                             return true;
                                                     }
                                                 }
-                                                					 
-                                                    assert(num_labels_trs_simulated < labels_trs.size());
                                             }
                                             return false;
                                         });
