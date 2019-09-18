@@ -232,29 +232,45 @@ def fix_algorithm(properties):
 
 
 def joint_domains(properties):
-    for run, props in properties.items():       
-        category = {
-            "barman" : "others",
-            "blocks" : "others",
-            "data-network" : "others",
-            "depot" : "others",
-            "elevators" : "others",
-            "freecell" : "others",
-            "gripper" : "others",
-            "hiking" : "others", 
-            "openstacks" : "others",
-            "pipesworld-tankage" : "others",
-            "pipesworld-notankage" : "others",
-            "scanalyzer" : "others",
-            "transport" : "others",
-            "storage" : "others",
-            "termes" : "others",
-            "tetris"  : "others",
-            "organic-synthesys" : "others"
-        }
+    categories = {
+        "1" : {
+            "nomystery" : "nomystery",
+            "logistics" : "logistics",
+            "rovers" : "rovers",
+            "driverlog" : "driverlog"
+        },
+        "2" : {
+            "nomystery" : "nomystery",
+            "logistics" : "logistics",
+            "rovers" : "rovers",
+            "driverlog" : "driverlog",
+            "parcprinter" : "parcprinter",
+            "visitall" : "visitall",
+            "floortile" : "floortile",
+            "zenotravel" : "zenotravel",
+            "trucks" : "trucks",
+            "mystery" : "mystery"
+        },
+        "3" : {
+            "nomystery" : "nomystery",
+            "rovers" : "rovers",
+            "tidybot" : "tidybot"
+        },
+        "timesim" : {
+            "rovers" : "rovers",
+            "petri-net-alignment" : "petri-net-alignment",
+            "airport" : "airport",
+        },
 
+    }
+
+    for run, props in properties.items():
         dm = domain_mapping(props["domain"])
-        props["domain_category"] = (category[dm] if  dm in category else dm)
+        props["domain_category"] = dm
+        
+        for cat in categories:
+            category = categories[cat]
+            props["domain_category_{}".format(cat)] = (category[dm] if dm in category else "others")
 
         
 

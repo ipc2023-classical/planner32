@@ -13,6 +13,7 @@ from downward.reports import PlanningReport
 from downward.reports.absolute import AbsoluteReport
 from downward.reports.compare import ComparativeReport
 from downward.reports.scatter import ScatterPlotReport
+from downward.reports.plot_attributes import AttributeScatterPlotReport
 
 from lab.reports import Attribute, geometric_mean, arithmetic_mean
 
@@ -37,9 +38,6 @@ def invert_min_negative_dominance(props):
             
 exp.add_fetcher('../properties/journal1-all/', postprocess_functions=[fix_algorithm, joint_domains, invert_min_negative_dominance])
 
-
-
-
 exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations",  "time_ldsim"],filter_algorithm=[
     "blind-qrel-100-atomic-nosh-gen",
     "blind-qrel-100-atomic-nosh-gen-test2",
@@ -53,19 +51,15 @@ exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATT
 
 
 exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations",  "time_ldsim"],filter_algorithm=[
-    #'blind-ldsim-atomic-bissh-exp',
     'blind-ldsimalt-atomic-nosh-gen-test2',
     'blind-ldsimalt-atomic-nosh-gen',
-#    'blind-qrel-10-atomic-bissh-gen',
 ]), outfile='report-test-ldsim.html')
 
 
 exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations"],filter_algorithm=[
     'blind',
-    #'blind-ldsim-atomic-bissh-exp',
     'blind-ldsim-atomic-nosh-gen',
     'blind-ldsimalt-atomic-nosh-gen',
-#    'blind-qrel-10-atomic-bissh-gen',
 ]))
 
 
@@ -86,71 +80,54 @@ exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATT
 ]), outfile='report-k.html')
 
 
-# exp.add_scatter_plot_step([
-#     ("report-eval/scatter/expansions-base-vs-ldsimalt-atomic", ScatterPlotReport(filter_algorithm=["blind", "blind-ldsimalt-atomic-nosh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"],)),
-#     ("report-eval/scatter/expansions-ldsimalt-vs-qrel10-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-qrel-10-atomic-nosh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"],)), 
-#     # ("report-eval/scatter/expansions-base-vs-ldsim-atomic", ScatterPlotReport(filter_algorithm=["blind", "blind-ldsim-atomic-nosh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"],)),
-#     # ("report-eval/scatter/simulationtime-ldsim-vs-qrel-atomic", ScatterPlotReport(filter_algorithm=["blind-qrel-10-atomic-nosh-gen", "blind-ldsim-atomic-nosh-gen"], attributes=["time_ldsim"], get_category=lambda run1, run2:  run1["domain_category"],)),
-#     # ("report-eval/scatter/preprocessingtime-ldsim-vs-qrel-atomic", ScatterPlotReport(filter_algorithm=["blind-ldsim-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen"], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],)),
-#     # ("report-eval/scatter/preprocessingtime-noopsim-vs-qrel-atomic", ScatterPlotReport(filter_algorithm=['blind-noopsim-atomic-nosh-gen', "blind-qrel-10-atomic-nosh-gen"], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],)),
-#     # ("report-eval/scatter/preprocessingtime-noopsim-vs-ldsim-atomic", ScatterPlotReport(filter_algorithm=['blind-noopsim-atomic-nosh-gen', "blind-ldsim-atomic-nosh-gen"], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],)),
-#     # ("report-eval/scatter/preprocessingtime-ldsimalt-vs-ldsim-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-ldsim-atomic-nosh-gen"], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],)),
-#     # ("report-eval/scatter/ldsimtime-ldsimalt-vs-ldsim-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-ldsim-atomic-nosh-gen"], attributes=["time_ldsim"], get_category=lambda run1, run2:  run1["domain_category"],)),
-#     # ("report-eval/scatter/expansions-ldsimalt-vs-ldsim-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-ldsim-atomic-nosh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"],)), 
-#     # ("report-eval/scatter/expansions-ldsimalt-vs-noopsim-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-noopsim-atomic-nosh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"],)), 
-#     # ("report-eval/scatter/expansions-ldsimalt-vs-sim-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-sim-atomic-nosh-gen"], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"],)), 
-#     # ("report-eval/scatter/ldsimtime-ldsimalt-vs-noopsim-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-noopsim-atomic-nosh-gen"], attributes=["time_ldsim"], get_category=lambda run1, run2:  run1["domain_category"],)), 
-#     # ("report-eval/scatter/ldsimtime-ldsimalt-vs-sim-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-sim-atomic-nosh-gen"], attributes=["time_ldsim"], get_category=lambda run1, run2:  run1["domain_category"],)), 
-#     # # ("report-eval/scatter/preprocessingtimebylabel-ldsim-atomic", ScatterPlotReport(filter_algorithm=["blind-ldsim-atomic-nosh-gen"], attributes=["labels", "time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"],))
-#     # ("report-eval/scatter/ldsimtime-ldsimalt-vs-sim-atomic", ScatterPlotReport(filter_algorithm=['blind-ldsimalt-atomic-nosh-gen', "blind-sim-atomic-nosh-gen"], attributes=["time_ldsim"], get_category=lambda run1, run2:  run1["domain_category"],)), 
-# ]
-# )
+
+def scatter_alg(name, alg1, alg2, atr, domain_category):
+    return ("report-eval/scatter/{}".format(name), ScatterPlotReport(filter_algorithm=[alg1, alg2], attributes=[atr], get_category=lambda run1, run2:  run1[domain_category]))
+
+
+def scatter_atr(name, alg_list, atr1, atr2, domain_category):
+    return ("report-eval/scatter/{}".format(name), AttributeScatterPlotReport(format='png', xscale='log', filter_algorithm=alg_list, attributes=[atr2, atr1], get_category=lambda run:  run[domain_category]))
 
 
 
-scatter_plots_k_expansions = [("report-eval/scatter/expansions-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["expansions_until_last_jump"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
+scatter_plots_tex = [
+    # ("/home/alvaro/projects/journal_dominance/AIJ15-DominancePruning/figures/scatter/expansions-base-vs-ldsim-atomic",
+    #  ScatterPlotReport(format='tex', get_category=lambda run1, run2:  run1["domain_category_2"], filter_algorithm=["blind", "blind-ldsimalt-atomic-nosh-gen"], attributes=["expansions_until_last_jump"], xlabel="Expansions base", ylabel="Expansions LD simulation", xmin=1, ymin=1, title="Expansions until last jump")),
+    # ("/home/alvaro/projects/journal_dominance/AIJ15-DominancePruning/figures/scatter/expansions-ldsim-vs-qrel10-atomic",
+    #  ScatterPlotReport(format='tex', get_category=lambda run1, run2:  run1["domain_category_2"], filter_algorithm=["blind-ldsimalt-atomic-nosh-gen","blind-qrel-10-atomic-nosh-gen"], attributes=["expansions_until_last_jump"], ylabel="Expansions Qrel 10", xlabel="Expansions LD simulation", xmin=1, ymin=1, title="Expansions until last jump")),
+    # ("/home/alvaro/projects/journal_dominance/AIJ15-DominancePruning/figures/scatter/timesim-ldsim-vs-qrel10-atomic",
+    #  ScatterPlotReport(format='tex', get_category=lambda run1, run2:  run1["domain_category_timesim"], filter_algorithm=["blind-ldsimalt-atomic-nosh-gen","blind-qrel-10-atomic-nosh-gen"], attributes=["time_ldsim"], ylabel="Time Qrel 10 (s)", xlabel="Time LD simulation (s)", title="Time Simulation"))
+    # ("/home/alvaro/projects/journal_dominance/AIJ15-DominancePruning/figures/scatter/ldsim-labels-vs-timesim-atomic",
+    #  AttributeScatterPlotReport(format='png', get_category=lambda run :  run["algorithm"], filter_algorithm=["blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen"], attributes=["translator_operators", "time_ldsim"], yscale='log', xscale='log', ymin=100, ) ) 
+]
 
-scatter_plots_k_time_preprocessing = [("report-eval/scatter/time-preprocessing-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]] 
-
-
-scatter_plots_k_time_ldsim = [("report-eval/scatter/time-ldsim-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["time_ldsim"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]] 
-
-
-scatter_plots_k_min_dom = [("report-eval/scatter/min-dom-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["min_negative_dominance_inverted"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
-
-scatter_plots_k_dom_vars = [("report-eval/scatter/dom-vars-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["percentage_variables_with_dominance"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
-
-scatter_plots_k_dom_vars0 = [("report-eval/scatter/dom-vars0-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["percentage_variables_with_dominance_geq0"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
-
-scatter_plots_k_dom_vars1 = [("report-eval/scatter/dom-vars1-qrel0-vs-qrel{}-atomic".format(i), ScatterPlotReport(filter_algorithm=[ 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i)], attributes=["percentage_variables_with_dominance_geq1"], get_category=lambda run1, run2:  run1["domain_category"])) for i in [1, 2, 5, 10, 100, 1000]]
-
-
-
-scatter_plots_test_qrel = [("report-eval/scatter/test-qrel".format(i), ScatterPlotReport(filter_algorithm=["blind-qrel-100-atomic-nosh-gen-test2", 'blind-qrel-100-atomic-nosh-gen-usedominatesin-test2'], attributes=["time_completed_preprocessing"], get_category=lambda run1, run2:  run1["domain_category"]))]
+scatter_plots_atomic = [scatter_alg("expansions-base-vs-ldsim-atomic", "blind", "blind-ldsimalt-atomic-nosh-gen", "expansions_until_last_jump", "domain_category_2"),
+                        scatter_alg("expansions-ldsim-vs-qrel-atomic", "blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen", "expansions_until_last_jump", "domain_category_1"),
+                        scatter_alg("timesim-ldsim-vs-qrel-atomic", "blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen", "time_ldsim", "domain_category"),
+                        scatter_alg("timepreprocess-ldsim-vs-qrel-atomic", "blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen", "time_preprocessing", "domain_category"),
+]
 
 
+scatter_plots_k = [scatter_alg("report-eval/scatter/scatter_k_{}-qrel0-vs-qrel{}-atomic".format(atr, i), 'blind-qrel-0-atomic-nosh-gen',  'blind-qrel-{}-atomic-nosh-gen'.format(i), atr, "domain_category") for i in [1, 10, 100, 1000] for atr in ["expansions_until_last_jump", "time_completed_preprocessing", "time_ldsim", "min_negative_dominance_inverted", "percentage_variables_with_dominance","percentage_variables_with_dominance_geq0","percentage_variables_with_dominance_geq1" ]]
 
 
-for p in scatter_plots_k_dom_vars + scatter_plots_k_dom_vars0 + scatter_plots_k_dom_vars1:
-    p[1]._set_scales("linear", "linear")
+scatter_plots_timesim = [
+    scatter_atr("operators-vs-timesim", ["blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen"], "translator_operators", "time_ldsim", "algorithm"),
+    scatter_atr("variables-vs-timesim", ["blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen"], "translator_variables", "time_ldsim", "algorithm"),
+    scatter_atr("facts-vs-timesim", ["blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen"], "translator_facts", "time_ldsim", "algorithm"),
+    scatter_atr("inner_iterations-vs-timesim", ["blind-qrel-10-atomic-nosh-gen"], "inner_iterations_numeric_ldsimulation", "time_ldsim", "algorithm"),
+    scatter_atr("operators-vs-timeprepro", ["blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen"], "translator_operators", "time_completed_preprocessing", "algorithm"),
+    scatter_atr("variables-vs-timeprepro", ["blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen"], "translator_variables", "time_completed_preprocessing", "algorithm"),
+    scatter_atr("facts-vs-timeprepro", ["blind-ldsimalt-atomic-nosh-gen", "blind-qrel-10-atomic-nosh-gen"], "translator_facts", "time_completed_preprocessing", "algorithm"),
+    scatter_atr("inner_iterations-vs-timeprepro", ["blind-qrel-10-atomic-nosh-gen"], "inner_iterations_numeric_ldsimulation", "time_completed_preprocessing", "algorithm")
+]
+
+
+# for p in scatter_plots_k_dom_vars + scatter_plots_k_dom_vars0 + scatter_plots_k_dom_vars1:
+#     p[1]._set_scales("linear", "linear")
 
     
-exp.add_scatter_plot_step([])
-    
-# , ,
-#     _configpairs = [
-#         (),
-#         ("blind-ldsim-atomic-bissh-exp", "blind-ldsim-atomic-bissh-gen"),
-#         ("blind", "blind-qrel-10-atomic-bissh-gen"),
-#         ("blind-ldsim-atomic-bissh-gen", "blind-qrel-10-atomic-bissh-gen"),                              
-#         ("blind", "blind-ldsim-dfp50k-bissh-gen"),
-#         ("blind-ldsim-dfp50k-bissh-exp", "blind-ldsim-dfp50k-bissh-gen"),
-#         ("blind", "blind-qrel-10-dfp50k-bissh-gen"),
-#         ("blind-ldsim-dfp50k-bissh-gen", "blind-qrel-10-dfp50k-bissh-gen"),
-#         ("blind-ldsim-dfp50k-bissh-exp", "blind-ldsim-dfp50k-bissh-gen"),
-#         ("blind-ldsim-atomic-bissh-gen",  "blind-ldsim-dfp50k-bissh-gen"),
-#     ],
-# )
+exp.add_scatter_plot_step(scatter_plots_timesim)
 
 
 alg_list_atomic = [ 'blind',

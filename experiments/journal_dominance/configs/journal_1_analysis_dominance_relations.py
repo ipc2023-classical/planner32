@@ -44,3 +44,12 @@ for sim in ["bisim", "ldsimalt", "qrel-10"]:
 
 add_config("journal1-nonatomic", ["blind", "qrel", "10", "dfp50k", "nosh", "gensucc"])
 add_config("journal1-nonatomic", ["blind", "qrel", "10", "dfp50k", "nosh", "succ"])
+
+
+
+
+for sim in ["bisim", "ldsimalt", "qrel-10"]:
+    add_config("journal2-heuristic", ["lmcut", sim, "atomic", "bissh", "gen"])
+    add_config("journal2-heuristic", ["lmcut", sim, "dfp50k", "bissh", "gen"])
+    add_config("journal2-heuristic", ["lmcut", sim, "atomic", "bissh", "gensucc"])
+    add_config("journal2-heuristic", ["lmcut", sim, "dfp50k", "bissh", "gensucc"])
