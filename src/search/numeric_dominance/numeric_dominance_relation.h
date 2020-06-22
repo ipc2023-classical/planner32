@@ -102,8 +102,7 @@ protected:
 		for (int i : order_by_size) {
 		    simulations[i]->init_goal_respecting();
 		}
-	    }
-	    
+	    }	    
 	} while(restart);
 	std::cout << std::endl << "Numeric LDSim computed " << t() << std::endl;
 	std::cout << "Numeric LDSim outer iterations: " << num_iterations << std::endl;

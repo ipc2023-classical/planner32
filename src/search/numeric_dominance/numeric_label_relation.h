@@ -435,6 +435,7 @@ public:
 	}
     }
 
+
     T q_dominated_by_noop (int l, int lts) const {
 	if (may_dominated_by_noop(l, lts)) {
 	    T total_sum = 0;

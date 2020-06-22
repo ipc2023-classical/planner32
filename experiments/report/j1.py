@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 # -*- coding: utf-8 -*-
 
 import itertools
@@ -30,13 +30,37 @@ from cumulative import CumulativePlotReport
 
 exp = ReportExperiment("report")
 
+
+def better_by_one(x, y):
+    assert (x <= y)
+    return x < y
+
+def better_by_factor2(x, y):
+    assert (x <= y)
+    return x*2 < y
+
+def better_by_factor10(x, y):
+    assert (x <= y)
+    return x*10 < y
+
 def invert_min_negative_dominance(props):
     for p in props:
         if "min_negative_dominance" in props[p]:
             props[p] ["min_negative_dominance_inverted"] = -props[p] ["min_negative_dominance"]
 
+def unsolvable_wo_mystery(props):
+    for k, p in props.items():
+        if "unsolvable" in p:
+            if p["domain"] == "mystery":
+                p["unsolvable_wo_mystery"] = 0
+            else:
+                p["unsolvable_wo_mystery"] = p["unsolvable"]
+                if p["unsolvable"] == 1:
+                    print ("Warning: unsolvable instance {} {} by {} {} ".format(p["domain"], p["problem"], p["algorithm"], p["commandline_config"]))
+                
+
             
-exp.add_fetcher('../properties/journal1-all/', postprocess_functions=[fix_algorithm, joint_domains, invert_min_negative_dominance])
+exp.add_fetcher('../properties/journal1-all/', postprocess_functions=[fix_algorithm, joint_domains, invert_min_negative_dominance, unsolvable_wo_mystery])
 
 exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations",  "time_ldsim"],filter_algorithm=[
     "blind-qrel-100-atomic-nosh-gen",
@@ -134,33 +158,36 @@ alg_list_atomic = [ 'blind',
              'blind-bisim-atomic-nosh-gen',
              'blind-sim-atomic-nosh-gen',
              'blind-noopsim-atomic-nosh-gen',
-             'blind-ldsim-atomic-nosh-gen',
+             'blind-ldsimalt-atomic-nosh-gen',
              "blind-qual-10-atomic-nosh-gen",
              "blind-qpos-10-atomic-nosh-gen",
              "blind-qtrade-10-atomic-nosh-gen",
-             "blind-qrel-10-atomic-nosh-gen"
+                    "blind-qrel-10-atomic-nosh-gen",
+                    "blind-qrel-10-atomic-nosh-gensucc"
+
 ]
 exp.add_report(
     PersonalizedTableReport(
         filter_algorithm=alg_list_atomic,
         #filter_run=(lambda x :  x["algorithm"] == "blind" and ("expansions_until_last_jump" not in x or x["expansions_until_last_jump"] < 1000)), 
-        columns = [ ColumnCompare("$>$ blind", 'expansions_until_last_jump', lambda x : 'blind', lambda x, y : x < y),
-                    ColumnCompare("$>$ blind x 2", 'expansions_until_last_jump', lambda x : 'blind', lambda x, y : x*2 < y),
-                    ColumnCompare("$>$ blind x 10", 'expansions_until_last_jump', lambda x : 'blind', lambda x, y : x*10 < y),
-                    ColumnCompare("$>$ -1", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], lambda x, y : x < y),
-                    ColumnCompare("$>$ -1 x2", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], lambda x, y : x*2 < y),
-                    ColumnCompare("$>$ -1 x10", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], lambda x, y : x*10 < y),
+        columns = [ ColumnCompare("$>$ blind", 'expansions_until_last_jump', lambda x : 'blind', better_by_one),
+                    ColumnCompare("$>$ blind x 2", 'expansions_until_last_jump', lambda x : 'blind', better_by_factor2),
+                    ColumnCompare("$>$ blind x 10", 'expansions_until_last_jump', lambda x : 'blind', better_by_factor10),
+                    ColumnCompare("$>$ -1", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], better_by_one),
+                    ColumnCompare("$>$ -1 x2", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], better_by_factor2),
+                    ColumnCompare("$>$ -1 x10", 'expansions_until_last_jump', lambda x : alg_list_atomic[alg_list_atomic.index(x) - 1 ], better_by_factor10),
 
         ],
         algo_to_print= {
             'blind-bisim-atomic-nosh-gen':    'bisim',
             'blind-sim-atomic-nosh-gen':      'sim',
             'blind-noopsim-atomic-nosh-gen':  'noopsim', 
-            'blind-ldsim-atomic-nosh-gen':    'ldsim',
+            'blind-ldsimalt-atomic-nosh-gen':    'ldsim',
             "blind-qual-10-atomic-nosh-gen":  "qual10",
             "blind-qpos-10-atomic-nosh-gen":  "qpos10",
             "blind-qrel-10-atomic-nosh-gen":  "qrel10",
-            "blind-qtrade-10-atomic-nosh-gen": "qtrade10"
+            "blind-qtrade-10-atomic-nosh-gen": "qtrade10",
+            "blind-qrel-10-atomic-nosh-gensucc" :  "qrel10as"
         },
         format='tex'
     ),
@@ -170,37 +197,52 @@ exp.add_report(
 
 
 
-alg_list_dfp = [ 'blind',
-             'blind-bisim-dfp50k-bissh-gen',
-             'blind-sim-dfp50k-bissh-gen',
-             'blind-noopsim-dfp50k-bissh-gen', 
-             'blind-ldsim-dfp50k-bissh-gen',
-             "blind-qual-10-dfp50k-bissh-gen",
-             "blind-qpos-10-dfp50k-bissh-gen",
-             "blind-qtrade-10-dfp50k-bissh-gen",
-             "blind-qrel-10-dfp50k-bissh-gen"
+alg_list_dfp = ['blind',
+                'blind-bisim-dfp50k-nosh-gen',
+                'blind-sim-dfp50k-nosh-gen',
+                'blind-noopsim-dfp50k-nosh-gen', 
+                'blind-ldsimalt-dfp50k-nosh-gen',
+                "blind-qual-10-dfp50k-nosh-gen",
+                "blind-qpos-10-dfp50k-nosh-gen",
+                "blind-qtrade-10-dfp50k-nosh-gen",
+                "blind-qrel-10-dfp50k-nosh-gen",
+                "blind-qrel-10-dfp50k-nosh-gensucc",
+                'blind-bisim-atomic-gen',
+                'blind-sim-atomic-gen',
+                'blind-noopsim-atomic-gen', 
+                'blind-ldsimalt-atomic-gen',
+                "blind-qual-10-atomic-gen",
+                "blind-qpos-10-atomic-gen",
+                "blind-qtrade-10-atomic-gen",
+                "blind-qrel-10-atomic-gen",
+                "blind-qrel-10-atomic-gensucc",
 ]
+
+
 exp.add_report(
     PersonalizedTableReport(
         filter_algorithm=alg_list_dfp,
-#        filter_run=(lambda x :  x["algorithm"] == "blind" and ("expansions_until_last_jump" not in x or x["expansions_until_last_jump"] < 1000)), 
-        columns = [ ColumnCompare("$>$ bisim", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x < y),
-                    ColumnCompare("$>$ bisim x 2", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x*2 < y),
-                    ColumnCompare("$>$ bisim x 10", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-bissh-gen", lambda x, y : x*10 < y, _printList=True),
-                    ColumnCompare("$>$ -1", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], lambda x, y : x < y),
-                    ColumnCompare("$>$ -1 x2", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], lambda x, y : x*2 < y),
-                    ColumnCompare("$>$ -1 x10", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], lambda x, y : x*10 < y),
-
+        #        filter_run=(lambda x :  x["algorithm"] == "blind" and ("expansions_until_last_jump" not in x or x["expansions_until_last_jump"] < 1000)), 
+        columns = [ ColumnCompare("$>$ bisim", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-nosh-gen", better_by_one),
+                    ColumnCompare("$>$ bisim x 2", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-nosh-gen", better_by_factor2),
+                    ColumnCompare("$>$ bisim x 10", 'expansions_until_last_jump', lambda x : "blind-bisim-dfp50k-nosh-gen", better_by_factor10, _printList=True),
+#                    ColumnCompare("$>$ -1", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], better_by_one),
+#                    ColumnCompare("$>$ -1 x2", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], better_by_factor2),
+#                    ColumnCompare("$>$ -1 x10", 'expansions_until_last_jump', lambda x : alg_list_dfp[alg_list_dfp.index(x) - 1 ], better_by_factor10),
+#                    ColumnCompare("$>$ -1", 'expansions_until_last_jump', lambda x : x.replace("dfp50k-nosh", "atomic"), better_by_one),
+#                    ColumnCompare("$>$ -1 x2", 'expansions_until_last_jump', lambda x : x.replace("dfp50k-nosh", "atomic"), better_by_factor2),
+#                    ColumnCompare("$>$ -1 x10", 'expansions_until_last_jump', lambda x : x.replace("dfp50k-nosh", "atomic"), better_by_factor10),
         ],
         algo_to_print= {
-            'blind-bisim-dfp50k-bissh-gen':    'bisim',
-            'blind-sim-dfp50k-bissh-gen':      'sim',
-            'blind-noopsim-dfp50k-bissh-gen':  'noopsim', 
-            'blind-ldsim-dfp50k-bissh-gen':    'ldsim',
-            "blind-qual-10-dfp50k-bissh-gen":  "qual10",
-            "blind-qpos-10-dfp50k-bissh-gen":  "qpos10",
-            "blind-qrel-10-dfp50k-bissh-gen":  "qrel10",
-            "blind-qtrade-10-dfp50k-bissh-gen": "qtrade10"
+            'blind-bisim-dfp50k-nosh-gen':    'bisim',
+            'blind-sim-dfp50k-nosh-gen':      'sim',
+            'blind-noopsim-dfp50k-nosh-gen':  'noopsim', 
+            'blind-ldsimalt-dfp50k-nosh-gen':  'ldsim',
+            "blind-qual-10-dfp50k-nosh-gen":  "qual10",
+            "blind-qpos-10-dfp50k-nosh-gen":  "qpos10",
+            "blind-qrel-10-dfp50k-nosh-gen":  "qrel10",
+            "blind-qtrade-10-dfp50k-nosh-gen": "qtrade10",
+            "blind-qrel-10-dfp50k-nosh-gensucc" : "qrel10as" 
         },
         format='tex'
     ),
@@ -208,7 +250,36 @@ exp.add_report(
 )
 
 
+
+
+exp.add_report(AbsoluteReport(attributes=list(ReportExperiment.DEFAULT_TABLE_ATTRIBUTES) + ["time_completed_preprocessing", "total_simulations", "only_simulations",  "time_ldsim"],filter_algorithm=[
+    'blind',
+    'blind-bisim-atomic-nosh-gensucc',
+    'blind-sim-atomic-nosh-gensucc',
+    'blind-noopsim-atomic-nosh-gensucc' ,
+    'blind-ldsim-atomic-nosh-gensucc',
+    "blind-qual-10-atomic-nosh-gensucc",
+    "blind-qpos-10-atomic-nosh-gensucc",
+    "blind-qrel-10-atomic-nosh-gensucc",
+    "blind-qtrade-10-atomic-nosh-gensucc", 
+]), outfile='report-gensucc.html')
+
+
+
+exp.add_report(AbsoluteReport(attributes=["unsolvable_wo_mystery"]), outfile='report-unsolvable.html')
+
+
+
+
+
+
+
 exp.add_cumulative_plot_step('search_time', ['blind', 'blind-bisim-dfp50k-bissh-gen'])
 
 exp.run_steps()
+
+
+
+
+
 

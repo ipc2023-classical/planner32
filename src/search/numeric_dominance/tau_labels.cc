@@ -28,7 +28,9 @@ TauLabels<T>::TauLabels(const std::vector<LabelledTransitionSystem *> & lts,
     original_cost.resize(num_labels);
     label_relevant_for.resize(num_labels);
     
-    num_tau_labels = 0;
+    num_tau_labels_for_some = 0;
+    num_tau_labels_for_all = 0;
+
     for(int l = 0; l < num_labels; l++) {
 	original_cost[l] = epsilon_if_zero<T>(label_map.get_cost(l));
 
@@ -48,13 +50,13 @@ TauLabels<T>::TauLabels(const std::vector<LabelledTransitionSystem *> & lts,
 	//TODO: check why there are labels irrelevant everywhere
 	// assert(transition_system_relevant != -1);
 	if(transition_system_relevant >= 0) {
-	    num_tau_labels ++;
+	    num_tau_labels_for_some ++;
 	    tau_labels[transition_system_relevant].push_back(l);
 	}
 	label_relevant_for[l] = transition_system_relevant;
     }
     
-    std::cout << "Computed tau labels as self-loops everywhere: " << num_tau_labels  << " / " << num_labels << "\n";
+    std::cout << "Computed tau labels as self-loops everywhere: " << num_tau_labels_for_all << " : " << num_tau_labels_for_some  << " / " << num_labels << "\n";
 }
 
 
@@ -94,18 +96,22 @@ TauLabels<T>::add_recursive_tau_labels(const std::vector<LabelledTransitionSyste
 				 tau_distances[lts_id]->get_cost_fully_invertible());
 		}
 	    }
-	    num_tau_labels ++;
+
+            if (label_relevant_for[l] == TAU_IN_NONE) {
+                num_tau_labels_for_some ++;
+            }
+            num_tau_labels_for_all ++;            
 	} else if (transition_system_relevant >= 0 && label_relevant_for[l] == TAU_IN_NONE) {
 	    tau_labels[transition_system_relevant].push_back(l);
 	    set_tau_cost(transition_system_relevant, l, total_tau_cost);
 	    check_distances_of.insert(transition_system_relevant);
-	    num_tau_labels ++;
+            num_tau_labels_for_some ++;
 	}
 
 	label_relevant_for[l] = transition_system_relevant;
     }
     
-    std::cout << "Computed tau labels recursive: " << num_tau_labels  << " / " << num_labels << "\n";
+    std::cout << "Computed tau labels recursive: " << num_tau_labels_for_all << " : " << num_tau_labels_for_some  << " / " << num_labels << "\n";
 
     // int num_labels = original_cost.size();
     // vector<vector<int>> ts_relevant_per_label(num_labels); 
@@ -233,9 +239,7 @@ bool TauDistances<T>::precompute(const TauLabels<T> & tau_labels,
 	    reachable_with_tau[s].clear();
 	    std::fill(distances.begin(), distances.end(), std::numeric_limits<int>::max());
 	    distances[s] = 0;	
-	    dijkstra_search_epsilon(tau_graph, s, distances, reachable_with_tau[s]);
-
-	    //cout << "Dijkstra finished " << reachable_with_tau[s].size() << endl;
+	    dijkstra_search_epsilon(tau_graph, s, distances, reachable_with_tau[s]);          
 		    
 	}
     }
@@ -331,6 +335,7 @@ bool TauLabelManager<T>::add_noop_dominance_tau_labels(const std::vector<Labelle
     if (!noop_dominance) {
 	return false;
     }
+    
     bool some_changes = false;
     for(int ts : tau_labels->add_noop_dominance_tau_labels(label_dominance)) {
 	some_changes |= tau_distances[ts]->precompute(*tau_labels, lts[ts], ts, only_reachability && !recursive);
@@ -360,34 +365,48 @@ set<int> TauLabels<T>::add_noop_dominance_tau_labels(const NumericLabelRelation<
 
     std::cout << "Compute tau labels with noop dominance" << "\n";
     for(int l = 0; l < num_labels; l++){
+        if (label_relevant_for[l] == TAU_IN_ALL) continue;
 	if(label_dominance.dominates_noop_in_all(l)) {
 	    if(label_relevant_for[l] == TAU_IN_NONE) {
 		for (int lts_id = 0; lts_id < num_ltss; ++lts_id){
 		    tau_labels[lts_id].push_back(l);
 		    ts_with_new_tau_labels.insert(lts_id);
+                    if (label_dominance.q_dominates_noop(l, lts_id) < 0) {
+                        set_tau_cost(lts_id, l, -label_dominance.q_dominates_noop(l, lts_id));
+                    }
+
 		}
-		num_tau_labels ++;
+		num_tau_labels_for_some ++;
 	    } else if (label_relevant_for[l] >= 0) {
 		int lts_id = label_relevant_for[l];
 		tau_labels[lts_id].push_back(l);
 		ts_with_new_tau_labels.insert(lts_id);
-		num_tau_labels ++;	    
-	    }
+                if (label_dominance.q_dominates_noop(l, lts_id) < 0) {
+                    set_tau_cost(lts_id, l, -label_dominance.q_dominates_noop(l, lts_id));
+                }
+            }
+            num_tau_labels_for_all ++;
+            cout << g_operators[l].get_name()  << " is tau for all " << endl;
+
 	    label_relevant_for[l] = TAU_IN_ALL;
 	    
 	} else if (label_dominance.dominates_noop_in_some(l)) {
 	    int lts_id =  label_dominance.get_dominates_noop_in(l);
 	    if (label_relevant_for[l] == TAU_IN_NONE) {
-		num_tau_labels ++;
+		num_tau_labels_for_some ++;
 		tau_labels[lts_id].push_back(l);
 		ts_with_new_tau_labels.insert(lts_id);
+                if (label_dominance.q_dominates_noop(l, lts_id) < 0) {
+                    set_tau_cost(lts_id, l, -label_dominance.q_dominates_noop(l, lts_id));
+                }
 	    } else {
 		assert (label_relevant_for[l] == lts_id);
 	    }
+            label_relevant_for[l] = lts_id;
 	}
     }
 
-    std::cout << "Computed tau labels noop: " << num_tau_labels  << " / " << num_labels << "\n";
+    std::cout << "Computed tau labels noop: " << num_tau_labels_for_all << " : " << num_tau_labels_for_some  << " / " << num_labels << "\n";
 
     return ts_with_new_tau_labels;
 }

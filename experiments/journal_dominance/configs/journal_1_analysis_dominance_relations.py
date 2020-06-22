@@ -22,28 +22,28 @@ CONFIGS = defaultdict(list)
 
 CONFIGS["journal1-atomic"].append(configs.Config('blind', 'blind', "astar(blind())", 'optimal', '6320039e08bb', SERVERS))
 
-heuristic = "blind"
-pruning_type = "gen"
-sh = "nosh"
 
 for sim in ["sim", "bisim", "ldsimalt", "noopsim", "qpos-10", "qtrade-10", "qrel-10", "qual-10"]:
-    add_config("journal1-atomic", [heuristic, sim, "atomic", sh, pruning_type])
+    add_config("journal1-atomic", ["blind", sim, "atomic", "nosh", "gen"])
 
 add_config("journal1-atomic", ["blind", "qrel", "10", "atomic", "nosh", "gensucc"])
 add_config("journal1-atomic", ["blind", "qrel", "10", "atomic", "nosh", "succ"])
 
+add_config("journal1-atomic", ["blind", "qrel", "10", "atomic", "nosh", "gensucc", "simpletau"])
+add_config("journal1-atomic", ["blind", "qrel", "10", "atomic", "nosh", "gensucc", "recurtau"])
+
+add_config("journal1-atomic", ["blind", "qrel", "10", "dfp50k", "bissh", "gensucc", "simpletau"])
+add_config("journal1-atomic", ["blind", "qrel", "10", "dfp50k", "bissh", "gensucc", "recurtau"])
+
 for trval in [0, 1, 100, 1000]:
-    add_config("journal1-atomic", [heuristic, "qrel", trval, "atomic", sh, pruning_type])
+    add_config("journal1-atomic", ["blind", "qrel", trval, "atomic", "nosh", pruning_type])
 
+for sh in ["nosh", "bissh"]:
+    for sim in ["sim", "bisim", "ldsimalt", "noopsim", "qpos-10", "qtrade-10", "qrel-10", "qual-10"]:
+        add_config("journal1-nonatomic", ["blind", sim, "dfp50k", sh, "gen"])
 
-for sim in ["sim", "bisim", "ldsimalt", "noopsim", "qpos-10", "qtrade-10", "qrel-10", "qual-10"]:
-    add_config("journal1-nonatomic", [heuristic, sim, "dfp50k", sh, pruning_type])
-
-for sim in ["bisim", "ldsimalt", "qrel-10"]:
-    add_config("journal1-nonatomic", [heuristic, sim, "dfp50k", "bissh", pruning_type])
-
-add_config("journal1-nonatomic", ["blind", "qrel", "10", "dfp50k", "nosh", "gensucc"])
-add_config("journal1-nonatomic", ["blind", "qrel", "10", "dfp50k", "nosh", "succ"])
+        add_config("journal1-nonatomic", ["blind", "qrel", "10", "dfp50k", sh, "gensucc"])
+        add_config("journal1-nonatomic", ["blind", "qrel", "10", "dfp50k", sh, "succ"])
 
 
 

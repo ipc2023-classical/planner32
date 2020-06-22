@@ -20,7 +20,7 @@ template<typename T> class TauDistances;
 
 template <typename T> 
 class TauLabels {
-    int num_tau_labels;
+    int num_tau_labels_for_some, num_tau_labels_for_all;
     std::vector<T> original_cost;
     
     //The cost of applying a tau label may be higher than the cost of the label since it
@@ -39,7 +39,7 @@ public:
                                  const std::vector<std::unique_ptr<TauDistances<T>>> & tau_distances) ;
 
     bool empty() const{
-	return num_tau_labels == 0;
+	return num_tau_labels_for_some == 0;
     }
 
     std::set<int> add_noop_dominance_tau_labels(const NumericLabelRelation<T> & label_dominance);
@@ -64,6 +64,7 @@ public:
 	if(tau_label_cost[lts].empty()) {
 	    tau_label_cost[lts].resize(original_cost.size(), 0);
 	}
+        assert (tau_cost >= 0);
 	tau_label_cost[lts][label] = tau_cost;
     }  
     

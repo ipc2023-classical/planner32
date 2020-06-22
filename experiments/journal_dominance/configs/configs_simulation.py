@@ -28,7 +28,7 @@ numeric_pruning_types = {"parsucc" : "prune_successors=true, prune_dominated_by_
                          "par" : "prune_successors=false, prune_dominated_by_parent=true, prune_dominated_by_closed=false, prune_dominated_by_open=false", 
                          "exp" : "prune_successors=false, prune_dominated_by_parent=false, prune_dominated_by_closed=true, prune_dominated_by_open=false",
                          "gen" : "prune_successors=false, prune_dominated_by_parent=false, prune_dominated_by_closed=false, prune_dominated_by_open=true",
-                         "gensucc" : "prune_successors=true, prune_dominated_by_parent=false, prune_dominated_by_closed=false, prune_dominated_by_open=true",
+                         "gensucc" : "prune_successors=true, prune_dominated_by_parent=true, prune_dominated_by_closed=false, prune_dominated_by_open=true",
                          "succ" : "prune_successors=true, prune_dominated_by_parent=false, prune_dominated_by_closed=false, prune_dominated_by_open=false"     
 }
 

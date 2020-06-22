@@ -45,6 +45,7 @@ void NumericSimulationRelation<T>::init_goal_respecting() {
 	    relation[s][t] = goal_distances[t] - goal_distances[s];
 	}
     }
+    tau_distances_id = 0;
 }
 
 
@@ -72,6 +73,7 @@ void NumericSimulationRelation<IntEpsilon>::init_goal_respecting() {
 	    // }
 	}
     }
+    tau_distances_id = 0;
 }
 
 template <typename T>
@@ -296,6 +298,7 @@ int NumericSimulationRelation<T>::update_pair (int lts_id, const LabelledTransit
     assert (s != t && may_simulate(t, s)) ;
     
     T lower_bound = tau_distances.minus_shortest_path(t,s);
+
     T previous_value = q_simulates(t, s);
     
     // cout << "prev: " << previous_value << endl;
@@ -316,8 +319,8 @@ int NumericSimulationRelation<T>::update_pair (int lts_id, const LabelledTransit
 	    for(int tr_s_label : lts->get_labels(trs.label_group)) {
 		T max_value = std::numeric_limits<int>::lowest();
 		for (int t2 : tau_distances.states_reachable_from(t)) {
-		    T tau_distance = tau_distances.minus_shortest_path(t, t2);			    
-
+		    T tau_distance = tau_distances.minus_shortest_path(t, t2);
+                    
 		    max_value = max(max_value, 
 				    compare_noop(lts_id, trs.target, tr_s_label, t2, tau_distance, label_dominance));
 
@@ -410,6 +413,7 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 
 
     const auto & tau_distances = tau_labels->get_tau_distances(lts_id);
+   
     int new_tau_distances_id = tau_distances.get_id();
     if(new_tau_distances_id != tau_distances_id) { //recompute_goal_respecting
 	tau_distances_id = new_tau_distances_id;
@@ -426,7 +430,8 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 	    }
 	}
     }
-   
+
+  
 
     Timer timer;
 
@@ -453,8 +458,9 @@ int NumericSimulationRelation<T>::update (int lts_id, const LabelledTransitionSy
 	    }
 	}
     }
-    
+        
     return num_iterations;
+
     
     // for (int s = 0; s < lts->size(); s++) {	
     // 	cout << g_fact_names[lts_id][s] << endl;
@@ -641,12 +647,12 @@ void NumericSimulationRelation<T>::precompute_bdds(bool dominating, bool quantif
 	
     } else {
 	if(dominating) {
-	    cout << "Precomputing dominating_bdd_maps ... " << endl;
+	    //cout << "Precomputing dominating_bdd_maps ... " << endl;
 
 	    dominating_bdd_maps.resize(abs->size());
 	    may_dominating_bdds.resize(abs->size(), vars->zeroBDD()); 
 	}else {
-	    cout << "Precomputing dominated_bdd_maps ... " << endl;
+	    //cout << "Precomputing dominated_bdd_maps ... " << endl;
 
 	    dominated_bdd_maps.resize(abs->size());
 	    may_dominated_bdds.resize(abs->size(), vars->zeroBDD());
