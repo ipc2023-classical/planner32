@@ -41,7 +41,7 @@ import subprocess\n\
 import suites\n\
 \n\
 from lab.steps import Step\n\
-from downward.checkouts import Translator, Preprocessor, Planner\n\
+from downward.checkouts import TranslatorGit, PreprocessorGit, PlannerGit\n\
 from downward.experiment import DownwardExperiment\n\
 from downward.reports.absolute import AbsoluteReport\n\
 \n\
@@ -59,7 +59,7 @@ ATTRIBUTES = ['search_time', 'reopened', 'memory', 'evaluations', 'total_time', 
 \n\
 LIMITS={'search_time': 1800,  'search_memory' : 4096}\n\
 \n\
-COMBINATIONS = [(Translator(repo=REPO), Preprocessor(repo=REPO), Planner(repo=REPO, rev=REVISION))]\n\
+COMBINATIONS = [(TranslatorGit(repo=REPO), PreprocessorGit(repo=REPO), PlannerGit(repo=REPO, rev=REVISION))]\n\
 \n\
 exp = DownwardExperiment(path=EXPPATH, repo=REPO, environment=ENV, combinations=COMBINATIONS, limits=LIMITS, cache_dir='/mnt/data_server/torralba/dominance-journal/lab-data/')\n\
 \n\
