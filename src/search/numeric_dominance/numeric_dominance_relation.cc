@@ -37,7 +37,7 @@ std::unique_ptr<NumericSimulationRelation<T>>
 NumericDominanceRelation<T>::init_simulation (Abstraction * _abs){
     auto res = make_unique<NumericSimulationRelation<T>> (_abs, truncate_value, tau_labels);
     res->init_goal_respecting();
-    return std::move (res);
+    return res;
 }
 
 template <typename T> 

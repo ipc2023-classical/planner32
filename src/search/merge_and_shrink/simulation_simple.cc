@@ -93,7 +93,7 @@ template <typename LR>
 std::unique_ptr<SimulationRelation> DominanceRelationSimple<LR>::init_simulation (Abstraction * _abs){
     std::unique_ptr<SimulationRelation> res (new SimulationRelation(_abs));
     res->init_goal_respecting();
-    return std::move (res);
+    return res;
 }
 
 template <typename LR> 
@@ -104,7 +104,7 @@ DominanceRelationSimple<LR>::init_simulation_incremental (CompositeAbstraction *
     
     std::unique_ptr<SimulationRelation> res (new SimulationRelation(_abs));
     res->init_incremental(_abs, simrel_one, simrel_two);
-    return std::move (res);
+    return res;
 }
 
 

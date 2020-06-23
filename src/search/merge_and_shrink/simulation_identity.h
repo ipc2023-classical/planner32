@@ -18,7 +18,7 @@ class DominanceRelationIdentity : public DominanceRelationLR<LR> {
 	std::unique_ptr<SimulationRelation> simrel = 
 	    std::unique_ptr<SimulationRelation> (new SimulationRelation(_abs));
 	simrel->init_identity ();
-	return std::move(simrel);
+	return simrel;
     }
 
     virtual std::unique_ptr<SimulationRelation> 
