@@ -230,4 +230,27 @@ eval.add_function(fix_error)
 eval.add_function(set_algorithm_prop)
 
 
+
+def parse_layers (content, props):
+
+    regexp = re.compile("f = (?P<f_value>(\d+)) \[(?P<evaluated>(\d+)) evaluated, (?P<expanded>(\d+)) expanded, [(?P<pruned>(\d+)) pruned, ]*t=(?P<time>(.*))s, (?P<peak_memory>(\d+)) KB\]")
+
+    for l in content.split("\n"):
+
+        mx = regexp.match(l)
+        if mx:
+            data = mx.groupdict()
+            if "f_layers" not in props:
+                props["f_layers"] = []
+            for d in data:
+                if d == "time":
+                    data[d] = float(data[d])
+                else:
+                    data[d] = int(data[d])
+            props["f_layers"].append(data)
+
+    
+eval.add_function(parse_layers)
+
+
 eval.parse()
