@@ -5,7 +5,7 @@ import sys
 
 from collections import defaultdict
 
-REVISION = "b8c6b2b7216a7ecebe8b0477cabe1b27058d9386"
+REVISION = "af06992f57fb545b3f82e5daa7713bc218e3e45f"
 SERVERS = "old_servers" 
 
 def add_config(CONFIG_NAME, config_list, revision = REVISION, servers = SERVERS):
