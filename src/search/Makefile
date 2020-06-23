@@ -407,7 +407,7 @@ endif # LP code
 CUDD_ROOT = cudd-3.0.0/cudd/.libs/libcudd.a
 
 $(CUDD_ROOT):
-	cd cudd-3.0.0 && aclocal && automake --add-missing && autoconf && ./configure --enable-obj --build=i686-pc-linux-gnu "CFLAGS=-m32 -Wall -Wextra -g -O3" "CXXFLAGS=-m32 -Wall -Wextra -std=c++0x -g -O3" "LDFLAGS=-m32" && make && make cplusplus
+	cd cudd-3.0.0 && aclocal && automake --add-missing && autoconf && ./configure --enable-obj --enable-static --build=i686-pc-linux-gnu "CFLAGS=-m32 -Wall -Wextra -g -O3" "CXXFLAGS=-m32 -Wall -Wextra -std=c++0x -g -O3" "LDFLAGS=-m32" && make && make cplusplus
 
 
 
