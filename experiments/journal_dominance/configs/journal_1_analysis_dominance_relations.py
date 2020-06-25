@@ -6,7 +6,7 @@ import sys
 from collections import defaultdict
 
 REVISION_OLD = "05a2f1687ac7"
-REVISION = "af06992f57fb545b3f82e5daa7713bc218e3e45f"
+REVISION = "ec11c019d0fc0f4a1ce8b3dd78e57afb2ac356f6"
 
 SERVERS = "old_servers" 
 
