@@ -34,6 +34,14 @@ for sim in ["qpos-10", "qtrade-10", "qrel-10", "qual-10"]:
 add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gensucc"])
 add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "succ"])
 
+
+
+add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gen", "simpletau"])
+add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gen", "recurtau"])
+
+add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gen", "simpletau"])
+add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gen", "recurtau"])
+
 add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gensucc", "simpletau"])
 add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gensucc", "recurtau"])
 
