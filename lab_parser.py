@@ -25,7 +25,8 @@ regexps = [re.compile("Compute LDSim on (?P<lts_num>(\d+)) LTSs. Total size: (?P
            re.compile('Only Simulations: (?P<only_simulations>(\d+))'),
            re.compile('Similarity equivalences: (?P<similarity_equivalences>(\d+))'),
            re.compile('Completed preprocessing: (?P<time_completed_preprocessing>(.*))'),
-           re.compile('Simulations Found in (?P<num_variables_with_positive_dominance>(\d+)) out of (?P<total_num_variables>(\d+)) variables')
+           re.compile('Simulations Found in (?P<num_variables_with_positive_dominance>(\d+)) out of (?P<total_num_variables>(\d+)) variables'),
+           re.compile('Computed tau labels .*: (?P<tau_labels_all>(\d+)) : (?P<tau_labels_some>(\d+)) / (?P<total_labels>(\d+))')
 
 ]
 
@@ -43,7 +44,8 @@ type_atr = {'dead_ops_by_labels' : int, 'perc_dead_ops_by_labels' : float, 'orig
             'dom_inserted_before_first_pruned' : int,  'dom_checked_before_first_pruned' : int,
             'time_ldsim' : lambda x : max(0.01, float(x)),
             'time_completed_preprocessing' : lambda x : max(0.01, float(x)),
-            'total_num_variables' : int, 'num_variables_with_positive_dominance' : int
+            'total_num_variables' : int, 'num_variables_with_positive_dominance' : int,
+            'tau_labels_all' : int, 'tau_labels_some' : int, 'total_labels' : int,
         }
 
 def parse_regexps (content, props):
