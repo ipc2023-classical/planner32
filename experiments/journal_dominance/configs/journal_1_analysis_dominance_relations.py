@@ -36,17 +36,17 @@ add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "succ"])
 
 
 
-add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gen", "simpletau"])
-add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gen", "recurtau"])
+# add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gen", "fulltau"])
+# add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gen", "recurtau"])
 
-add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gen", "simpletau"])
-add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gen", "recurtau"])
+# add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gen", "fulltau"])
+# add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gen", "recurtau"])
 
-add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gensucc", "simpletau"])
-add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gensucc", "recurtau"])
+# add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gensucc", "fulltau"])
+# add_config("journal1-atomic", ["blind", "qrel-10", "atomic", "nosh", "gensucc", "recurtau"])
 
-add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gensucc", "simpletau"])
-add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gensucc", "recurtau"])
+# add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gensucc", "fulltau"])
+# add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", "bissh", "gensucc", "recurtau"])
 
 for trval in [0, 1, 100, 1000]:
     add_config("journal1-atomic", ["blind", "qrel", trval, "atomic", "nosh", "gen"])
