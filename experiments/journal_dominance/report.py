@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2
 
 """Solve some tasks with A* and the LM-Cut heuristic."""
 
@@ -11,7 +11,7 @@ from lab.environments import OracleGridEngineEnvironment
 from lab.steps import Step
 from downward.suites import *
 from downward.configs import *
-from downward.experiment import DownwardExperiment
+from lab.experiment import Experiment
 from downward.reports.absolute import AbsoluteReport
 
 
@@ -34,14 +34,16 @@ REP_NAME = 'report-{}'.format(NAME)
 
 EXPPATH = 'reports/' + REP_NAME
 
-exp = DownwardExperiment(path=EXPPATH, repo=REPO, environment=ENV, limits=LIMITS)
-exp.add_suite(SUITE)
+exp = Experiment(path=EXPPATH, environment=ENV)
+#exp.add_suite(SUITE)
 
 for config in configs.get_configs(NAME):
 #         config.revision
         EXPPATH = '/mnt/data_server/torralba/dominance-journal/results/{}/{}/{}'.format(config.machines, config.revision, config.folder)
+
+        if os.path.isdir(EXPPATH):
         #exp.add_fetcher(EXPPATH, parsers=[PARSER])
-        exp.add_fetcher(EXPPATH)
+                exp.add_fetcher(EXPPATH)
 
 # Make a report containing absolute numbers (this is the most common report).
 report = os.path.join(exp.eval_dir, 'report.html')

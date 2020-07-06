@@ -72,3 +72,9 @@ src/validate
 src/xxx_nosucc
 src/yyy
 *~
+src/search/cudd-3.0.0/Doxyfile
+src/search/cudd-3.0.0/Makefile.in
+src/search/cudd-3.0.0/aclocal.m4
+src/search/cudd-3.0.0/autom4te.cache/
+src/search/cudd-3.0.0/configure
+src/search/cudd-3.0.0/html/
