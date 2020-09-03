@@ -7,7 +7,7 @@ from collections import defaultdict
 
 REVISION_OLD = "05a2f1687ac7"
 REVISION = "ec11c019d0fc0f4a1ce8b3dd78e57afb2ac356f6"
-REVISION_TIE_BREAKING = "ec11c019d0fc0f4a1ce8b3dd78e57afb2ac356f6"
+REVISION_TIE_BREAKING = "284e65fbd1240c26db33c75773df4d85c3e60885"
 
 SERVERS = "old_servers" 
 
