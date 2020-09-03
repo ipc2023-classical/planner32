@@ -97,7 +97,7 @@ if __name__ == '__main__':
   
     if (not folder.endswith('/')):
         folder = folder + '/'
-    print "writing lab scripts to this subfolder: " + folder
+    print ("writing lab scripts to this subfolder: " + folder)
     try:
         os.makedirs(folder)
     except OSError as exc:
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         else: raise
     CONFIGS_TO_PROCESS = configs.get_configs(experiment)
     for config in CONFIGS_TO_PROCESS:
-        print config
+
         data = get_script(config)
 
         EXPPATH = '/mnt/data_server/torralba/dominance-journal/results/{}/{}/{}'.format(config.machines, config.revision, config.folder)
@@ -116,4 +116,4 @@ if __name__ == '__main__':
         with open(name, "w") as file:
             file.write(data)
             call(["chmod", "+x", name])
-            print "successfully written " + name 
+            # print "successfully written " + name 

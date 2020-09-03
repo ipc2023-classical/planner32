@@ -7,6 +7,7 @@ from collections import defaultdict
 
 REVISION_OLD = "05a2f1687ac7"
 REVISION = "ec11c019d0fc0f4a1ce8b3dd78e57afb2ac356f6"
+REVISION_TIE_BREAKING = "ec11c019d0fc0f4a1ce8b3dd78e57afb2ac356f6"
 
 SERVERS = "old_servers" 
 
@@ -16,6 +17,13 @@ def add_config(CONFIG_NAME, config_list, revision = REVISION, servers = SERVERS)
         CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', revision, servers))
     else:
         CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', revision, servers))
+
+def add_config_tie_breaking(CONFIG_NAME, config_list, revision = REVISION, servers = SERVERS):
+    config = "-".join(map(str, config_list))
+    if len(config.split("-")) == 5: 
+        CONFIGS[CONFIG_NAME].append(configs.Config(config + "-tie" , config+ "-tie", get_simulation_config(config, tie_breaking_by_g=True), 'optimal', revision, servers))
+    else:
+        CONFIGS[CONFIG_NAME].append(configs.Config(config + "-tie", config + "-tie", get_numeric_simulation_config(config, tie_breaking_by_g=True), 'optimal', revision, servers))
 
 # Experiment #1: simulation type and pruning types
 # merge_strategies = ["atomic", "dfp50k"]
@@ -68,4 +76,9 @@ for sim in ["bisim", "ldsimalt", "qrel-10"]:
 
 add_config("journal2-heuristic", ["lmcut", "qrel-10", "atomic", "bissh", "gensucc"])
 add_config("journal2-heuristic", ["lmcut", "qrel-10", "dfp50k", "bissh", "gensucc"])
- 
+
+
+add_config("tie-breaking-analysis", ["hmax", "ldsimalt", "atomic", "nosh", "gen"], revision = REVISION_TIE_BREAKING)
+add_config("tie-breaking-analysis", ["hmax", "ldsimalt", "dfp50k", "bissh", "gen"], revision = REVISION_TIE_BREAKING)
+add_config_tie_breaking("tie-breaking-analysis", ["lmcut", "ldsimalt", "atomic", "nosh", "gen"], revision = REVISION_TIE_BREAKING)
+add_config_tie_breaking("tie-breaking-analysis", ["lmcut", "ldsimalt", "dfp50k", "bissh", "gen"], revision = REVISION_TIE_BREAKING)

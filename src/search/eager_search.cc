@@ -447,6 +447,10 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
             "uses the abstraction constructed for pruning as a heuristic", "false");
     parser.add_option<bool>("disable_pruning",
             "disables pruning and uses only the heuristic", "false");
+
+    parser.add_option<bool>("tie_breaking_by_g",
+                            "changes the default tie-breaking of astar to break ties by g-value", "false");
+
     parser.add_option<PruneHeuristic *>("prune", "prune heuristic", "", OptionFlags(false));
 
     SearchEngine::add_options_to_parser(parser);
@@ -476,7 +480,11 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
         // use eval for tiebreaking
         std::vector<ScalarEvaluator *> evals;
         evals.push_back(f_eval);
-        evals.push_back(eval);
+        if (opts.get<bool>("tie_breaking_by_g")) {
+            evals.push_back(g);
+        } else{
+            evals.push_back(eval);
+        }
         OpenList<StateID> *open = \
                 new TieBreakingOpenList<StateID>(evals, false, false);
 

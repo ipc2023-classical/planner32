@@ -1,5 +1,5 @@
 
-heuristics = {"lmcut" : "lmcut()", "blind" : "blind()"}
+heuristics = {"lmcut" : "lmcut()", "blind" : "blind()", "hmax" : "hmax()"}
 
 def pruning_dds (h, ptype):
     if h == "blind" and ptype != "gen":
@@ -115,7 +115,7 @@ def get_optionals_prune(opt):
 
 
 
-def get_simulation_config (s):
+def get_simulation_config (s, tie_breaking_by_g = False):
     parts = s.split("-")
     h, simtype, merge, shrink, ptype, opt = parts[0], parts[1], parts[2], parts[3], parts[4],  parts[5:]
 
@@ -132,12 +132,16 @@ def get_simulation_config (s):
     simulation_params = ", ".join( ["pruning_dd=%s" % pruning_dd, "pruning_type=%s" %  pruning_type] + optional_pr  )
     config_pruning = "prune=simulation(%s, abs=builder_massim(%s))" % (simulation_params, builder_params)
 
-    config = "astar(%s, %s)" % (heuristic, config_pruning)
+    if tie_breaking_by_g:
+        config = "astar(%s, %s, tie_breaking_by_g=true)" % (heuristic, config_pruning)
+    else:
+        config = "astar(%s, %s)" % (heuristic, config_pruning)
+
     return config
 
 
 
-def get_numeric_simulation_config (s):
+def get_numeric_simulation_config (s, tie_breaking_by_g = False):
     parts = s.split("-")
     h, simtype, trval, merge, shrink, ptype, opt = parts[0], parts[1], parts[2], parts[3], parts[4],  parts[5], parts[6:]
 
@@ -163,6 +167,10 @@ def get_numeric_simulation_config (s):
     
     config_pruning = "prune=num_simulation({simulation_params}, truncate_value={trval}, abs=builder_massim({builder_params}))".format(**locals())
 
-    config = "astar(%s, %s)" % (heuristic, config_pruning)
+    if tie_breaking_by_g:
+        config = "astar(%s, %s, tie_breaking_by_g=true)" % (heuristic, config_pruning)
+    else:
+        config = "astar(%s, %s)" % (heuristic, config_pruning)
+
     return config
 
