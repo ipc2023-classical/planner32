@@ -82,3 +82,8 @@ add_config("tie-breaking-analysis", ["hmax", "ldsimalt", "atomic", "nosh", "gen"
 add_config("tie-breaking-analysis", ["hmax", "ldsimalt", "dfp50k", "bissh", "gen"], revision = REVISION_TIE_BREAKING)
 add_config_tie_breaking("tie-breaking-analysis", ["lmcut", "ldsimalt", "atomic", "nosh", "gen"], revision = REVISION_TIE_BREAKING)
 add_config_tie_breaking("tie-breaking-analysis", ["lmcut", "ldsimalt", "dfp50k", "bissh", "gen"], revision = REVISION_TIE_BREAKING)
+
+add_config_tie_breaking("tie-breaking-analysis", ["hmax", "ldsimalt", "atomic", "nosh", "gen"], revision = REVISION_TIE_BREAKING)
+add_config_tie_breaking("tie-breaking-analysis", ["hmax", "ldsimalt", "dfp50k", "bissh", "gen"], revision = REVISION_TIE_BREAKING)
+add_config("tie-breaking-analysis", ["lmcut", "ldsimalt", "atomic", "nosh", "gen"], revision = REVISION_TIE_BREAKING)
+add_config("tie-breaking-analysis", ["lmcut", "ldsimalt", "dfp50k", "bissh", "gen"], revision = REVISION_TIE_BREAKING)

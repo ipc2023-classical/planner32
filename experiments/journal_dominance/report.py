@@ -27,7 +27,7 @@ REPO = '/mnt/data_server/torralba/dominance-journal/fd_simulation/'
 PARSER = REPO + '/lab_parser.py'
 
 LIMITS={'search_time': 1800,  'search_memory' : 4096}
-ATTRIBUTES = ['cost', 'unsolvable', 'coverage', 'expansions', 'expansions_until_last_jump', 'evaluations', 'memory', 'last_logged_time', 'total_simulation_time', 'total_time', 'search_time', 'pruned', 'time_numeric_ldsimulation', 'action_selection_rules', 'search_restarts', 'pruned_states', 'action_selection_rules']
+ATTRIBUTES = ['cost', 'unsolvable', 'coverage', 'expansions', 'expansions_until_last_jump', 'evaluations', 'memory', 'last_logged_time', 'total_simulation_time', 'total_time', 'search_time', 'pruned', 'time_numeric_ldsimulation', 'action_selection_rules', 'search_restarts', 'pruned_states', 'action_selection_rules', 'tau_labels_all', 'tau_labels_some']
 SUITE = suite_satisficing_strips_with_ipc14()
 
 REP_NAME = 'report-{}'.format(NAME)
@@ -42,7 +42,7 @@ for config in configs.get_configs(NAME):
         EXPPATH = '/mnt/data_server/torralba/dominance-journal/results/{}/{}/{}'.format(config.machines, config.revision, config.folder)
 
         if os.path.isdir(EXPPATH):
-        #exp.add_fetcher(EXPPATH, parsers=[PARSER])
+                #exp.add_fetcher(EXPPATH, parsers=[PARSER])
                 exp.add_fetcher(EXPPATH)
 
 # Make a report containing absolute numbers (this is the most common report).

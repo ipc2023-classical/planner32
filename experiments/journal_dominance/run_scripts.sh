@@ -26,6 +26,6 @@ for file in "${FOLDER}"*
 do
     if [ "${file: -3}" == ".py"  ]
       then
-        ${file} ${STEP}
+          python2 ${file} ${STEP}
     fi
 done
