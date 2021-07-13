@@ -8,19 +8,20 @@ from collections import defaultdict
 REVISION_OLD = "05a2f1687ac7"
 REVISION = "ec11c019d0fc0f4a1ce8b3dd78e57afb2ac356f6"
 REVISION_TIE_BREAKING = "284e65fbd1240c26db33c75773df4d85c3e60885"
+REVISION_TAU_LABEL = "e474504c3717273a685b639d933ed91c7cfff0c6"
 
-SERVERS = "old_servers" 
+SERVERS = "old_servers"
 
 def add_config(CONFIG_NAME, config_list, revision = REVISION, servers = SERVERS):
     config = "-".join(map(str, config_list))
-    if len(config.split("-")) == 5: 
+    if len(config.split("-")) == 5:
         CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_simulation_config(config), 'optimal', revision, servers))
     else:
         CONFIGS[CONFIG_NAME].append(configs.Config(config, config, get_numeric_simulation_config(config), 'optimal', revision, servers))
 
 def add_config_tie_breaking(CONFIG_NAME, config_list, revision = REVISION, servers = SERVERS):
     config = "-".join(map(str, config_list))
-    if len(config.split("-")) == 5: 
+    if len(config.split("-")) == 5:
         CONFIGS[CONFIG_NAME].append(configs.Config(config + "-tie" , config+ "-tie", get_simulation_config(config, tie_breaking_by_g=True), 'optimal', revision, servers))
     else:
         CONFIGS[CONFIG_NAME].append(configs.Config(config + "-tie", config + "-tie", get_numeric_simulation_config(config, tie_breaking_by_g=True), 'optimal', revision, servers))
@@ -66,7 +67,6 @@ for sh in ["nosh", "bissh"]:
     for sim in ["qpos-10", "qtrade-10", "qrel-10", "qual-10"]:
         add_config("journal1-nonatomic", ["blind", sim, "dfp50k", sh, "gen"])
 
-
     add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", sh, "gensucc"])
     add_config("journal1-nonatomic", ["blind", "qrel-10", "dfp50k", sh, "succ"])
 
@@ -82,3 +82,9 @@ add_config("tie-breaking-analysis", ["hmax", "ldsimalt", "atomic", "nosh", "gen"
 add_config("tie-breaking-analysis", ["hmax", "ldsimalt", "dfp50k", "bissh", "gen"], revision = REVISION_TIE_BREAKING)
 add_config_tie_breaking("tie-breaking-analysis", ["lmcut", "ldsimalt", "atomic", "nosh", "gen"], revision = REVISION_TIE_BREAKING)
 add_config_tie_breaking("tie-breaking-analysis", ["lmcut", "ldsimalt", "dfp50k", "bissh", "gen"], revision = REVISION_TIE_BREAKING)
+
+
+
+for tay in ["fulltau", "selflooptau", "recurtau,"c d""]:
+    add_config("tau-label-analysis", ["blind", "qrel", "atomic", "nosh", "gen"], revision = REVISION_TAU_LABEL)
+    add_config("tau-label-analysis", ["blind", "qrel", "dfp50k", "bishsh", "gen"], revision = REVISION_TAU_LABEL)
