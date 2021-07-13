@@ -85,6 +85,6 @@ add_config_tie_breaking("tie-breaking-analysis", ["lmcut", "ldsimalt", "dfp50k",
 
 
 
-for tay in ["fulltau", "selflooptau", "recurtau,"c d""]:
-    add_config("tau-label-analysis", ["blind", "qrel", "atomic", "nosh", "gen"], revision = REVISION_TAU_LABEL)
-    add_config("tau-label-analysis", ["blind", "qrel", "dfp50k", "bishsh", "gen"], revision = REVISION_TAU_LABEL)
+for tau in ["fulltau", "selflooptau", "recurtau", "irrtau"]:
+    add_config("tau-label-analysis", ["blind", "qrel", "atomic", "nosh", "gen", tau], revision = REVISION_TAU_LABEL)
+    add_config("tau-label-analysis", ["blind", "qrel", "dfp50k", "bishsh", "gen", tau], revision = REVISION_TAU_LABEL)
