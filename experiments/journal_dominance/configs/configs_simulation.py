@@ -143,6 +143,7 @@ def get_simulation_config (s, tie_breaking_by_g = False):
 
 def get_numeric_simulation_config (s, tie_breaking_by_g = False):
     parts = s.split("-")
+    print(parts)
     h, simtype, trval, merge, shrink, ptype, opt = parts[0], parts[1], parts[2], parts[3], parts[4],  parts[5], parts[6:]
 
     heuristic = heuristics [h]
