@@ -18,21 +18,21 @@ template<typename T> class TauDistances;
 
 
 
-template <typename T> 
+template <typename T>
 class TauLabels {
     int num_tau_labels_for_some, num_tau_labels_for_all;
     std::vector<T> original_cost;
-    
+
     //The cost of applying a tau label may be higher than the cost of the label since it
     //may require executing other tau label moves in different transition systems.
-    std::vector<int> label_relevant_for; 
-    std::vector<std::vector<T> > tau_label_cost; 
+    std::vector<int> label_relevant_for;
+    std::vector<std::vector<T> > tau_label_cost;
 
     std::vector<std::vector<int>> tau_labels;
 
 public:
-    TauLabels(int num_ltss) : tau_labels(num_ltss) {}
-    TauLabels(const std::vector<LabelledTransitionSystem *> & lts, const LabelMap & label_map);
+    // TauLabels(int num_ltss) : tau_labels(num_ltss) {}
+    TauLabels(const std::vector<LabelledTransitionSystem *> & lts, const LabelMap & label_map, bool self_loops);
 
     std::set<int>
 	add_recursive_tau_labels(const std::vector<LabelledTransitionSystem *> & lts,
@@ -47,7 +47,7 @@ public:
     int size (int lts) const {
 	return tau_labels[lts].size();
     }
-    
+
     const std::vector<int> & get_tau_labels (int lts) const {
 	return tau_labels[lts];
     }
@@ -59,27 +59,27 @@ public:
 	}
 	return tau_label_cost[lts][label] + original_cost[label];
     }
-    
+
     void set_tau_cost (int lts, int label, T tau_cost) {
 	if(tau_label_cost[lts].empty()) {
 	    tau_label_cost[lts].resize(original_cost.size(), 0);
 	}
         assert (tau_cost >= 0);
 	tau_label_cost[lts][label] = tau_cost;
-    }  
-    
-        
+    }
+
+
     std::vector<std::vector<int>> & get_data () {
 	return tau_labels;
     }
 
-    template <typename F> 
+    template <typename F>
 	void erase (int lts_id, F lambda) {
 	erase_if(tau_labels[lts_id], lambda);
     }
     };
 
-template <typename T> 
+template <typename T>
 class TauDistances {
     int id;
     int num_tau_labels;
@@ -87,7 +87,7 @@ class TauDistances {
     std::vector<T> goal_distances_with_tau;
     std::vector<std::vector<int> > reachable_with_tau;
     //std::vector<int> max_cost_reach_from_with_tau, max_cost_reach_with_tau;
-    T cost_fully_invertible; 
+    T cost_fully_invertible;
      // List of states for which distances_with_tau is not infinity
 public:
 TauDistances() :
@@ -109,8 +109,8 @@ TauDistances() :
 	assert(to < distances_with_tau[from].size());
 	assert((from != to && distances_with_tau[from][to] > 0) ||
 	       (from == to && distances_with_tau[from][to] == 0));
-	return distances_with_tau[from][to] == std::numeric_limits<int>::max() 
-	    ? std::numeric_limits<int>::lowest() 
+	return distances_with_tau[from][to] == std::numeric_limits<int>::max()
+	    ? std::numeric_limits<int>::lowest()
 	    : - distances_with_tau[from][to];
     }
 
@@ -119,14 +119,14 @@ TauDistances() :
 	assert(to < distances_with_tau[from].size());
 	assert((from != to && distances_with_tau[from][to] > 0) ||
 	       (from == to && distances_with_tau[from][to] == 0));
-	
+
 	return distances_with_tau[from][to];
     }
 
     T get_goal_distance(int s) const {
 	return goal_distances_with_tau[s];
     }
-    
+
     const std::vector<int> & states_reachable_from(int s) const {
 	return reachable_with_tau[s];
     }
@@ -138,7 +138,7 @@ TauDistances() :
     T get_cost_fully_invertible () const;
 };
 
-template<typename T> 
+template<typename T>
 class TauLabelManager {
     const bool only_reachability;
 
@@ -146,19 +146,13 @@ class TauLabelManager {
     const bool recursive;
     const bool noop_dominance;
 
-
-
-    /* const bool compute_tau_labels_as_self_loops_everywhere; */
-    /* const bool tau_label_dominance; */
-    /* std::shared_ptr<TauLabels> tau_labels_self_loop, tau_labels_noop_dominance; */
-
     std::unique_ptr<TauLabels<T>> tau_labels;
-    std::vector<std::unique_ptr<TauDistances<T>>> tau_distances;    
+    std::vector<std::unique_ptr<TauDistances<T>>> tau_distances;
 public:
     TauLabelManager (const Options & opts, bool only_reachability);
 
     void initialize(const std::vector<LabelledTransitionSystem *> & lts, const LabelMap & label_map);
-    //void initialize();   
+    //void initialize();
 
     bool add_noop_dominance_tau_labels(const std::vector<LabelledTransitionSystem *> & lts,
 				       const NumericLabelRelation<T> & label_dominance);
@@ -172,7 +166,7 @@ public:
 	assert(tau_labels);
 	return *tau_labels;
     }
-    
+
     void print_config() const;
 
     bool has_tau_labels () const {
@@ -180,7 +174,7 @@ public:
     }
 
     static void add_options_to_parser(OptionParser &parser);
-    
+
 };
 
 

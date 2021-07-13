@@ -17,7 +17,7 @@ struct LabelGroup {
 
     explicit LabelGroup(int g) : group(g) {
     }
-    
+
     LabelGroup(const LabelGroup & other) = default;
 
     bool operator==(const LabelGroup &other) const {
@@ -45,7 +45,7 @@ class LTSTransition {
  public:
   AbstractStateRef src, target;
   LabelGroup label_group;
- LTSTransition(AbstractStateRef _src, AbstractStateRef _target, LabelGroup _label) : 
+ LTSTransition(AbstractStateRef _src, AbstractStateRef _target, LabelGroup _label) :
   src(_src), target(_target), label_group(_label) {
   }
 
@@ -60,7 +60,7 @@ class LTSTransition {
   }
 
   bool operator<(const LTSTransition &other) const {
-    return src < other.src || (src == other.src && target < other.target) 
+    return src < other.src || (src == other.src && target < other.target)
       || (src == other.src && target == other.target && label_group < other.label_group);
   }
 
@@ -71,7 +71,7 @@ class LTSTransition {
 
 struct TSTransition {
     AbstractStateRef src, target;
-TSTransition(AbstractStateRef _src, AbstractStateRef _target) : 
+TSTransition(AbstractStateRef _src, AbstractStateRef _target) :
     src(_src), target(_target) {
     }
 
@@ -113,7 +113,7 @@ class LabelledTransitionSystem {
   std::vector<std::vector <TSTransition> > transitions_label_group;
 
 
-  template <typename T> 
+  template <typename T>
   inline void kill_from_vector(const T & t, std::vector <T> & v) {
       auto it = std::find(begin(v), end(v), t);
       *it = v.back();
@@ -163,7 +163,7 @@ class LabelledTransitionSystem {
     return name_states[s];
   }
 
-  int is_relevant_label(int label) const {
+  bool is_relevant_label(int label) const {
 #ifndef NDEBUG
       if (!label_group_of_label[label].dead()){
           bool relevant1 = std::find(relevant_labels.begin(), relevant_labels.end(), label) != relevant_labels.end();
@@ -176,10 +176,12 @@ class LabelledTransitionSystem {
       return std::find(relevant_labels.begin(), relevant_labels.end(), label) != relevant_labels.end();
   }
 
+    bool is_self_loop_everywhere_label(int label) const;
+
   const std::vector<int> & get_irrelevant_labels() const {
     return irrelevant_labels;
   }
-  
+
   const std::vector<int> & get_relevant_labels() const {
     return relevant_labels;
   }
@@ -190,7 +192,7 @@ class LabelledTransitionSystem {
 
   void kill_label(int l);
 
-  void kill_transition(int src, int label, int target); 
+  void kill_transition(int src, int label, int target);
 
   //For each transition labelled with l, applya a function. If returns true, applies a break
   bool applyPostSrc(int from,
@@ -209,14 +211,14 @@ class LabelledTransitionSystem {
   }
 
   int get_num_label_groups() const {
-      return label_groups.size();	
+      return label_groups.size();
   }
 
   const std::vector<LabelGroup> & get_group_of_label() const {
       return label_group_of_label;
   }
 
-  void dump() const; 
+  void dump() const;
 };
 
 #endif

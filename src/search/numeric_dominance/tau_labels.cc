@@ -20,14 +20,14 @@ using namespace std;
 
 template <typename T>
 TauLabels<T>::TauLabels(const std::vector<LabelledTransitionSystem *> & lts,
-		     const LabelMap & label_map) {
+                        const LabelMap & label_map, bool self_loops) {
     tau_labels.resize(lts.size());
     tau_label_cost.resize(lts.size());
-    
+
     int num_labels = label_map.get_num_labels();
     original_cost.resize(num_labels);
     label_relevant_for.resize(num_labels);
-    
+
     num_tau_labels_for_some = 0;
     num_tau_labels_for_all = 0;
 
@@ -38,7 +38,8 @@ TauLabels<T>::TauLabels(const std::vector<LabelledTransitionSystem *> & lts,
 
 	int transition_system_relevant = TAU_IN_ALL;
 	for (int lts_id = 0; lts_id < lts.size(); ++lts_id){
-	    if(lts[lts_id]->is_relevant_label(l)) {
+	    if((self_loops &&  !lts[lts_id]->is_self_loop_everywhere_label(l)) ||
+               (!self_loops && lts[lts_id]->is_relevant_label(l))) {
 		if(transition_system_relevant == TAU_IN_ALL) {
 		    transition_system_relevant = lts_id;
 		}else {
@@ -55,7 +56,7 @@ TauLabels<T>::TauLabels(const std::vector<LabelledTransitionSystem *> & lts,
 	}
 	label_relevant_for[l] = transition_system_relevant;
     }
-    
+
     std::cout << "Computed tau labels as self-loops everywhere: " << num_tau_labels_for_all << " : " << num_tau_labels_for_some  << " / " << num_labels << "\n";
 }
 
@@ -65,9 +66,9 @@ TauLabels<T>::add_recursive_tau_labels(const std::vector<LabelledTransitionSyste
 				    const std::vector<std::unique_ptr<TauDistances<T>>> & tau_distances) {
     int num_labels = original_cost.size();
     set<int> check_distances_of;
-    
+
     assert(lts.size() == tau_distances.size());
-    
+
     for(int l = 0; l < num_labels; l++) {
 	T total_tau_cost = 0;
 	int transition_system_relevant = TAU_IN_ALL;
@@ -91,7 +92,7 @@ TauLabels<T>::add_recursive_tau_labels(const std::vector<LabelledTransitionSyste
 		if (lts[lts_id]->is_relevant_label(l) && label_relevant_for[l] != lts_id) {
 		    tau_labels[lts_id].push_back(l);
 		    check_distances_of.insert(lts_id);
-			    
+
 		    set_tau_cost(lts_id, l, total_tau_cost -
 				 tau_distances[lts_id]->get_cost_fully_invertible());
 		}
@@ -100,7 +101,7 @@ TauLabels<T>::add_recursive_tau_labels(const std::vector<LabelledTransitionSyste
             if (label_relevant_for[l] == TAU_IN_NONE) {
                 num_tau_labels_for_some ++;
             }
-            num_tau_labels_for_all ++;            
+            num_tau_labels_for_all ++;
 	} else if (transition_system_relevant >= 0 && label_relevant_for[l] == TAU_IN_NONE) {
 	    tau_labels[transition_system_relevant].push_back(l);
 	    set_tau_cost(transition_system_relevant, l, total_tau_cost);
@@ -110,11 +111,11 @@ TauLabels<T>::add_recursive_tau_labels(const std::vector<LabelledTransitionSyste
 
 	label_relevant_for[l] = transition_system_relevant;
     }
-    
+
     std::cout << "Computed tau labels recursive: " << num_tau_labels_for_all << " : " << num_tau_labels_for_some  << " / " << num_labels << "\n";
 
     // int num_labels = original_cost.size();
-    // vector<vector<int>> ts_relevant_per_label(num_labels); 
+    // vector<vector<int>> ts_relevant_per_label(num_labels);
     // for(int l = 0; l < num_labels; l++) {
     // 	for (int lts_id = 0; lts_id < lts.size(); ++lts_id){
     // 	    if(lts[lts_id]->is_relevant_label(l)) {
@@ -131,15 +132,15 @@ TauLabels<T>::add_recursive_tau_labels(const std::vector<LabelledTransitionSyste
     // 	    for (size_t s = 0; s < lts[ts]->size(); ++s) {
     // 		int cost_s = std::numeric_limits<int>::max();
     // 		for (const auto & tr : get_transitions_label_group(lg)) {
-		    
+
     // 		    cost_s = min(cost_s,
     // 				 tau_distances.shortest_path(s, tr.first) + tau_distances.shortest_path(tr.second, s));
     // 		    if (cost_s <= cost_tau) {
     // 			break;
     // 		    }
-		    
+
     // 		}
-		
+
 
     // 		cost_tau = max(cost_tau, cost_s);
     // 		if(cost_tau ==  std::numeric_limits<int>::max()) {
@@ -149,12 +150,12 @@ TauLabels<T>::add_recursive_tau_labels(const std::vector<LabelledTransitionSyste
 
     // 	    if(cost_tau < std::numeric_limits<int>::max()) {
     // 		for (int l : lts[lts_id]->get_labels_group(lg)){
-		    
+
     // 		}
     // 	    }
-    // 	}	 
+    // 	}
     // }
-    
+
     // for(int l = 0; l < num_labels; l++) {
     // 	int extra_cost = 0;
     // 	erase_if(ts_relevant_per_label[l],
@@ -165,7 +166,7 @@ TauLabels<T>::add_recursive_tau_labels(const std::vector<LabelledTransitionSyste
 
     // 		     }
 
-    // 			 cost = max(cost, 
+    // 			 cost = max(cost,
     // 		     }
     // 		     extra_cost += cost
     // 		 });
@@ -184,7 +185,7 @@ bool TauDistances<T>::precompute(const TauLabels<T> & tau_labels,
 	return false;
     }
 
-    // //There may be no new tau labels 
+    // //There may be no new tau labels
     // assert(num_tau_labels >= tau_labels.size(lts_id));
 
     num_tau_labels = tau_labels.size(lts_id);
@@ -195,7 +196,7 @@ bool TauDistances<T>::precompute(const TauLabels<T> & tau_labels,
     // max_cost_reach_from_with_tau.resize(num_states, 0);
 
     const auto copy_distances = distances_with_tau;
-    
+
     if (only_reachability) {
 	//Create copy of the graph only with tau transitions
 	vector<vector<int> > tau_graph(num_states);
@@ -223,7 +224,7 @@ bool TauDistances<T>::precompute(const TauLabels<T> & tau_labels,
     } else {
 	//Create copy of the graph only with tau transitions
 	vector<vector<pair<int, T> > > tau_graph(num_states);
-	for (int label_no : tau_labels.get_tau_labels(lts_id)) {    
+	for (int label_no : tau_labels.get_tau_labels(lts_id)) {
 	    for (const auto & trans : lts->get_transitions_label(label_no)) {
 		if(trans.src != trans.target) {
 		    tau_graph[trans.src].push_back(make_pair(trans.target,
@@ -231,20 +232,20 @@ bool TauDistances<T>::precompute(const TauLabels<T> & tau_labels,
 		}
 	    }
 	}
-	
+
 	for(int s = 0; s < num_states; ++s) {
 	    //Perform Dijkstra search from s
 	    auto & distances = distances_with_tau [s];
 	    distances.resize(num_states);
 	    reachable_with_tau[s].clear();
 	    std::fill(distances.begin(), distances.end(), std::numeric_limits<int>::max());
-	    distances[s] = 0;	
-	    dijkstra_search_epsilon(tau_graph, s, distances, reachable_with_tau[s]);          
-		    
+	    distances[s] = 0;
+	    dijkstra_search_epsilon(tau_graph, s, distances, reachable_with_tau[s]);
+
 	}
     }
 
-    goal_distances_with_tau.resize(num_states);    
+    goal_distances_with_tau.resize(num_states);
     for(int s = 0; s < num_states; ++s) {
         goal_distances_with_tau[s] =  std::numeric_limits<int>::max();
 	for(int t = 0; t < num_states; t++) {
@@ -254,7 +255,7 @@ bool TauDistances<T>::precompute(const TauLabels<T> & tau_labels,
 	}
     }
 
-    
+
     cost_fully_invertible = 0;
 
     for(int s = 0; s < num_states; ++s) {
@@ -279,7 +280,7 @@ bool TauDistances<T>::precompute(const TauLabels<T> & tau_labels,
 // 	for(int t : reachable_with_tau [s]) {
 // 	    if(T(goal_distances[s]) > distances[t] + T(goal_distances[t])) {
 // 		cout << endl;
-// 		cout << T(goal_distances[s])  << endl; 
+// 		cout << T(goal_distances[s])  << endl;
 // 		cout << distances[t] << endl;
 // 		cout << T(goal_distances[t]) << endl;
 // 	    }
@@ -306,7 +307,7 @@ template <> IntEpsilon TauDistances<IntEpsilon>::get_cost_fully_invertible () co
 template <typename T>
 void TauLabelManager<T>::initialize(const std::vector<LabelledTransitionSystem *> & lts,
 				    const LabelMap & label_map){
-    tau_labels = make_unique<TauLabels<T>> (lts, label_map);
+    tau_labels = make_unique<TauLabels<T>> (lts, label_map, self_loops);
 
     tau_distances.resize(lts.size());
 
@@ -335,7 +336,7 @@ bool TauLabelManager<T>::add_noop_dominance_tau_labels(const std::vector<Labelle
     if (!noop_dominance) {
 	return false;
     }
-    
+
     bool some_changes = false;
     for(int ts : tau_labels->add_noop_dominance_tau_labels(label_dominance)) {
 	some_changes |= tau_distances[ts]->precompute(*tau_labels, lts[ts], ts, only_reachability && !recursive);
@@ -355,12 +356,12 @@ bool TauLabelManager<T>::add_noop_dominance_tau_labels(const std::vector<Labelle
     return some_changes;
 }
 
-template <typename T> 
+template <typename T>
 set<int> TauLabels<T>::add_noop_dominance_tau_labels(const NumericLabelRelation<T> & label_dominance) {
 
     set<int> ts_with_new_tau_labels;
     int num_ltss = tau_labels.size();
-    
+
     int num_labels = original_cost.size();
 
     std::cout << "Compute tau labels with noop dominance" << "\n";
@@ -389,7 +390,7 @@ set<int> TauLabels<T>::add_noop_dominance_tau_labels(const NumericLabelRelation<
             cout << g_operators[l].get_name()  << " is tau for all " << endl;
 
 	    label_relevant_for[l] = TAU_IN_ALL;
-	    
+
 	} else if (label_dominance.dominates_noop_in_some(l)) {
 	    int lts_id =  label_dominance.get_dominates_noop_in(l);
 	    if (label_relevant_for[l] == TAU_IN_NONE) {
@@ -418,9 +419,9 @@ template <typename T>
 TauLabelManager<T>::TauLabelManager(const Options & opts,
 				    bool only_reachability_) : \
     only_reachability(only_reachability_),
-    self_loops (opts.get<bool>("tau_labels_self_loops")), 
+    self_loops (opts.get<bool>("tau_labels_self_loops")),
     recursive (opts.get<bool>("tau_labels_recursive")),
-    noop_dominance (opts.get<bool>("tau_labels_noop")) {   
+    noop_dominance (opts.get<bool>("tau_labels_noop")) {
     // compute_tau_labels_with_noop_dominance(opts.get<bool>("compute_tau_labels_with_noop_dominance")),
     // tau_label_dominance(opts.get<bool>("tau_label_dominance")),
 }
@@ -444,7 +445,6 @@ void TauLabelManager<T>::add_options_to_parser(OptionParser &parser) {
 
 template <typename T>
 void TauLabelManager<T>::print_config() const {
-    assert(self_loops || !recursive);
     cout << "Tau labels self_loops: " << self_loops  << endl;
     cout << "Tau labels recursive: " << recursive  << endl;
     cout << "Tau labels noop: " << noop_dominance  << endl;
@@ -452,8 +452,8 @@ void TauLabelManager<T>::print_config() const {
 
 
 
-// template class TauDistances<int>; 
-// template class TauDistances<IntEpsilon>; 
+// template class TauDistances<int>;
+// template class TauDistances<IntEpsilon>;
 
-template class TauLabelManager<int>; 
-template class TauLabelManager<IntEpsilon>; 
+template class TauLabelManager<int>;
+template class TauLabelManager<IntEpsilon>;
