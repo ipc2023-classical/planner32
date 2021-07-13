@@ -3,8 +3,6 @@
 
 #include "../merge_and_shrink/label_relation.h"
 
-#include "numeric_label_relation.h"
-
 #include <iostream>
 #include <vector>
 #include "../merge_and_shrink/labels.h"
@@ -17,10 +15,10 @@ class LabelledTransitionSystem;
 template <typename T> class NumericDominanceRelation;
 template <typename T> class NumericSimulationRelation;
 
-/* 
+/*
  * Label relation represents the preorder relations on labels that
  * occur in a set of LTS
- */ 
+ */
 template <typename T>
 class NumericLabelRelation {
     Labels * labels;
@@ -44,14 +42,14 @@ class NumericLabelRelation {
     std::vector<std::vector<T> > simulates_irrelevant;
 
     /* std::shared_ptr<TauLabelManager<T>> tau_labels; */
-    
-    bool update(int i, const LabelledTransitionSystem * lts, 
+
+    bool update(int i, const LabelledTransitionSystem * lts,
 		const NumericSimulationRelation<T> & sim);
 
     inline T get_lqrel(LabelGroup lgroup1, LabelGroup lgroup2, int lts) const {
 	int pos1 = lgroup1.group;
 	int pos2 = lgroup2.group;
-	
+
 	//int pos1 = position_of_label[lts][l1];
 	//int pos2 = position_of_label[lts][l2];
 	if(pos1 >= 0) {
@@ -59,13 +57,13 @@ class NumericLabelRelation {
 		return lqrel[lts][pos1][pos2];
 	    }else {
 		return simulates_irrelevant[lts][pos1];
-	    }	  
+	    }
 	}else {
 	    if(pos2 != -1) {
 		return simulated_by_irrelevant[lts][pos2];
 	    }else {
 		return 0; //Both are irrelevant
-	    }    
+	    }
 	}
     }
 
@@ -76,7 +74,7 @@ class NumericLabelRelation {
     inline bool set_lqrel (LabelGroup lgroup1, LabelGroup lgroup2, int lts_id,
 			   const LabelledTransitionSystem * lts, T value){
 	assert(value != std::numeric_limits<int>::lowest() + 1);
-	/* assert(dominates_in.empty() || 
+	/* assert(dominates_in.empty() ||
 	   dominates_in[l1][l2] == DOMINATES_IN_ALL || dominates_in[l1][l2] != lts_id); */
 	/* int pos1 = position_of_label[lts_id][l1]; */
 	/* int pos2 = position_of_label[lts_id][l2]; */
@@ -117,7 +115,7 @@ class NumericLabelRelation {
 
     inline T get_simulated_by_irrelevant(LabelGroup lgroup, int lts) const {
 	if(!lgroup.dead()) {
-	    return simulated_by_irrelevant[lts][lgroup.group];	    
+	    return simulated_by_irrelevant[lts][lgroup.group];
 	}else {
 	    return 0;
 	}
@@ -174,10 +172,10 @@ class NumericLabelRelation {
 					 T value){
 	//std::cout << "simulates irrelevant: " << g_operators[l].get_name() << " in " << g_fact_names[lts_id][0] << ": " << value << std::endl;
 	assert(value != std::numeric_limits<int>::lowest() + 1);
-	
+
 	int pos = lgroup.group;
 	assert(pos >= 0);
-	
+
         //Returns if there were changes in dominates_noop_in
 	assert(value <= simulates_irrelevant[lts_id][pos]);
 	if(value < simulates_irrelevant[lts_id][pos]) {
@@ -249,7 +247,7 @@ public:
 	    int num_label_groups = lts[i]->get_num_label_groups();
 
 	    /* std::cout << "Relevant label groups: " << num_label_groups << "\n"; */
-	
+
 	    simulates_irrelevant[i].resize(num_label_groups, std::numeric_limits<int>::max());
 	    simulated_by_irrelevant[i].resize(num_label_groups, std::numeric_limits<int>::max());
 	    lqrel[i].resize(num_label_groups);
@@ -266,8 +264,8 @@ public:
 	std::vector<int> ().swap(dominates_noop_in);
 	dominated_by_noop_in.resize(num_labels, DOMINATES_IN_ALL);
 	dominates_noop_in.resize(num_labels, DOMINATES_IN_ALL);
-    
-	if(num_labels < num_labels_to_use_dominates_in) { // If we have more than 5000 labels, there is not enough space. 
+
+	if(num_labels < num_labels_to_use_dominates_in) { // If we have more than 5000 labels, there is not enough space.
 	    dominates_in.resize(num_labels);
 	    for (int l1 = 0; l1 < dominates_in.size(); ++l1){
 		dominates_in[l1].resize(num_labels, DOMINATES_IN_ALL);
@@ -275,11 +273,11 @@ public:
 	}
 	std::cout << "Update label dominance: " << num_labels
 		  << " labels " << lts.size() << " systems.\n";
-    
+
 	for (int i = 0; i < num_ltss; ++i){
 	    update(i, lts[i], sim[i]);
 	}
-	
+
     }
 
 
@@ -292,7 +290,7 @@ public:
     /* 	// 	if(label_dominance.get_compute_tau_labels_with_noop_dominance()) { */
     /* 	// 	    label_cost += std::min(T(0),  -label_dominance.q_dominates_noop(label_no, lts_id); */
     /* 	// 	} */
-	   
+
     /* 	std::cout << "Compute tau labels with noop dominance" << "\n"; */
     /* 	for(int l = 0; l < num_labels; l++){ */
     /* 	    if(dominates_noop_in[l] == DOMINATES_IN_ALL){ */
@@ -303,19 +301,19 @@ public:
     /* 		tau_labels[dominates_noop_in[l]].push_back(l); */
     /* 	    }  */
     /* 	} */
-	    
+
     /* } */
 
-	
-    template <typename NDR> 
+
+    template <typename NDR>
 	bool update(const std::vector<LabelledTransitionSystem*> & lts, const NDR & sim) {
 
 	bool changes = false;
-    
+
 	for (int i = 0; i < lts.size(); ++i){
 	    changes |= update(i, lts[i], sim[i]);
 	}
-	
+
 	/* if(tau_labels) { */
 	/*     for (int lts_id = 0; lts_id < lts.size(); ++lts_id) { */
 	/* 	tau_labels->get_tau_labels().erase(lts_id, */
@@ -377,7 +375,7 @@ public:
 		assert(lts_id == lts  || get_lqrel(l1, l2, lts_id) != std::numeric_limits<int>::lowest());
 	    }
 	}
-#endif	
+#endif
 	return dominates_in[l1][l2] == DOMINATES_IN_ALL || (dominates_in[l1][l2] == lts);
     }
 
@@ -401,7 +399,7 @@ public:
     T q_dominates (int l1, int l2, int lts) const {
 	if (may_dominate(l1, l2, lts)) {
 	    T total_sum = 0;
-	    
+
 	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
 		if(lts_id != lts) {
 		    assert (get_lqrel(l1, l2, lts_id) != std::numeric_limits<int>::lowest());
@@ -410,25 +408,25 @@ public:
 	    }
 
 	    assert(num_ltss > 0 || total_sum == T(0));
-    
-	    return total_sum;    
+
+	    return total_sum;
 	} else {
 	    assert(false);
 	    return std::numeric_limits<int>::lowest();
 	}
     }
-    
+
     T q_dominates_noop (int l, int lts) const{
 	if (may_dominate_noop_in(l, lts)) {
 	    T total_sum = 0;
-	    
+
 	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
 		if(lts_id != lts) {
 		    assert (get_simulates_irrelevant(group_of_label[lts_id][l], lts_id) != std::numeric_limits<int>::lowest());
 		    total_sum += get_simulates_irrelevant(group_of_label[lts_id][l], lts_id);
 		}
 	    }
-	    return total_sum;    
+	    return total_sum;
 	} else {
 	    assert(false);
 	    return std::numeric_limits<int>::lowest();
@@ -439,14 +437,14 @@ public:
     T q_dominated_by_noop (int l, int lts) const {
 	if (may_dominated_by_noop(l, lts)) {
 	    T total_sum = 0;
-	    
+
 	    for(int lts_id = 0; lts_id < num_ltss; ++lts_id) {
 		if(lts_id != lts) {
 		    assert (get_simulated_by_irrelevant(group_of_label[lts_id][l], lts_id) != std::numeric_limits<int>::lowest());
 		    total_sum += get_simulated_by_irrelevant(group_of_label[lts_id][l], lts_id);
 		}
 	    }
-	    return total_sum;    
+	    return total_sum;
 
 	} else {
 	    assert(false);
