@@ -198,7 +198,7 @@ static ShrinkStrategy *_parse(OptionParser &parser) {
 
     parser.add_option<bool>("preserve_optimality",
                             "Only consider tau transitions with 0-cost actions so that the reduction is optimallity preserving",
-                             "false");
+                             "true");
 
     Options opts = parser.parse();
     ShrinkStrategy::handle_option_defaults(opts);
