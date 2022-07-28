@@ -9,6 +9,7 @@ class Options;
 
 class ShrinkOwnLabels : public ShrinkStrategy {
     const bool perform_sg_shrinking;
+    const bool preserve_optimality;
 public:
     ShrinkOwnLabels(const Options &opts);
     virtual ~ShrinkOwnLabels();
@@ -21,7 +22,7 @@ public:
     virtual void shrink(Abstraction &abs,
 			int target, bool force = false);
     virtual void shrink_atomic(Abstraction &abs);
-    virtual void shrink_before_merge(Abstraction &abs1, 
+    virtual void shrink_before_merge(Abstraction &abs1,
 				     Abstraction &abs2);
 
     static ShrinkOwnLabels *create_default();

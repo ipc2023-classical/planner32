@@ -14,9 +14,10 @@
 #include <iostream>
 #include <limits>
 
-ShrinkOwnLabels::ShrinkOwnLabels(const Options &opts) : 
-    ShrinkStrategy(opts), 
-    perform_sg_shrinking (opts.get<bool>("goal_shrinking"))  {
+ShrinkOwnLabels::ShrinkOwnLabels(const Options &opts) :
+    ShrinkStrategy(opts),
+    perform_sg_shrinking (opts.get<bool>("goal_shrinking")),
+    preserve_optimality (opts.get<bool>("preserve_optimality"))  {
 }
 
 ShrinkOwnLabels::~ShrinkOwnLabels() {
@@ -27,8 +28,10 @@ string ShrinkOwnLabels::name() const {
 }
 
 void ShrinkOwnLabels::dump_strategy_specific_options() const {
-    cout << "Aggregate with goal states: " << 
+    cout << "Aggregate with goal states: " <<
 	(perform_sg_shrinking? "yes" : "no") << endl;
+        cout << "Preserve optimality: " <<
+            (preserve_optimality? "yes" : "no") << endl;
 }
 
 bool ShrinkOwnLabels::reduce_labels_before_shrinking() const {
@@ -74,13 +77,13 @@ void ShrinkOwnLabels::shrink(Abstraction &abs, int target, bool /*force*/) {
 
     int num_states = abs.size();
     std::vector<bool> is_goal (abs.get_goal_states());
-    
+
     /* this is a rather memory-inefficient way of implementing
        Tarjan's algorithm, but it's the best I got for now */
     vector<vector<int> > adjacency_matrix(num_states);
     int num_labels = abs.get_num_labels();
     for (int label_no = 0; label_no < num_labels; ++label_no) {
-	if (!abs.is_own_label(label_no) || abs.get_label_cost_by_index(label_no) > 0)
+	if (!abs.is_own_label(label_no) || (preserve_optimality && abs.get_label_cost_by_index(label_no) > 0))
 	    continue;
 	const vector<AbstractTransition> &transitions =
 	    abs.get_transitions_for_label(label_no);
@@ -102,7 +105,7 @@ void ShrinkOwnLabels::shrink(Abstraction &abs, int target, bool /*force*/) {
     /* perform Tarjan's algorithm for finding SCCs */
     EquivalenceRelation final_sccs;
     SCC::compute_scc_equivalence (adjacency_matrix, final_sccs, &is_goal);
-	
+
     //cout << "===========================================" << endl;
     // for (int i = 0; i < num_states; i++) {
     // 	cout << "edges from " << i << " to";
@@ -166,7 +169,7 @@ void ShrinkOwnLabels::shrink_atomic(Abstraction &abs) {
     shrink(abs, abs.size(), true);
 }
 
-void ShrinkOwnLabels::shrink_before_merge(Abstraction &abs1, 
+void ShrinkOwnLabels::shrink_before_merge(Abstraction &abs1,
 					    Abstraction &abs2) {
     shrink(abs1, abs1.size(), true);
     shrink(abs2, abs2.size(), true);
@@ -192,6 +195,10 @@ static ShrinkStrategy *_parse(OptionParser &parser) {
 			    "   (b) all goal variables are in abstraction and"
 			    "   (c) there is an own-label path from s to g",
                             "true");
+
+    parser.add_option<bool>("preserve_optimality",
+                            "Only consider tau transitions with 0-cost actions so that the reduction is optimallity preserving",
+                             "false");
 
     Options opts = parser.parse();
     ShrinkStrategy::handle_option_defaults(opts);
