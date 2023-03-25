@@ -9,16 +9,24 @@ Stage: build
 %post
     ## Install all dependencies.
     apt-get update
-    apt-get -y install --no-install-recommends cmake make g++ pypy3 automake
+    apt-get -y install --no-install-recommends cmake make g++ pypy3 automake time
+
 
     ## Clear build directory.
-    rm -rf ./builds
+    cd src
+    ./cleanup
+    cd search
+    make clean
+    cd ../preprocess
+    make clean
+    cd ..
 
     ## Build planner
-    cd src
-    ./build_all
+    ./build_all -j 4
+    cd ..
 
-    strip --strip-all src/search/downward
+    strip --strip-all src/search/downward-release
+    strip --strip-all src/preprocess/preprocess
 
 # Stage 2: Run the planner
 Bootstrap: docker
@@ -26,9 +34,10 @@ From: ubuntu:kinetic
 Stage: run
 
 %files from build
-    fast-downward.py
-    driver
-    builds/release/bin/
+    src/search/downward
+    src/search/downward-release
+    src/preprocess/preprocess
+    src/plan
 
 %post
     apt-get update
@@ -42,20 +51,12 @@ Stage: run
     PROBLEMFILE="$2"
     PLANFILE="$3"
 
-    ./plan --search', 'astar(lmcut(), prune=num_simulation(use_quantified_dominance=true, use_single_bdd=false, pruning_type=prune_successors=true, prune_dominated_by_parent=true, prune_dominated_by_closed=false, prune_dominated_by_open=true, min_desactivation_ratio=0, min_insertions=infinity, tau_labels_self_loops=false, tau_labels_recursive=false, tau_labels_noop=false, truncate_value=10, abs=builder_massim(compute_final_simulation=false, switch_off_label_dominance=infinity, merge_strategy=merge_dfp(), limit_transitions_merge=50000, limit_merge=infinity)))'])
-
-    pypy3 /fast-downward.py \
-        --plan-file "$PLANFILE" \
-        --overall-time-limit 30m \
-        "$DOMAINFILE" \
-        "$PROBLEMFILE" \
-	--search "sbd()"
-
+    ./src/plan "$DOMAINFILE" "$PROBLEMFILE" --search 'astar(lmcut(), prune=num_simulation(use_quantified_dominance=true, use_single_bdd=false, pruning_type=prune_successors=true, prune_dominated_by_parent=true, prune_dominated_by_closed=true, prune_dominated_by_open=false, min_desactivation_ratio=0.3, min_insertions=100, tau_labels_self_loops=false, tau_labels_recursive=false, tau_labels_noop=false, truncate_value=10, abs=builder_massim(compute_final_simulation=false, apply_subsumed_transitions_pruning=true, prune_dead_operators=true, store_original_operators=true, switch_off_label_dominance=5000, merge_strategy=merge_dfp(), limit_transitions_merge=10000, limit_merge=infinity)))' --plan-file "$PLANFILE"
 
 # Define meta data
 %labels
-Name        SymBD
-Description Symbolic Bidirectonal Blind Search
+Name        QDom-Lmcut
+Description Dominance Pruning
 Authors       Alvaro Torralba <alto@cs.aau.dk>
 License     GPL 3
 Tracks      optimal
