@@ -4,7 +4,9 @@
 #include <vector>
 #include <limits>
 
-template <typename T> 
+#include <stddef.h>
+
+template <typename T>
 void breadth_first_search_reachability_distances_one(const std::vector<std::vector<int> > &graph,
 						     int initial_state,
 						     std::vector<T> & distances,
@@ -35,9 +37,3 @@ void breadth_first_search_reachability_distances_one(const std::vector<std::vect
 
 
 #endif
-
-
-
-
-
-

@@ -1,6 +1,7 @@
 #ifndef MERGE_AND_SHRINK_SHRINK_BISIMULATION_H
 #define MERGE_AND_SHRINK_SHRINK_BISIMULATION_H
 
+#include <limits>
 #include "shrink_strategy.h"
 
 class Options;
@@ -35,7 +36,7 @@ class ShrinkBisimulation : public ShrinkStrategy {
         Abstraction &abs,
         int target_size,
         EquivalenceRelation &equivalence_relation);
-    
+
     int initialize_groups(const Abstraction &abs,
                           std::vector<int> &state_to_group);
     void compute_signatures(

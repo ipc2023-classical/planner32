@@ -1,8 +1,8 @@
 # By default, build in 32-bit mode. Use BITWIDTH=64 (on command
 # line or in environment) to build in 64-bit mode and BITWIDTH=native
 # to use the native bitness of the OS.
-BITWIDTH ?= 32
-#BITWIDTH ?= 64
+#BITWIDTH ?= 32
+BITWIDTH ?= 64
 
 ## Set USE_LP to 1 to enable linear programming stuff.
 USE_LP=0
@@ -118,7 +118,7 @@ HEADERS += merge_and_shrink/abstraction.h \
            merge_and_shrink/variable_partition_finder.h \
            merge_and_shrink/opt_order.h \
 	   merge_and_shrink/abstraction_builder.h \
-#          merge_and_shrink/variable_partition_dominance.h 
+#          merge_and_shrink/variable_partition_dominance.h
 	 # merge_and_shrink/simulation_complex.h \
 #           merge_and_shrink/simulation_complex_nold.h \
 
@@ -129,7 +129,7 @@ HEADERS += numeric_dominance/numeric_simulation_relation.h \
            numeric_dominance/int_epsilon.h \
            numeric_dominance/dijkstra_search_epsilon.h \
 	   numeric_dominance/tau_labels.h \
-	   numeric_dominance/breadth_first_search.h 
+	   numeric_dominance/breadth_first_search.h
 
 HEADERS += landmarks/exploration.h \
            landmarks/h_m_landmarks.h \
@@ -286,7 +286,7 @@ endif
 
 CXXFLAGS += -g
 CXXFLAGS += $(BITWIDTHOPT)
-CXXFLAGS += -Wall -W -Wno-sign-compare -Wno-deprecated -pedantic -Werror 
+CXXFLAGS += -Wall -W -Wno-sign-compare -Wno-deprecated -pedantic -Werror
 
 ## The following lines contain workarounds for bugs when
 ## cross-compiling to 64 bit on 32-bit systems using gcc 4.4 or gcc
@@ -407,7 +407,7 @@ endif # LP code
 CUDD_ROOT = cudd-3.0.0/cudd/.libs/libcudd.a
 
 $(CUDD_ROOT):
-	cd cudd-3.0.0 && aclocal && automake --add-missing && autoconf && ./configure --enable-obj --enable-static --build=i686-pc-linux-gnu "CFLAGS=-m32 -Wall -Wextra -g -O3" "CXXFLAGS=-m32 -Wall -Wextra -std=c++0x -g -O3" "LDFLAGS=-m32" && make && make cplusplus
+	cd cudd-3.0.0 &&  aclocal && autoheader && automake --add-missing && autoconf && ./configure --enable-obj --build=i686-pc-linux-gnu "CFLAGS=-m64 -Wall -Wextra -g -O3" "CXXFLAGS=-m64 -Wall -Wextra -std=c++0x -g -O3" "LDFLAGS=-m64" && make && make cplusplus
 
 
 
@@ -418,7 +418,7 @@ $(TARGET_PROFILE) $(OBJECTS_PROFILE): $(CUDD_ROOT)
 CUDD_CCOPT = -Icudd-3.0.0/cudd -Icudd-3.0.0/cplusplus
 
 CUDD_LINKOPT = cudd-3.0.0/cudd/.libs/libcudd.a \
-   cudd-3.0.0/dddmp/.libs/libdddmp.a 
+   cudd-3.0.0/dddmp/.libs/libdddmp.a
 
 #CUDD Includes
 CXXFLAGS += $(CUDD_CCOPT)
