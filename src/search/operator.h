@@ -30,6 +30,10 @@ struct Prevail {
         return !(*this == other);
     }
 
+    bool operator<(const Prevail &other) const {
+        return var < other.var || (var == other.var && prev < other.prev);
+    }
+
     void dump() const;
 };
 
@@ -55,6 +59,12 @@ struct PrePost {
         return true;
     }
 
+    bool operator<(const PrePost &other) const {
+        //TODO: Conditions are ignored
+        return var < other.var || (var == other.var && (pre < other.pre || (pre == other.pre && post < other.post)));
+    }
+
+
     void dump() const;
 };
 
@@ -65,10 +75,23 @@ class Operator {
     std::string name;
     int cost;
 
-    mutable bool marked; // Used for short-term marking of preferred operators
-    bool dead;
+    mutable bool marked = false; // Used for short-term marking of preferred operators
+    bool dead = false;
 public:
     Operator(std::istream &in, bool is_axiom);
+
+    Operator (bool _is_an_axiom,
+                 std::vector<Prevail> && _prevail,
+                 std::vector<PrePost> && _pre_post,
+                 std::string _name,
+                 int _cost) : is_an_axiom(_is_an_axiom),
+                              prevail(std::move(_prevail)),
+                              pre_post (std::move(_pre_post)),
+                              name(_name), cost(_cost) {
+    }
+
+    Operator(const Operator & op) = default;
+
     void dump() const;
     std::string get_name() const {return name; }
 
@@ -89,13 +112,13 @@ public:
     void get_vars(std::set<int> & pre_vars, std::set<int> & eff_vars) const {
 	for (auto & p : prevail){
 	    pre_vars.insert(p.var);
-	} 
+	}
 	for (auto & p : pre_post){
 	    eff_vars.insert(p.var);
 	    if(p.pre != -1){
-		pre_vars.insert(p.var);		
+		pre_vars.insert(p.var);
 	    }
-	} 
+	}
     }
 
     bool is_applicable(const State &state) const {

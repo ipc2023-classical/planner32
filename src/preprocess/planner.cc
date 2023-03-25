@@ -21,14 +21,14 @@
 using namespace std;
 
 int main(int argc, const char ** argv) {
-  int h2_mutex_time = 0; // disabled mutexes by default
-  bool optimize_ordering = false;  
+  int h2_mutex_time = 300; // disabled mutexes by default
+  bool optimize_ordering = false;
   bool write_to_file_for_gamer = false;
   bool include_augmented_preconditions = false;
   bool expensive_statistics = false;
   bool disable_bw_h2 = false;
 
-  
+
   bool metric;
   vector<Variable *> variables;
   vector<Variable> internal_variables;
@@ -115,7 +115,7 @@ if (arg.compare("--no_rel") == 0) {
     //Update the causal graph and remove unneccessary variables
     strip_mutexes(mutexes);
     strip_operators(operators);
-    strip_axioms(axioms);      
+    strip_axioms(axioms);
 
     cout << "Change id of operators: " << operators.size() << endl;
     // 1) Change id of values in operators and axioms to remove unreachable facts from variables
@@ -157,10 +157,10 @@ if (arg.compare("--no_rel") == 0) {
                 var->remove_unreachable_facts();
       }
     }
-      
+
     strip_mutexes(mutexes);
     strip_operators(operators);
-    strip_axioms(axioms);      
+    strip_axioms(axioms);
 
     causal_graph.update();
     cg_acyclic = causal_graph.is_acyclic();
@@ -170,8 +170,8 @@ if (arg.compare("--no_rel") == 0) {
   }
 
   //Merge mutexes and make exactly one invariant groups
-  generate_invariants(mutexes, operators, initial_state); 
-    
+  generate_invariants(mutexes, operators, initial_state);
+
   if(optimize_ordering){
     causal_graph.optimize_ordering_gamer();
   }
@@ -213,7 +213,7 @@ if (arg.compare("--no_rel") == 0) {
     cout << "Preprocessor derived variables: " << derived_vars << endl;
     cout << "Preprocessor operators: " << operators.size() << endl;
     cout << "Preprocessor mutex groups: " << mutexes.size() << endl;
-    
+
     if (expensive_statistics) {
         //Count potential preconditions
         int num_total_augmented = 0;

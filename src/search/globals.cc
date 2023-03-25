@@ -169,14 +169,14 @@ void read_mutexes(istream &in) {
     for (size_t i = 0; i < num_mutex_groups; ++i) {
       MutexGroup mg = MutexGroup(in);
       g_mutex_groups.push_back(mg);
-  
+
       const vector<pair<int, int> > & invariant_group = mg.getFacts();
         for (size_t j = 0; j < invariant_group.size(); ++j) {
             const pair<int, int> &fact1 = invariant_group[j];
             //int var1 = fact1.first, val1 = fact1.second;
             for (size_t k = 0; k < invariant_group.size(); ++k) {
                 const pair<int, int> &fact2 = invariant_group[k];
-			    
+
                 //int var2 = fact2.first;
                 //if (var1 != var2) {
                     /* The "different variable" test makes sure we
@@ -219,11 +219,118 @@ void dump_goal() {
              << g_goal[i].second << endl;
 }
 
+
+  void add_conditional_operator(const Operator & original_op, const std::vector<Prevail>& multiplied_conditions) {
+    // multiplied_conditions keeps an assignment to all variables in conditions of effects
+    int num_vars = g_variable_domain.size();
+    vector<int> assignment(num_vars, -1);
+    for (const auto & fact : multiplied_conditions) {
+        assignment[fact.var] = fact.prev;
+    }
+
+    for (const auto & pre : original_op.get_prevail()) {
+        assert (assignment[pre.var] == -1 || assignment[pre.var] == pre.prev);
+        assignment[pre.var] = pre.prev;
+    }
+
+    for (const auto & pre_post : original_op.get_pre_post()) {
+        if (pre_post.pre == -1) continue;
+        assert (assignment[pre_post.var] == -1 || assignment[pre_post.var] == pre_post.pre);
+        assignment[pre_post.var] = pre_post.pre;
+    }
+
+    vector<bool> has_effect(num_vars, false);
+    // Going over the effects and collecting those that fire.
+    vector<PrePost> effects;
+    for (const auto & original_effect : original_op.get_pre_post()) {
+        bool fires = true;
+        for (const auto & original_condition : original_effect.cond) {
+            assert(assignment[original_condition.var] != -1);
+            if (assignment[original_condition.var] != original_condition.prev) {
+                fires = false;
+                break;
+            }
+        }
+        if (fires) {
+            assert (!has_effect[original_effect.var]);
+            // Check if the operator effect is not redundant because it is
+            // already a (multiplied out) precondidtion.
+
+            if (assignment[original_effect.var] != original_effect.post) {
+                effects.emplace_back(original_effect.var,
+                                     assignment[original_effect.var],
+                                     original_effect.post, std::vector<Prevail>{});
+            }
+            has_effect[original_effect.var] = true;
+        }
+    }
+
+    if (effects.empty())
+        return;
+
+    // Effects have to be sorted by var in various places of the planner.
+    // sort(effects.begin(), effects.end());
+
+    /*
+      Collect preconditions of the operators from the parent's preconditions
+      and the multiplied out effect preconditions. We use a set here to filter
+      out duplicates. Furthermore, we directly sort the set in the desired
+      way, i.e. according to the order of (var, val) of the operator's effects.
+    */
+    vector<Prevail> cond_vector;
+    for (int var = 0; var < num_vars; ++var) {
+        if (assignment[var] != -1 && !has_effect[var]) {
+            cond_vector.push_back (Prevail(var, assignment[var]));
+
+        }
+    }
+
+    g_operators.emplace_back(original_op.is_axiom(),
+                             std::move(cond_vector),
+                             std::move(effects),
+                             original_op.get_name(),
+                             original_op.get_cost());
+  }
+
+void multiply_out_conditions(const Operator & original_op,
+                             const std::vector<int>& conditional_variables,
+                             int var_index, std::vector<Prevail>& multiplied_conditions) {
+    if (var_index == static_cast<int>(conditional_variables.size())) {
+        add_conditional_operator(original_op, multiplied_conditions);
+        return;
+    }
+    int var = conditional_variables[var_index];
+    int domain_size = g_variable_domain[var];
+    for (int value = 0; value < domain_size; ++value) {
+        multiplied_conditions.emplace_back(var,value);
+        multiply_out_conditions(original_op, conditional_variables, var_index+1, multiplied_conditions);
+        multiplied_conditions.pop_back();
+    }
+}
+
+
+
 void read_operators(istream &in) {
     int count;
     in >> count;
-    for (int i = 0; i < count; i++)
-        g_operators.push_back(Operator(in, false));
+    for (int i = 0; i < count; i++) {
+        Operator op (in, false);
+
+        set<int> condition_variables;
+        for (const auto & eff : op.get_pre_post()) {
+            for (const auto & cond : eff.cond ) {
+                condition_variables.insert(cond.var);
+            }
+        }
+        if (condition_variables.empty()) {
+            g_operators.push_back(op);
+        } else {
+            vector<int> cvars(condition_variables.begin(), condition_variables.end());
+            vector<Prevail> multiplied_conditions;
+            multiply_out_conditions(op, cvars, 0, multiplied_conditions);
+        }
+}
+
 }
 
 void read_axioms(istream &in) {
@@ -405,7 +512,7 @@ SuccessorGenerator *g_successor_generator;
 vector<DomainTransitionGraph *> g_transition_graphs;
 CausalGraph *g_causal_graph;
 
-vector<MutexGroup> g_mutex_groups; 
+vector<MutexGroup> g_mutex_groups;
 vector<bool> g_inconsistent_facts;
 int g_num_facts;
 vector<int> g_id_first_fact;
