@@ -34,6 +34,7 @@ From: ubuntu:kinetic
 Stage: run
 
 %files from build
+    src/translate
     src/search/downward
     src/search/downward-release
     src/preprocess/preprocess
@@ -51,7 +52,7 @@ Stage: run
     PROBLEMFILE="$2"
     PLANFILE="$3"
 
-    ./src/plan "$DOMAINFILE" "$PROBLEMFILE" --search 'astar(lmcut(), prune=num_simulation(use_quantified_dominance=true, use_single_bdd=false, pruning_type=prune_successors=true, prune_dominated_by_parent=true, prune_dominated_by_closed=true, prune_dominated_by_open=false, min_desactivation_ratio=0.3, min_insertions=100, tau_labels_self_loops=false, tau_labels_recursive=false, tau_labels_noop=false, truncate_value=10, abs=builder_massim(compute_final_simulation=false, apply_subsumed_transitions_pruning=true, prune_dead_operators=true, store_original_operators=true, switch_off_label_dominance=5000, merge_strategy=merge_dfp(), limit_transitions_merge=10000, limit_merge=infinity)))' --plan-file "$PLANFILE"
+    /src/plan "$DOMAINFILE" "$PROBLEMFILE" --search 'astar(lmcut(), prune=num_simulation(use_quantified_dominance=true, use_single_bdd=false, pruning_type=prune_successors=true, prune_dominated_by_parent=true, prune_dominated_by_closed=true, prune_dominated_by_open=false, min_desactivation_ratio=0.3, min_insertions=100, tau_labels_self_loops=false, tau_labels_recursive=false, tau_labels_noop=false, truncate_value=10, abs=builder_massim(compute_final_simulation=false, apply_subsumed_transitions_pruning=true, prune_dead_operators=true, store_original_operators=true, switch_off_label_dominance=5000, merge_strategy=merge_dfp(), limit_transitions_merge=10000, limit_merge=infinity)))' --plan-file "$PLANFILE"
 
 # Define meta data
 %labels
@@ -68,4 +69,4 @@ SupportsNegativePreconditions                   yes
 SupportsEqualityPreconditions                   yes
 SupportsInequalityPreconditions                 yes
 SupportsConditionalEffects                      no
-SupportsImplyPreconditions                      yes
+SupportsImplyPreconditions                      no
